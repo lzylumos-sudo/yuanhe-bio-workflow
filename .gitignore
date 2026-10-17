@@ -33,3 +33,10 @@ installation_evidence/
 *.trr
 *.chk
 *.tar.gz
+# Local research deliveries and preserved external-drive installations
+result/
+archive/20261018_original_layout/
+06_websites/
+deployment/remote.local.json
+open_remote_workbench.command
+LOCAL_README.txt

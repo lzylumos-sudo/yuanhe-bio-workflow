@@ -48,7 +48,7 @@ def _write_json(path: Path, value: dict[str, Any]) -> None:
 
 def platform_readiness(repo: str | Path, executable: str | Path) -> dict[str, Any]:
     """Return explicit readiness information; no fallback is attempted."""
-    repo_path, exe_path = Path(repo).resolve(), Path(executable).resolve()
+    repo_path, exe_path = Path(repo).resolve(), Path(executable).absolute()
     prepare = repo_path / "notebooks" / "deal_with_mol_test_from_pdb_pal_5A.py"
     inference = repo_path / "src" / "eval.py"
     issues: list[str] = []
@@ -86,17 +86,25 @@ def _pdb_elements(path: Path) -> set[str]:
 
 
 def _run(command: list[str], cwd: Path, env: dict[str, str] | None = None) -> dict[str, Any]:
+    import threading
     started = _now()
-    completed = subprocess.run(command, cwd=cwd, env=env, text=True, capture_output=True, check=False, timeout=86400)
-    return {
-        "command": command,
-        "cwd": str(cwd),
-        "started_at": started,
-        "finished_at": _now(),
-        "returncode": completed.returncode,
-        "stdout": completed.stdout,
-        "stderr": completed.stderr,
-    }
+    environment = {**os.environ, **(env or {}), "PYTHONUNBUFFERED": "1"}
+    proc = subprocess.Popen(command, cwd=cwd, env=environment, text=True,
+                            stdout=subprocess.PIPE, stderr=subprocess.PIPE, bufsize=1)
+    captured = {"stdout": [], "stderr": []}
+    def consume(name, stream):
+        for line in stream:
+            captured[name].append(line)
+            print(f"[Peptide2Mol {proc.pid} {name}] {line}", end="", flush=True)
+    readers=[threading.Thread(target=consume,args=(name,getattr(proc,name)),daemon=True) for name in captured]
+    for t in readers:t.start()
+    try:proc.wait(timeout=86400)
+    except subprocess.TimeoutExpired:
+        proc.kill();proc.wait();raise
+    finally:
+        for t in readers:t.join()
+    return {"command":command,"cwd":str(cwd),"started_at":started,"finished_at":_now(),
+            "returncode":proc.returncode,**{k:"".join(v) for k,v in captured.items()}}
 
 
 def _rdkit():
@@ -167,7 +175,7 @@ def run(
     if any(out.iterdir()):
         raise FileExistsError("model output directory must be empty; use a new attempt directory")
     manifest_path = out / "manifest.json"
-    pocket, ckpt, exe = Path(pocket_pdb).resolve(), Path(checkpoint).resolve(), Path(executable).resolve()
+    pocket, ckpt, exe = Path(pocket_pdb).resolve(), Path(checkpoint).resolve(), Path(executable).absolute()
     manifest: dict[str, Any] = {
         "adapter": "Peptide2Mol", "repo": str(repo_path), "repo_commit": REPO_COMMIT,
         "executable": str(exe), "checkpoint": {"path": str(ckpt), "required_sha256": checkpoint_sha256},

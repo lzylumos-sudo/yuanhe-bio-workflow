@@ -12,7 +12,7 @@ from webui.studio import within
 AMINO={'ALA','ARG','ASN','ASP','ASH','CYS','CYX','GLN','GLU','GLH','GLY','HIS','HID','HIE','HIP','ILE','LEU','LYS','LYN','MET','PHE','PRO','SER','THR','TRP','TYR','VAL'}
 def number(p,key,default,lo,hi):
  v=float(p.get(key,default))
- if not math.isfinite(v) or not lo<=v<=hi:raise ValueError(f'{key} Must be within {lo}–{hi} and')
+ if not math.isfinite(v) or not lo<=v<=hi:raise ValueError(f'{key} must be within {lo}–{hi}')
  return v
 
 def rotation(normal):
@@ -32,7 +32,7 @@ def system_dir(d,ident):
 def execute(argv,cwd,timeout=604800,input_text=None):
  print(json.dumps({'argv':list(map(str,argv)),'cwd':str(cwd)},ensure_ascii=False),flush=True)
  p=subprocess.run(list(map(str,argv)),cwd=cwd,input=input_text,text=True,timeout=timeout,pass_fds=w.lease_fds())
- if p.returncode:raise RuntimeError(f'External program exited {p.returncode}; See log')
+ if p.returncode:raise RuntimeError(f'External program exited {p.returncode}; inspect the log')
 
 def add_restraints(top):
  """Restrain solute heavy atoms using molecule-local indices, never global indices."""
@@ -134,7 +134,7 @@ def mdp(phase,p,seed):
  temp=float(p['temperature_K']);ns=float(p['production_ns'] if phase=='production' else p['equilibration_ns'])
  em=phase=='em';nvt=phase=='nvt';restrained=phase!='production'
  steps=5000 if em else max(1,round((.1 if nvt else ns if phase=='production' else ns/2)*500000))
- lines=['integrator = '+('steep' if em else 'md'),f'nsteps = {steps}','dt = 0.002','emtol = 1000','emstep = 0.01','cutoff-scheme = Verlet','nstlist = 20','rlist = 1.0','coulombtype = PME','rcoulomb = 1.0','vdwtype = Cut-off','rvdw = 1.0','DispCorr = EnerPres','pbc = xyz','constraints = h-bonds','constraint-algorithm = lincs','nstenergy = 500','nstlog = 500','nstxout-compressed = 500','compressed-x-grps = System','nstxout = 0','nstvout = 0','nstfout = 0']
+ lines=['integrator = '+('steep' if em else 'md'),f'nsteps = {steps}','dt = 0.002','emtol = 1000','emstep = 0.01','cutoff-scheme = Verlet','nstlist = 20','rlist = 1.0','coulombtype = PME','rcoulomb = 1.0','vdwtype = Cut-off','rvdw = 1.0','DispCorr = EnerPres','pbc = xyz','constraints = h-bonds','constraint-algorithm = lincs','nstenergy = 500','nstlog = 500','nstxout-compressed = 5000','compressed-x-grps = System','nstxout = 0','nstvout = 0','nstfout = 0']
  if restrained:lines+=['define = -DPOSRES -DPOSRES_FC='+('100' if phase=='npt_soft' else '1000'),'refcoord-scaling = com']
  if not em:
   lines+=[f'ld-seed = {seed}','tcoupl = V-rescale','tc-grps = System','tau-t = 1.0',f'ref-t = {temp}','continuation = '+('no' if nvt else 'yes'),'gen-vel = '+('yes' if nvt else 'no')]
@@ -184,7 +184,8 @@ def run(d,c,p,out):
   tpr_hash=w.digest(folder/(phase+'.tpr'))
   if record.get('tpr_sha256',tpr_hash)!=tpr_hash:raise ValueError('TPR validation failed')
   progress['phases'][phase]={'status':'running','tpr_sha256':tpr_hash};w.atomic(folder/'progress.json',progress)
-  argv=[gmx,'mdrun','-deffnm',phase,'-ntmpi','1','-ntomp','4']
+  argv=[gmx,'mdrun','-deffnm',phase,'-ntmpi','1','-ntomp',str(int(os.environ.get('YUANHE_MD_THREADS','12'))),'-cpt','2','-nb','gpu']
+  if phase!='em':argv+=['-pme','gpu','-bonded','gpu']
   if (folder/(phase+'.cpt')).exists():argv+=['-cpi',phase+'.cpt','-append']
   elif record.get('status')=='running' and (folder/(phase+'.log')).exists():raise ValueError('No checkpoint after interruption; create a new system to preserve partial output')
   execute(argv,folder,int(c.get('timeout_seconds',86400)))

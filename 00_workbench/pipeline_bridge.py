@@ -36,15 +36,59 @@ def stage_prepare(d,cfg,out):
 
 def stage_peptide2mol(d,cfg,out):
  from src.adapters import peptide2mol
+ from concurrent.futures import ThreadPoolExecutor
  mc=read(GEN/'configs/project.json')['models']['peptide2mol']
+ if cfg.get('generation_recovery_run'):
+  # Explicit UI-created continuation of this run's interrupted real inference.
+  # The original failed stage, raw stdout/stderr and molecules remain immutable.
+  parent=run_dir(cfg['generation_recovery_run']);oldcfg=read(parent/'config.json',{})
+  if oldcfg.get('input_sha256')!=cfg['input_sha256']:raise ValueError('Recovery source PDB hash differs from current input')
+  require(parent,'prepare')
+  if digest(parent/'prepare/receptor_prepared.pdb')!=digest(d/'prepare/receptor_prepared.pdb'):raise ValueError('Recovery source pocket differs')
+  previous=read(parent/'peptide2mol/stage.json',{})
+  if previous.get('status') not in {'failed','cancelled','interrupted'}:raise ValueError('Recovery requires a stopped failed or interrupted sampling stage')
+  import re
+  rows=[];seen=set();audit=[];rejections=[];started=0;completed=0
+  for model in sorted((parent/'peptide2mol').glob('model_*')):
+   manifest=read(model/'manifest.json')
+   if not manifest:raise ValueError('Original inference manifest missing; recovery refused')
+   if manifest.get('input_sha256')!=digest(d/'prepare/receptor_prepared.pdb') or manifest.get('checkpoint',{}).get('actual_sha256')!=mc['checkpoint_sha256']:raise ValueError('Model or pocket provenance verification failed')
+   inference=manifest['commands'][-1];stdout=inference.get('stdout','');stderr=inference.get('stderr','')
+   nstart=len(re.findall(r'(?<!\d)0/1000',stderr));nend=stdout.count('Success:')+stdout.count('Incomplete molecule:')+stdout.count('Reconstruction error encountered.')
+   if not nstart or nstart<nend:raise ValueError('Sampling attempt count cannot be verified')
+   started+=nstart;completed+=nend
+   for line in stdout.splitlines():
+    if line.startswith(('Incomplete molecule:','Reconstruction error encountered.')):rejections.append({'source_batch':model.name,'reason':line})
+   source=model/'model_output_SDF';archive=out/'raw_sdf'/model.name
+   collected,reasons=peptide2mol._collect_sdfs(source,archive,16)
+   for i,x in enumerate(collected):
+    if x['valid'] and x['smiles'] not in seen:
+     seen.add(x['smiles']);rows.append({'id':f'recovered_{model.name}_{i:05d}','smiles':x['smiles'],'raw_sdf':str(Path(x['raw_sdf']).relative_to(d))})
+    else:rejections.append({'source_batch':model.name,'reason':x.get('failure_reason') or 'duplicate'})
+   audit.append({'parent_run':parent.name,'batch':model.name,'manifest_sha256':digest(model/'manifest.json'),'original_status':manifest.get('status'),'started_attempts':nstart,'completed_attempts':nend,'checkpoint_sha256':mc['checkpoint_sha256'],'raw_sdf_sha256':{p.name:digest(p) for p in archive.glob('*.sdf')}})
+  if started>16:raise ValueError('The 16-attempt budget has been exceeded; do not sample further')
+  atomic(out/'recovery_audit.json',{'completion_mode':'validated_partial_output_from_interrupted_inference','parent_run':parent.name,'original_stage_status':previous.get('status'),'started_attempts':started,'completed_attempts':completed,'interrupted_attempts':started-completed,'additional_sampling':0,'batches':audit})
+  atomic(out/'rejected.json',rejections);atomic(out/'seeds.json',rows);csv_write(out/'molecules.csv',rows,['id','smiles','raw_sdf'])
+  if not rows:raise RuntimeError('No valid molecule in completed partial outputs')
+  return {'requested':oldcfg['budget'],'sampled':completed,'attempted':started,'interrupted':started-completed,'remaining':len(rows),'recovered':len(rows)}
  py=executable(cfg['peptide_python'],'Peptide2Mol Python')
- result=peptide2mol.run(pocket_pdb=d/'prepare/receptor_prepared.pdb',checkpoint=GEN/mc['checkpoint'],checkpoint_sha256=mc['checkpoint_sha256'],
- output_dir=out/'model',budget=cfg['budget'],seed=cfg['seed'],executable=py,repo=GEN/'vendor/Peptide2Mol')
- candidates=read(out/'model/candidates.json')['candidates'];rows=[]
- for n,x in enumerate(candidates):
-  if x['valid']:rows.append({'id':f'seed_{n:05d}','smiles':x['smiles'],'raw_sdf':str(Path(x['raw_sdf']).relative_to(d))})
- atomic(out/'seeds.json',rows);csv_write(out/'molecules.csv',rows,['id','smiles','raw_sdf'])
- return {'requested':cfg['budget'],'sampled':result['report']['completed'],'remaining':len(rows)}
+ workers=min(int(os.environ.get('YUANHE_GENERATION_WORKERS','4')),cfg['budget'])
+ workers=max(1,min(workers,4));quotas=[cfg['budget']//workers+(i<cfg['budget']%workers) for i in range(workers)]
+ atomic(out/'resource_plan.json',{'workers':workers,'sample_quotas':quotas,'seeds':[cfg['seed']+i for i in range(workers)],'total_attempts':sum(quotas),'diffusion_steps':'model default, unchanged'})
+ def sample(i):
+  return peptide2mol.run(pocket_pdb=d/'prepare/receptor_prepared.pdb',checkpoint=GEN/mc['checkpoint'],checkpoint_sha256=mc['checkpoint_sha256'],output_dir=out/f'model_{i:02d}',budget=quotas[i],seed=cfg['seed']+i,executable=py,repo=GEN/'vendor/Peptide2Mol')
+ with ThreadPoolExecutor(max_workers=workers) as pool:results=list(pool.map(sample,range(workers)))
+ rows=[];seen=set();rejected=[];sampled=0
+ for i,result in enumerate(results):
+  candidates=read(out/f'model_{i:02d}/candidates.json')['candidates'];sampled+=result['report']['completed']
+  for n,x in enumerate(candidates):
+   cid=f'seed_{i:02d}_{n:05d}'
+   if x['valid'] and x['smiles'] not in seen:
+    seen.add(x['smiles']);rows.append({'id':cid,'smiles':x['smiles'],'raw_sdf':str(Path(x['raw_sdf']).relative_to(d))})
+   else:rejected.append({'id':cid,'reason':x.get('failure_reason') or 'duplicate_across_batches','raw_sdf':x['raw_sdf']})
+ atomic(out/'rejected.json',rejected);atomic(out/'seeds.json',rows);csv_write(out/'molecules.csv',rows,['id','smiles','raw_sdf'])
+ if not rows:raise RuntimeError('No valid unique generated molecules')
+ return {'requested':cfg['budget'],'sampled':sampled,'remaining':len(rows)}
 
 def stage_reinvent4(d,cfg,out):
  from src.adapters import reinvent4
@@ -98,8 +142,8 @@ def stage_docking(d,cfg,out):
  exe=executable(cfg['gnina'],'GNINA')
  if cfg['gnina_device']=='gpu':
   smi=shutil.which('nvidia-smi') or '/usr/lib/wsl/lib/nvidia-smi'
-  probe=subprocess.run([smi,'--query-gpu=name','--format=csv,noheader'],capture_output=True,text=True,timeout=20)
-  if probe.returncode or not probe.stdout.strip():raise Blocked('Requested GPU docking, but WSL was not detected NVIDIA GPU')
+  probe=subprocess.run([smi,'-L'],capture_output=True,text=True,timeout=20)
+  if probe.returncode or not probe.stdout.strip():raise Blocked('GPU docking requested but no NVIDIA GPU detected')
  # Explicit preparation is a scientific input, not guessed from raw coordinates.
  rec=Path(cfg.get('docking_receptor') or '')
  if not rec.is_absolute():rec=d/rec
@@ -115,9 +159,17 @@ def stage_docking(d,cfg,out):
  box=Box(tuple(map(float,b['center'])),tuple(map(float,b['size'])),'manual')
  if box.validate():raise ValueError('Invalid or oversized docking box: '+','.join(box.validate()))
  receptor=out/'receptor.pdb';shutil.copyfile(rec,receptor);atomic(out/'box.json',b)
- proto=Protocol.preset('standard',seeds=(cfg['seed'],));rows=read(d/'reinvent4/candidates.json',[]);results=[];successful=[]
+ proto=Protocol.preset('standard',seeds=(cfg['seed'],));rows=list(read(d/'reinvent4/candidates.json',[]));results=[];successful=[]
+ from rdkit import Chem
+ seen={Chem.MolToSmiles(Chem.MolFromSmiles(r['smiles']),isomericSmiles=True) for r in rows}
+ for seed in read(d/'peptide2mol/seeds.json',[]):
+  canon=Chem.MolToSmiles(Chem.MolFromSmiles(seed['smiles']),isomericSmiles=True)
+  if canon not in seen:
+   seen.add(canon);rows.append({'id':seed['id'],'smiles':canon,'sdf':seed['raw_sdf'],'source_stage':'peptide2mol'})
+ if len(rows)>16:raise ValueError('This bounded workflow accepts at most 16 unique docking inputs')
+ atomic(out/'input_molecules.json',rows)
  for row in rows:
-  result=run_gnina_job(exe,receptor,d/row['sdf'],box,proto,cfg['seed'],out/'jobs'/row['id'],device=cfg['gnina_device'],cpu=4,timeout=cfg['timeout_seconds'],nvidia_smi=shutil.which('nvidia-smi'),env_extra=gnina_environment())
+  result=run_gnina_job(exe,receptor,d/row['sdf'],box,proto,cfg['seed'],out/'jobs'/row['id'],device=cfg['gnina_device'],cpu=int(os.environ.get('YUANHE_DOCKING_THREADS','24')),timeout=cfg['timeout_seconds'],nvidia_smi=shutil.which('nvidia-smi'),env_extra=gnina_environment())
   entry={**row,'status':result['status'],'error':result.get('error')}
   if result['status']=='ok':
    best=max(result['poses'],key=lambda x:x['cnn_pose_score']);entry.update(best);successful.append(row['id'])
@@ -146,7 +198,7 @@ def stage_screening(d,cfg,out):
  env['ZVSS_SCRATCH']=tempfile.mkdtemp(prefix='yuanhe_zvss_')
  command([py,'-m','zvss.cli','--root',workspace,'run','--input',handoff,'--run-id','screen',
  '--target',workspace/'configs/targets'/f"{cfg['target_profile']}.yaml",'--budget',workspace/'configs/budgets'/f"{cfg.get('screening_budget','quick')}.yaml",
- '--host',workspace/'host.json','--hints',json.dumps({'receptor_file':str(d/'docking/receptor.pdb'),'box':cfg['docking_box'],'seed':cfg['seed']})],workspace,cfg['timeout_seconds'],env)
+ '--host',workspace/'host.json','--hints',json.dumps({'receptor_file':str(d/'docking/receptor.pdb'),'receptor_sha256':digest(d/'docking/receptor.pdb'),'box':cfg['docking_box'],'seed':cfg['seed']})],workspace,cfg['timeout_seconds'],env)
  state=read(workspace/'runs/screen/run_state.json',{})
  if state.get('errors'):raise RuntimeError('Screening module reported an error')
  files=list((workspace/'runs/screen').rglob('candidates.csv'))

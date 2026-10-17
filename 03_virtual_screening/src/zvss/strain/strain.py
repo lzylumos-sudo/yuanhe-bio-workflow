@@ -23,9 +23,12 @@ def run(ctx) -> dict[str, Any]:
 
     poses = data.pose_rows(ctx)
     budget = ctx.config.budget
-    by_compound: dict[str, dict[str, Any]] = {}
+    from ..scoring.aggregate import representative_pose
+    groups: dict[str, list[dict[str, Any]]] = {}
     for pose in poses:
-        by_compound.setdefault(pose["compound_id"], pose)
+        groups.setdefault(pose["compound_id"], []).append(pose)
+    # The strain must belong to exactly the pose used by the ranking.
+    by_compound = {key: representative_pose(group) for key, group in groups.items()}
 
     summary: dict[str, Any] = {"compounds": len(by_compound), "flagged": 0, "failed": 0, "scaffolds": {}}
     for compound_id in sorted(by_compound):
@@ -40,6 +43,7 @@ def run(ctx) -> dict[str, Any]:
         ctx.db.record_assessment("compound", compound_id, "properties", "alert_burden", alert_burden(properties), AssessmentStatus.PASS)
 
         strain = _strain(mol, budget)
+        strain["pose_id"] = pose["pose_id"]
         strain_status = str(strain.get("status") or "not_evaluated")
         strain_code = {
             "fail": Reason.EXCESSIVE_STRAIN,
@@ -61,7 +65,8 @@ def run(ctx) -> dict[str, Any]:
                 )
             else:
                 ctx.db.record_assessment("compound", compound_id, "strain", key, None,
-                                         AssessmentStatus.NOT_EVALUATED, Reason.STRAIN_NOT_CONVERGED,
+                                         AssessmentStatus(strain_status) if value is not None else AssessmentStatus.NOT_EVALUATED,
+                                         strain_code if value is not None else Reason.STRAIN_NOT_CONVERGED,
                                          value_text=str(value) if value is not None else None)
         if strain["status"] == "fail":
             summary["failed"] += 1
@@ -98,64 +103,47 @@ def _strain(mol, budget=None) -> dict[str, Any]:
 
     flag = float(getattr(budget, "strain_max_kcal", None) or STRAIN_FLAG)
     fail = flag * 2.0
-    work = Chem.Mol(mol)
-    if work.GetNumAtoms() == work.GetNumHeavyAtoms():
-        work = Chem.AddHs(work)
-    energy = None
-    minimum = None
-    used = None
+    import math
+    # Preserve every deposited heavy-atom coordinate; regenerate and relax only
+    # hydrogens before comparing against an unconstrained local minimum.
+    work = Chem.AddHs(Chem.RemoveHs(Chem.Mol(mol)), addCoords=True)
+    if work.GetNumConformers() != 1:
+        return {"status": "not_evaluated", "strain_kcal_mol": None, "reason": "one 3D conformer required"}
     for name in ("MMFF94", "UFF"):
-        # The force-field object and its parameters must come from the same
-        # molecule instance; mixing two copies crashes RDKit natively.
-        reference = Chem.Mol(work)
-        if name == "MMFF94":
-            if not AllChem.MMFFHasAllMoleculeParams(work):
-                continue
-            props = AllChem.MMFFGetMoleculeProperties(work)
-            ref_props = AllChem.MMFFGetMoleculeProperties(reference)
-            if props is None or ref_props is None:
-                continue
-            field = AllChem.MMFFGetMoleculeForceField(work, props)
-            reference_field = AllChem.MMFFGetMoleculeForceField(reference, ref_props)
-        else:
-            if not AllChem.UFFHasAllMoleculeParams(work):
-                continue
-            field = AllChem.UFFGetMoleculeForceField(work)
-            reference_field = AllChem.UFFGetMoleculeForceField(reference)
-        if field is None or reference_field is None:
-            continue
+        def force_field(m):
+            if name == "MMFF94":
+                if not AllChem.MMFFHasAllMoleculeParams(m): return None
+                return AllChem.MMFFGetMoleculeForceField(m, AllChem.MMFFGetMoleculeProperties(m))
+            if not AllChem.UFFHasAllMoleculeParams(m): return None
+            return AllChem.UFFGetMoleculeForceField(m)
+        field = force_field(work)
+        if field is None: continue
+        raw_energy = float(field.CalcEnergy())
+        for atom in work.GetAtoms():
+            if atom.GetAtomicNum() > 1: field.AddFixedPoint(atom.GetIdx())
+        field.Initialize()
+        h_status = field.Minimize(maxIts=2000)
         energy = float(field.CalcEnergy())
-        reference_field.Minimize(maxIts=2000)
+        reference = Chem.Mol(work)
+        reference_field = force_field(reference)
+        if reference_field is None: continue
+        minimum_status = reference_field.Minimize(maxIts=2000)
         minimum = float(reference_field.CalcEnergy())
-        used = name
-        break
-    if energy is None or minimum is None:
-        return {
-            "strain_kcal_mol": None,
-            "force_field": None,
-            "status": "not_evaluated",
-            "reason": "no force field in this build parameterises the molecule",
-        }
-    if abs(energy) > 1.0e5 or abs(minimum) > 1.0e5:
-        return {
-            "strain_kcal_mol": None,
-            "force_field": used,
-            "status": "not_evaluated",
-            "reason": "single-point energy is unphysical; coordinates are probably degenerate",
-        }
-    delta = energy - minimum
-    status = "pass"
-    if delta > fail:
-        status = "fail"
-    elif delta > flag:
-        status = "flag"
-    return {
-        "strain_kcal_mol": round(float(delta), 4),
-        "pose_energy": round(float(energy), 4),
-        "minimised_energy": round(float(minimum), 4),
-        "force_field": used,
-        "status": status,
-    }
+        result = {"force_field": name, "pose_energy": energy, "raw_pose_energy": raw_energy,
+                  "minimised_energy": minimum, "hydrogen_minimization_converged": h_status == 0,
+                  "reference_minimization_converged": minimum_status == 0,
+                  "protocol": "heavy_atoms_fixed_H_relaxed_minus_local_minimum"}
+        if h_status != 0 or minimum_status != 0 or not all(math.isfinite(x) and abs(x)<1e5 for x in (energy,minimum)):
+            return {**result, "status": "not_evaluated", "strain_kcal_mol": None,
+                    "reason": "minimization not converged or energy nonphysical"}
+        delta = energy-minimum
+        if delta < -0.01:
+            return {**result, "status": "not_evaluated", "strain_kcal_mol": None,
+                    "reason": "local minimum is higher than fixed-heavy pose"}
+        return {**result, "strain_kcal_mol": round(delta,4),
+                "status": "fail" if delta>fail else "flag" if delta>flag else "pass"}
+    return {"status": "not_evaluated", "strain_kcal_mol": None, "force_field": None,
+            "reason": "no force field parameterises the molecule"}
 
 
 def _property_violations(properties, budget) -> list[str]:

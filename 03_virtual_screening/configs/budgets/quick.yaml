@@ -1,6 +1,6 @@
 budget_id: quick
 description: "small-sample configuration for testing and demos"
-redock_max_parents: 20
+redock_max_parents: 0
 deep_max_parents: 10
 md_max_parents: 4
 md_primary_slots: 2

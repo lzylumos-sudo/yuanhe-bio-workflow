@@ -28,7 +28,7 @@ def read(path,default=None):
 
 def defaults():
  cfg = {'structure':'data/structures/9nu4.pdb','receptor_chain':'A','peptide_chain':'B','receptor_range':[3,500],
- 'budget':20,'seed':17,'pocket_radius':6.0,'peptide_python':'','reinvent_executable':'','chem_python':sys.executable,
+ 'budget':20,'generation_recovery_run':'','seed':17,'pocket_radius':6.0,'peptide_python':'','reinvent_executable':'','chem_python':sys.executable,
  'prep_python':'/opt/yuanhe/envs/prep/bin/python','md_python':'/opt/yuanhe/envs/membrane/bin/python','screening_budget':'quick','receptor_review':{},'md_system_ids':[], 'screen_python':'','gnina':'','gnina_device':'gpu','gmx':'','target_profile':'ecmurj',
  'core_selections':[], 'docking_receptor':'','docking_box':None,'gromacs_tpr':'',
  'gromacs_system_reviewed':False,'timeout_seconds':86400}
@@ -41,9 +41,50 @@ def source_snapshot():
  for root in roots:files.extend((ROOT/root).rglob('*.py'))
  return {str(p.relative_to(ROOT)):digest(p) for p in sorted(set(files)) if p.is_file()}
 
+def _screen_revision_allowed(name):
+ return name.startswith('03_virtual_screening/src/') or name in {'00_workbench/webui/server.py', '00_workbench/webui/workflow.py'}
+
 def verify_source(d):
  frozen=read(d/'source_snapshot.json')
- if frozen is not None and frozen!=source_snapshot():raise ValueError('Code differs from the run creation version. Preserve results and create a new run with copied settings')
+ revision=read(d/'active_source_revision.json')
+ if revision:
+  path=d/'source_revisions'/revision['file']
+  if path.parent!=d/'source_revisions' or digest(path)!=revision['sha256']:raise ValueError('Invalid source revision evidence')
+  proof=read(path)
+  if proof['initial_source_sha256']!=digest(d/'source_snapshot.json'):raise ValueError('Original source record changed')
+  changed={k for k in set(frozen)|set(proof['source']) if frozen.get(k)!=proof['source'].get(k)}
+  if any(not _screen_revision_allowed(k) for k in changed):raise ValueError('Revision changes an upstream calculation')
+  frozen=proof['source']
+ if frozen is not None and frozen!=source_snapshot():raise ValueError('Code differs from the recorded run version; preserve outputs and explicitly revise the affected stage')
+
+def rescreen(rid):
+ """Archive screening and record a narrowly scoped revision; never rerun models."""
+ d=run_dir(rid)
+ with _lock:
+  if _active:raise RuntimeError('A calculation is still active')
+  lease=acquire_compute()
+  try:
+   if (d/'gromacs').exists() or list((d/'md_systems').glob('*/system.json')):
+    raise ValueError('Downstream MD exists; create a separate run instead')
+   previous=read(d/'screening/stage.json',{})
+   if previous.get('status') not in {'completed','failed','cancelled','blocked'}:
+    raise ValueError('Screening must be stopped before revision')
+   upstream={key:require(d,key) for key in ('prepare','peptide2mol','reinvent4','docking')}
+   initial=read(d/'source_snapshot.json');current=source_snapshot()
+   changed={k for k in set(initial)|set(current) if initial.get(k)!=current.get(k)}
+   if any(not _screen_revision_allowed(k) for k in changed):raise ValueError('Upstream computation code changed; results cannot be reused')
+   stamp=str(time.time_ns());archive=d/'attempts'/('screening_revision_'+stamp)
+   proof={'reason':'UI-requested screening rerun after scoped repair; upstream results hash-verified and reused',
+          'initial_source_sha256':digest(d/'source_snapshot.json'),'source':current,
+          'changes':{k:{'before':initial.get(k),'after':current.get(k)} for k in sorted(changed)},
+          'upstream_stage_records':{k:digest(d/k/'stage.json') for k in upstream},
+          'previous_screening_stage_sha256':digest(d/'screening/stage.json'),
+          'archive':str(archive.relative_to(d)),'recorded_at':time.time()}
+   archive.parent.mkdir(exist_ok=True);(d/'screening').rename(archive)
+   record=d/'source_revisions'/(stamp+'.json');atomic(record,proof)
+   atomic(d/'active_source_revision.json',{'file':record.name,'sha256':digest(record)})
+  finally:lease.close()
+  return start(rid,'screening')
 
 
 def create(config):
@@ -153,7 +194,7 @@ def start(rid,stage):
   lease=acquire_compute()
   if target.exists():
    archive=d/'attempts'/f'{stage}_{time.time_ns()}';archive.parent.mkdir(exist_ok=True);target.rename(archive)
-  target.mkdir();atomic(target/'review.json',read(d/'reviews'/f'{stage}.json',{}));atomic(target/'stage.json',{'status':'running','started':time.time(),'counts':{},'config_sha256':digest(d/'config.json')})
+  target.mkdir();atomic(target/'review.json',read(d/'reviews'/f'{stage}.json',{}));atomic(target/'stage.json',{'status':'running','started':time.time(),'counts':{},'source_revision':read(d/'active_source_revision.json'),'config_sha256':digest(d/'config.json')})
   py=cfg.get('chem_python') or sys.executable
   logfile=(target/'process.log').open('w',encoding='utf-8')
   try:proc=subprocess.Popen([py,str(UI/'pipeline_bridge.py'),'--run-id',rid,'--stage',stage],stdout=logfile,stderr=subprocess.STDOUT,cwd=UI,start_new_session=True,pass_fds=(lease.fileno(),),env={**os.environ,'YUANHE_COMPUTE_FD':str(lease.fileno())})

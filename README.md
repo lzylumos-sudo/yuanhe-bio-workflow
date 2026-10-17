@@ -4,6 +4,8 @@ A traceable research workbench connecting protein-peptide complexes to Peptide2M
 
 **Release 0.3.0-rc1: engineering integration candidate.** The interface and adapters are implemented. Real end-to-end model, GNINA and membrane simulation acceptance on Windows/WSL2 with RTX 5070 remains pending. Engineering tests are not biological validation.
 
+**RTX 5090 D update (2026-10-18):** real generation, GNINA and screening were exercised through the UI. Six molecules produced 54 poses, with three preliminary display candidates and zero formal candidates. Membrane MD was not started. See [actual acceptance and limitations](docs/06_RTX5090_ACCEPTANCE.md).
+
 ```mermaid
 flowchart LR
  A[Complex and construct review] --> B[Peptide2Mol seeds]

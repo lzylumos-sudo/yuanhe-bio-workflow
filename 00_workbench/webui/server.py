@@ -261,6 +261,9 @@ def api_project_start(q, body, rid, key):
 def api_project_review(q, body, rid, key):
     return _json(workflow.review(rid,key,body))
 
+def api_project_rescreen(q, body, rid):
+    return _json(workflow.rescreen(rid),202)
+
 def api_project_cancel(q, body, rid):
     return _json(workflow.cancel(rid))
 
@@ -353,6 +356,7 @@ ROUTES = [
     ('GET', r'^/api/studio/run/(?P<rid>[A-Za-z0-9_-]+)/(?P<action>[a-z_-]+)$', api_studio_get),
     ('GET', r'^/api/project$', api_project),
     ('POST', r'^/api/project/runs$', api_project_create),
+    ('POST', r'^/api/project/run/(?P<rid>[A-Za-z0-9_-]+)/rescreen$', api_project_rescreen),
     ('GET', r'^/api/project/run/(?P<rid>[A-Za-z0-9_-]+)$', api_project_run),
     ('GET', r'^/api/project/run/(?P<rid>[A-Za-z0-9_-]+)/structure$', api_project_structure),
     ('GET', r'^/api/project/run/(?P<rid>[A-Za-z0-9_-]+)/pose/(?P<key>[a-z0-9]+)$', api_project_pose),

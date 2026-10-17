@@ -112,13 +112,29 @@ def prepare_target(ctx) -> dict[str, Any]:
     mapping_report = None
     if sequence:
         try:
+            mapping_source = structure_path
+            if structure_path.lower().endswith((".pdb", ".ent")):
+                # PDB has coordinates, but not the mmCIF mapping tables.
+                fetched = sifts.fetch_structure(profile.primary.pdb_id, cache_dir)
+                summary["mapping_source_fetch"] = fetched
+                mapping_source = fetched.get("path", "")
+                if fetched.get("status") != "ok" or not mapping_source.lower().endswith((".cif", ".mmcif")):
+                    raise ValueError("No mmCIF residue mapping source for the local PDB")
             mapping_report = sifts.build_mapping(
-                structure_path,
+                mapping_source,
                 pdb_id=profile.primary.pdb_id,
                 chain=profile.primary.chain,
                 accession=profile.uniprot,
                 native_sequence=sequence,
             )
+            if mapping_source != structure_path:
+                observed = {(a.chain, a.resseq): a.resname for a in parse_pdb_text(read_text(structure_path)).atoms if a.record == "ATOM"}
+                mismatch = [row.auth_seq_id for row in mapping_report.rows
+                            if (profile.primary.chain, row.auth_seq_id) in observed
+                            and observed[(profile.primary.chain, row.auth_seq_id)] != row.resname]
+                if mismatch:
+                    raise ValueError(f"Mapping source differs from local PDB at residues {mismatch}")
+                summary["mapping_local_pdb_residue_check"] = "passed"
             paths = sifts.write_mapping(mapping_report, ctx.ref_dir())
             summary["mapping"] = mapping_report.summary()
             summary["mapping_paths"] = paths
@@ -309,6 +325,9 @@ def stage_motion(ctx) -> dict[str, Any]:
 
 
 def stage_redock(ctx, selection: dict[str, Any] | None = None) -> dict[str, Any]:
+    if "redock" in ctx.config.budget.not_run or ctx.config.budget.redock_max_parents <= 0:
+        return {"status": "not_run", "requested": 0, "completed": 0,
+                "reason": "disabled by explicit screening budget", "results": [], "compounds": {}}
     from .redock import gnina
 
     return gnina.run_redock(ctx, _redock_plan(ctx, selection))

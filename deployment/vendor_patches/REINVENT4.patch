@@ -1,0 +1,44 @@
+--- a/reinvent/runmodes/samplers/libinvent.py
++++ b/reinvent/runmodes/samplers/libinvent.py
+@@ -42,8 +42,21 @@
+         if self.model.version == 1:  # RNN-based
+             clean_scaffolds = clean_scaffolds * self.batch_size
+ 
++            # The v1 prior has no chiral tokens. Condition decoration sampling
++            # on the achiral graph, then attach those decorations to the original
++            # stereochemical scaffold; never infer or erase the core stereo.
++            model_scaffolds = []
++            for scaffold in clean_scaffolds:
++                mol = Chem.MolFromSmiles(scaffold)
++                if mol is None:
++                    raise ValueError("Invalid LibInvent scaffold")
++                Chem.RemoveStereochemistry(mol)
++                encoded = Chem.MolToSmiles(mol, canonical=False).replace("*", "[*]")
++                model_scaffolds.append(encoded)
++            logger.info("LibInvent v1 conditioning graphs: %s", model_scaffolds)
++            logger.info("Original stereo scaffolds retained for fragment joining: %s", clean_scaffolds)
+             dataset = Dataset(
+-                clean_scaffolds,
++                model_scaffolds,
+                 self.model.get_vocabulary().scaffold_vocabulary,
+                 self.model.get_vocabulary().scaffold_tokenizer,
+             )
+@@ -74,10 +87,17 @@
+                 sequences.append(batch_row)
+         sampled = SampleBatch.from_list(sequences)
+ 
++        if self.model.version == 1:
++            if len(sampled.items1) != len(clean_scaffolds):
++                raise RuntimeError("LibInvent sample/scaffold count mismatch")
++            for decoded, expected in zip(sampled.items1, model_scaffolds):
++                if Chem.MolToSmiles(Chem.MolFromSmiles(decoded)) != Chem.MolToSmiles(Chem.MolFromSmiles(expected)):
++                    raise RuntimeError("LibInvent decoded scaffold order mismatch")
++            sampled = SampleBatch(clean_scaffolds, sampled.items2, sampled.nlls)
+         mols = self._join_fragments(sampled)
+ 
+         sampled.smilies, sampled.states = validate_smiles(
+-            mols, sampled.output, isomeric=self.isomeric
++            mols, sampled.output, isomeric=True if self.model.version == 1 else self.isomeric
+         )
+ 
+         return sampled

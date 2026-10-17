@@ -1,0 +1,37 @@
+--- a/src/models/components/moldiff_test/model.py
++++ b/src/models/components/moldiff_test/model.py
+@@ -7,7 +7,7 @@
+ from rdkit import Geometry
+ from copy import deepcopy
+ import itertools
+-import re, os
++import re, os, json
+ # from .layers.embed import NonLinear
+ from .representation import MolDiff
+ from easydict import EasyDict
+@@ -67,7 +67,13 @@
+         batch_holder = self.make_mydata_placeholder(n_graphs=n_graphs, ref_data = batch, device=batch.pos.device, max_size=self.sample_max)
+         sdf_dir = self.log_dir + '_SDF'
+         os.makedirs(sdf_dir, exist_ok=True)
+-        while len(pool.finished) < self.num_mols:
++        attempts = 0
++        while attempts + n_graphs <= self.num_mols:
++            attempts += n_graphs
++            with open(os.path.join(sdf_dir, 'attempt_budget.json'), 'w') as audit:
++                json.dump({'requested_attempts': self.num_mols, 'started_attempts': attempts,
++                           'valid': len(pool.finished), 'failed': len(pool.failed)}, audit)
++            print(f'SAMPLING_ATTEMPT {attempts}/{self.num_mols}', flush=True)
+             batch_node, halfedge_index, batch_halfedge, ref_data, n_nodes_list = batch_holder['batch_node'], batch_holder['halfedge_index'], batch_holder['batch_halfedge'], batch_holder['ref_data'], batch_holder['n_nodes_list']
+             name_use = ref_data.name[0]
+             outputs = self.model.sample(
+@@ -136,7 +142,9 @@
+                     pool.finished.append(mol_info)
+         
+ 
+-        pool.finished.extend(gen_list)
++        with open(os.path.join(sdf_dir, 'attempt_budget.json'), 'w') as audit:
++            json.dump({'requested_attempts': self.num_mols, 'started_attempts': attempts,
++                       'valid': len(pool.finished), 'failed': len(pool.failed), 'status':'finished'}, audit)
+ 
+     def idx_for_edge(self, additional_node_number, edge_tuple):
+         return_tuple = []
