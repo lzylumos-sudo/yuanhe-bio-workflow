@@ -7,8 +7,8 @@
 * genetics-anchored hotspot scoring
 
 Keeping this layer free of Bio.PDB / RDKit / PyMOL means the whole design
-pipeline runs on a laptop CPU, which matters for a competition prototype and
-for reproducibility.
+pipeline runs on a laptop CPU, supporting local development and reproducible
+structure analysis.
 """
 from __future__ import annotations
 

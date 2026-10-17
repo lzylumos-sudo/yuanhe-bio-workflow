@@ -7,7 +7,7 @@
 3. 支持这张显卡的 NVIDIA Windows 正式驱动。Windows 和 WSL 内的 nvidia-smi 都须能识别 GPU。
    不在 WSL 中另装 NVIDIA Linux 显卡驱动；GPU 驱动由 Windows 提供。
 4. Edge 或 Chrome 等浏览器。无需 Windows Python、Node.js 或 Docker 才能打开本工作台。
-5. 第一次部署模型环境需联网。比赛当天应使用已经完成安装、自检与真实小样本验收的环境，不临场安装。
+5. 第一次部署模型环境需联网。正式运行前应完成环境安装、自检与真实小样本验收，并冻结已经验证的依赖版本。
 
 二、模型是否还需要下载
 Peptide2Mol：盘中已有 PMT_major.ckpt（67,462,479 字节），已核对 SHA-256。
@@ -53,7 +53,7 @@ E. GROMACS：在 WSL 安装匹配硬件的 Linux 构建并确认 gmx --version�
 本次检查环境是 macOS，不能启动 Windows WSL2/NVIDIA 运行时。
 两个生成模型的 Linux 环境、GPU 推理、GNINA 到筛选的真实衔接、第二台 Windows 电脑迁移都未实测。
 要达到最终插盘标准，应先在一台目标 Windows/NVIDIA 电脑把 A–E 环境准备在项目专用 WSL 磁盘内；完成真实小样本验收并冻结版本，然后再换第二台电脑验证。
-只需做到对接/虚拟筛选时，GROMACS 环境与膜模拟可延后，但不能在答辩中声明已经验证。
+只需做到对接/虚拟筛选时，GROMACS 环境与膜模拟可延后，但应在项目验证记录中明确标记为未验证。
 当前磁盘为 exFAT；本次未验证该电脑上的 VHDX 原位注册。无需为本次清理格式化磁盘。
 
 六、权威安装依据

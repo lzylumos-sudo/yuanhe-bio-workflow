@@ -124,7 +124,7 @@ def _parse_atom(line: str, model: int) -> Atom:
 def parse_pdb(path: str | Path, model: int = 1) -> PDBStructure:
     """Read one PDB model and resolve altlocs by highest occupancy.
 
-    Altloc competition is per atom name within an author residue.  Occupancy ties
+    Altloc selection is per atom name within an author residue.  Occupancy ties
     prefer blank, then ``A``, then lexical order, making selection deterministic.
     """
     path = Path(path)
