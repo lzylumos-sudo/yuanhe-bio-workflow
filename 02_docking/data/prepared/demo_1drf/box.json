@@ -1,0 +1,16 @@
+{
+  "center": [
+    30.228406250000003,
+    16.25209375,
+    -1.92059375
+  ],
+  "size": [
+    18.549187499999995,
+    22.2458125,
+    19.3268125
+  ],
+  "padding_per_side": 5,
+  "method": "geometric_center_max_deviation",
+  "reference_sha256": "c9c8bf1f3f4cd2d4aaa0fdd440369fa96502b4a702b761d031d5663f3cde3268",
+  "units": "angstrom"
+}

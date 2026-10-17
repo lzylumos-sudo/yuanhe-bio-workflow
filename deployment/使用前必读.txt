@@ -1,0 +1,63 @@
+元核生物 · 外置盘与 Windows / WSL2 部署
+工程集成候选版 0.2，2026-10-17
+
+一、你需要在电脑预装什么
+1. Windows 11 x86-64；开启硬件虚拟化。
+2. 已更新的 WSL2（不是 WSL1）。PowerShell: wsl --version；wsl -l -v。
+3. 支持这张显卡的 NVIDIA Windows 正式驱动。Windows 和 WSL 内的 nvidia-smi 都须能识别 GPU。
+   不在 WSL 中另装 NVIDIA Linux 显卡驱动；GPU 驱动由 Windows 提供。
+4. Edge 或 Chrome 等浏览器。无需 Windows Python、Node.js 或 Docker 才能打开本工作台。
+5. 第一次部署模型环境需联网。比赛当天应使用已经完成安装、自检与真实小样本验收的环境，不临场安装。
+
+二、模型是否还需要下载
+Peptide2Mol：盘中已有 PMT_major.ckpt（67,462,479 字节），已核对 SHA-256。
+REINVENT4 / LibInvent：盘中已有 libinvent.prior（94,756,131 字节），已核对 SHA-256。
+GNINA：盘中保留原项目 WSL 虚拟磁盘。历史报告记录 GNINA 1.3.3；本次未在 Windows 启动磁盘核实。CNN 模型随具体 GNINA 构建/配置提供，不能用 Vina 成绩代替。
+GROMACS：不是神经网络，不需要模型权重；需要程序、力场、配体参数、膜体系构建和平衡输入。
+不需要 LLM API Key。
+
+三、仅仅装了 WSL 还不够：WSL 内需要的项目环境
+建议所有环境安装在 WSL 的 ext4 文件系统内，使用独立环境，不把 conda/venv 解包到当前 exFAT 盘的普通目录。
+
+A. 化学与虚拟筛选环境：Python 3.11；RDKit、NumPy、SciPy、pandas、PyYAML、gemmi、MDAnalysis、ProLIF、PoseBusters 等。
+   完整依赖以“03_virtual_screening/pyproject.toml”为准。
+   建议路径 /opt/yuanhe/envs/chem/bin/python。
+B. Peptide2Mol 独立环境：本项目提供 vendor/Peptide2Mol/env_cu128.yaml，Python 3.10、PyTorch 2.7.0 + CUDA 12.8、PyG 对应编译包、Lightning、Hydra、RDKit。
+   RTX 50 系列应使用支持该架构的 CUDA/PyTorch/PyG 组合，不能直接套旧 cu121 环境。
+   建议路径 /opt/yuanhe/envs/peptide2mol/bin/python。
+   这是仓库现有环境规格，不是本次已在目标 GPU 安装验证的锁定环境。
+C. REINVENT4 独立环境：Python >=3.11；必须以 vendor/REINVENT4/pyproject.toml 和 uv.lock 为准，不能与 Peptide2Mol 合并。
+   当前 pyproject 指定 torch==2.12.0、NumPy 2.x、RDKit >=2025.09.1，与 Peptide2Mol 的旧栈不同。
+   可使用 uv sync --frozen，在 WSL ext4 下指定 UV_PROJECT_ENVIRONMENT。安装后执行 reinvent --help。
+   建议程序路径 /opt/yuanhe/envs/reinvent4/bin/reinvent。
+D. GNINA：优先复用保留的项目 WSL 环境 /opt/sbvs/vendor/gnina；其动态库配置见 02_docking/scripts/runtime_env.sh。
+E. GROMACS：在 WSL 安装匹配硬件的 Linux 构建并确认 gmx --version。当前集成能执行已准备 production.tpr，尚未实现自动膜体系构建与完整轨迹终点分析。
+
+四、外置盘启动
+完成首次环境安装后：
+1. 外置盘插到电脑，打开元核生物文件夹。
+2. 若复用盘内 WSL 磁盘，新电脑需要先注册该发行版；原项目保留 REGISTER_ON_THIS_PC.ps1。它会自检并运行小分子迁移检查。
+   注册前确认已有发行版及磁盘位置；不要用 wsl --unregister 清理这个项目，它可能删除发行版数据。
+3. 将 deployment/runtime.example.json 复制为 deployment/runtime.json，填写实际 WSL 程序路径。
+4. 双击 start_windows.cmd，选择已准备好的 WSL2 发行版。
+   默认界面 Python 是 python3；若需要直接在 UI 绘制 RDKit 分子图，使用：
+   powershell -File .\start_windows.ps1 -Distro <发行版名称> -Python /opt/yuanhe/envs/chem/bin/python
+5. 在浏览器打开 http://localhost:8777。端口占用时启动日志会显示实际端口。
+6. 先执行 deployment/doctor.py（在 WSL 中），输出机器能力清单；该检查不会运行目标对接。
+   python3 deployment/doctor.py --config deployment/runtime.json --out deployment/doctor-result.json
+7. 新建运行：输入结构路径、受体链、多肽链和范围。每个阶段“阶段设置”中填写工具和审核参数。
+8. 新建运行不自动计算；逐步启动。失败后可修改本阶段设置并重试，前一次失败产物移到 attempts/，不覆盖。
+9. 拔盘前停止界面中的计算任务、退出服务，并仅终止本项目的 WSL 发行版，待磁盘释放后安全弹出。
+
+五、目前尚不能声称“任意 WSL 电脑插盘即完整可用”
+本次检查环境是 macOS，不能启动 Windows WSL2/NVIDIA 运行时。
+两个生成模型的 Linux 环境、GPU 推理、GNINA 到筛选的真实衔接、第二台 Windows 电脑迁移都未实测。
+要达到最终插盘标准，应先在一台目标 Windows/NVIDIA 电脑把 A–E 环境准备在项目专用 WSL 磁盘内；完成真实小样本验收并冻结版本，然后再换第二台电脑验证。
+只需做到对接/虚拟筛选时，GROMACS 环境与膜模拟可延后，但不能在答辩中声明已经验证。
+当前磁盘为 exFAT；本次未验证该电脑上的 VHDX 原位注册。无需为本次清理格式化磁盘。
+
+六、权威安装依据
+Microsoft WSL 安装：https://learn.microsoft.com/windows/wsl/install
+Microsoft WSL 注册/导入命令：https://learn.microsoft.com/windows/wsl/reference
+NVIDIA WSL GPU 指南：https://docs.nvidia.com/cuda/wsl-user-guide/index.html
+以上页面用于主机前提；项目中具体包版本以本地环境规格和真实测试记录为准。

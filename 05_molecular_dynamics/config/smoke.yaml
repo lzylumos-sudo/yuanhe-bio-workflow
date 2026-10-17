@@ -1,0 +1,15 @@
+MD:
+  production: 4ps
+  equilibration: 2ps
+  nvt: 1ps
+  npt: 1ps
+  report_interval: 1ps
+  checkpoint_interval: 2ps
+  minimization_max_iterations: 1000
+  platform: CPU
+  cpu_threads: 4
+replicates: 1
+analysis:
+  sasa_stride: 1
+mmgbsa:
+  max_frames: 4

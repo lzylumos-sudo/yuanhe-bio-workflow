@@ -1,0 +1,36 @@
+{
+  "vina": {
+    "version": "1.2.7",
+    "url": "https://github.com/ccsb-scripps/AutoDock-Vina/releases/download/v1.2.7/vina_1.2.7_linux_x86_64",
+    "sha256": "f31f774f723bba7bbe6e9d1c47577020eea9a8da16424284c043d22593570644",
+    "publisher_sha256_verified": false,
+    "path": "/opt/sbvs/vendor/vina",
+    "installed_at": 1791887596.1948678,
+    "version_returncode": 0,
+    "help_returncode": 0
+  },
+  "gnina": {
+    "version": "1.3.3",
+    "url": "https://github.com/gnina/gnina/releases/download/v1.3.3/gnina.cuda12.8.static",
+    "sha256": "3340c1f49cd3c7c84d8699182a1c6af13c7fa2a22448d1204640446106f72172",
+    "publisher_sha256_verified": true,
+    "path": "/opt/sbvs/vendor/gnina",
+    "installed_at": 1791888773.136015,
+    "version_returncode": 0,
+    "help_returncode": 0
+  },
+  "micromamba": {
+    "version": "2.3.3",
+    "path": "/opt/sbvs/vendor/micromamba",
+    "sha256": "9496f94a8b78c536573c93d946ec9bba74bd9ff79ee55aaa4b546e30db8f511b",
+    "url": "https://micro.mamba.pm/api/micromamba/linux-64/2.3.3",
+    "publisher_sha256_verified": false
+  },
+  "3Dmol.js": {
+    "version": "2.5.5",
+    "url": "https://cdn.jsdelivr.net/npm/3dmol@2.5.5/build/3Dmol-min.js",
+    "sha256": "f7cc78921ae72e7623e89cdd111434f58c2efddd2ffda1cd212644b406fb8016",
+    "source_kind": "versioned npm package via jsDelivr",
+    "publisher_sha256_verified": false
+  }
+}

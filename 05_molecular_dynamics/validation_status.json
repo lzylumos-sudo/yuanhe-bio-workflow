@@ -1,0 +1,34 @@
+{
+  "status": "PAUSED_10NS",
+  "scope": "User-paused at a verified CPU16 binary checkpoint; final 10ns acceptance remains pending.",
+  "software_workflow": "PASS",
+  "short_test": "PASS",
+  "ten_ns_test": "PAUSED",
+  "run_id": "public_1fkj_10ns_v2",
+  "evidence": [
+    "results/public_1fkj_smoke_v1/acceptance.json",
+    "results/public_1fkj_10ns_v2/manifest.json"
+  ],
+  "checked_at": "2026-10-08T15:02:01.536864+00:00",
+  "gpu_execution": "NOT_TESTED",
+  "cpu_threads": 16,
+  "cpu_affinity": [
+    4,
+    5,
+    6,
+    7,
+    8,
+    9,
+    10,
+    11,
+    12,
+    13,
+    14,
+    15,
+    16,
+    17,
+    18,
+    19
+  ],
+  "state_transfer": "results/public_1fkj_10ns_v2/state_transfers/cpu16_20261008T141705Z/transfer.json"
+}

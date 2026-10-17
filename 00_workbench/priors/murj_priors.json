@@ -1,0 +1,451 @@
+{
+  "schema_version": "1.0",
+  "target": {
+    "protein": "MurJ",
+    "organism": "Escherichia coli",
+    "uniprot": "P0AF16",
+    "function": "lipid II flippase, MOP superfamily",
+    "residue_range": [
+      5,
+      500
+    ],
+    "numbering": "E. coli MurJ wild-type numbering. The construct used for the structures is EcMurJ(5-500) with an N-terminal BRIL fusion, so PDB residues 1-4 (KYLL, present in all three models and covalently linked to residue 5) are the fusion linker, NOT MurJ, and are excluded from every analysis. BRIL itself is numbered -101..0. MurJ therefore contributes exactly 496 residues (5-500).",
+    "reference": {
+      "citation": "Li Y.E., Antillon S.F., Baron G.F., Chamakura K., Young R., Clemons W.M. Jr. Convergent MurJ flippase inhibition by phage lysis proteins. Nature 652, 1274-1280 (2026).",
+      "doi": "10.1038/s41586-026-10163-w",
+      "pmid": "41741639"
+    }
+  },
+  "structures": [
+    {
+      "tag": "SglM",
+      "file": "9nu4.pdb",
+      "pdb_id": "9NU4",
+      "resolution_A": 3.6,
+      "peptide": "SglM",
+      "note": "Cryo-EM. SglM packs tightly against TM2 and TM7, mainly through hydrophobic interactions."
+    },
+    {
+      "tag": "SglPP7",
+      "file": "9NU5.pdb",
+      "pdb_id": "9NU5",
+      "resolution_A": 3.7,
+      "peptide": "SglPP7",
+      "note": "Cryo-EM. C-terminal carboxylate reaches Arg53/Lys368."
+    },
+    {
+      "tag": "SglCJ3",
+      "file": "9NU8.pdb",
+      "pdb_id": "9NU8",
+      "resolution_A": 3.6,
+      "peptide": "SglCJ3",
+      "note": "Cryo-EM. Glu96 bridges Lys46/Arg270; C-terminal helix lies in the central cavity."
+    }
+  ],
+  "_doc_verify_types": {
+    "salt_bridge": "MurJ residue must form a salt bridge (<= cutoff) to a peptide Asp/Glu carboxylate or to the peptide C-terminal OXT.",
+    "buried_contact": "MurJ residue must contact the peptide in >= min_complexes structures AND lose >= min_dsasa A^2 of SASA upon peptide binding.",
+    "peptide_salt_bridge": "Peptide residue must form a salt bridge to one of the listed MurJ residues.",
+    "peptide_contact": "Peptide residue must make >= min_atoms heavy-atom contacts with MurJ."
+  },
+  "murj_residues": [
+    {
+      "resid": 46,
+      "resname": "LYS",
+      "roles": [
+        "essential",
+        "peptide_anchor"
+      ],
+      "claim": "Lys46 sits in the hydrophilic central cavity, is essential for flippase activity, and is the anchor that acidic Sgl residues reach.",
+      "quote": "Both Lys46 and Arg270 are located in the hydrophilic central cavity and are essential for flippase activity in E. coli",
+      "locator": "Results, convergent features of Sgl-MurJ complexes; Fig. 4d,e",
+      "verify": {
+        "type": "salt_bridge",
+        "params": {
+          "min_partners": 1,
+          "cutoff": 4.0
+        }
+      }
+    },
+    {
+      "resid": 53,
+      "resname": "ARG",
+      "roles": [
+        "essential",
+        "peptide_anchor"
+      ],
+      "claim": "Arg53 is functionally important, forms a coevolving pair with Glu273 that stabilises the squeezed state, and contacts the C-terminal carboxylate of SglPP7 and SglCJ3.",
+      "quote": "Arg53-Glu273 is a coevolving pair that stabilizes the squeezed form of MurJ",
+      "locator": "Results; Fig. 4e",
+      "verify": {
+        "type": "salt_bridge",
+        "params": {
+          "min_partners": 1,
+          "cutoff": 4.0
+        }
+      }
+    },
+    {
+      "resid": 270,
+      "resname": "ARG",
+      "roles": [
+        "essential",
+        "peptide_anchor"
+      ],
+      "claim": "Arg270 is essential, is proposed to bind the lipid II diphosphate, and rotates to bridge Glu96 of SglCJ3.",
+      "quote": "Arg270 has been proposed to bind the diphosphate of the lipid II head group",
+      "locator": "Discussion; Fig. 4d",
+      "verify": {
+        "type": "salt_bridge",
+        "params": {
+          "min_partners": 1,
+          "cutoff": 4.0
+        }
+      }
+    },
+    {
+      "resid": 368,
+      "resname": "LYS",
+      "roles": [
+        "essential",
+        "peptide_anchor"
+      ],
+      "claim": "Lys368 forms a thin gate with the conserved G/A-E-G-A motif and contacts the C-terminal carboxylate of the peptides.",
+      "quote": "Lys368 forms a thin gate with the conserved G/A-E-G-A motif to occlude the bound lipid II",
+      "locator": "Discussion; Fig. 4e",
+      "verify": {
+        "type": "salt_bridge",
+        "params": {
+          "min_partners": 1,
+          "cutoff": 4.0
+        }
+      }
+    }
+  ],
+  "resistance_mutations": [
+    {
+      "resid": 50,
+      "wt": "LEU",
+      "mut": "TRP",
+      "phenotype": "resistance to SglCJ3",
+      "claim": "Leu50 maps to the SglCJ3-MurJ interface and contacts both SglCJ3 helices; Trp substitution is sterically incompatible with peptide binding.",
+      "quote": "The SglCJ3-resistant mutant Leu50Trp in MurJ TM2 occurs at the SglCJ3-MurJ interface, contacting both helices of SglCJ3",
+      "locator": "Results, structure of MurJ bound to SglCJ3; Fig. 3",
+      "verify": {
+        "type": "buried_contact",
+        "params": {
+          "min_complexes": 1,
+          "min_dsasa": 60.0
+        }
+      }
+    },
+    {
+      "resid": 244,
+      "wt": "GLN",
+      "mut": "PRO",
+      "phenotype": "resistance to SglPP7 and SglM",
+      "claim": "Gln244 was the first SglPP7 resistance allele; it lies at the TM2/TM7 groove and is contacted by the peptides.",
+      "quote": "a point mutant in MurJ (Q244P) conferred resistance to SglPP7-mediated lysis. This mutation also provides resistance to SglM",
+      "locator": "Results, introduction and Fig. 2",
+      "verify": {
+        "type": "buried_contact",
+        "params": {
+          "min_complexes": 1,
+          "min_dsasa": 40.0
+        }
+      }
+    }
+  ],
+  "peptide_residues": [
+    {
+      "peptide": "SglM",
+      "resid": 18,
+      "resname": "ASP",
+      "role": "acidic residue reported to face Lys46",
+      "quote": "Asp18 in SglM faces Lys46 in MurJ",
+      "locator": "Fig. 4d",
+      "expectation": "flag",
+      "note": "The deposited 9NU4 model contains only SglM residues 2-30 and the peptide sits higher in the TM2/TM7 groove. The verifier reports the observed Asp18-Lys46 distance instead of silently accepting the claim.",
+      "verify": {
+        "type": "peptide_salt_bridge",
+        "params": {
+          "murj": [
+            46
+          ],
+          "cutoff": 4.0
+        }
+      }
+    },
+    {
+      "peptide": "SglM",
+      "resid": 6,
+      "resname": "ASN",
+      "role": "alanine substitution reduces lysis",
+      "quote": "Substitution of several residues led to a reduction, but not abolition, of lytic activity",
+      "locator": "Fig. 2a",
+      "verify": {
+        "type": "peptide_contact",
+        "params": {
+          "min_atoms": 1
+        }
+      }
+    },
+    {
+      "peptide": "SglM",
+      "resid": 13,
+      "resname": "LEU",
+      "role": "alanine substitution reduces lysis",
+      "quote": "Substitution of several residues led to a reduction, but not abolition, of lytic activity",
+      "locator": "Fig. 2a",
+      "verify": {
+        "type": "peptide_contact",
+        "params": {
+          "min_atoms": 1
+        }
+      }
+    },
+    {
+      "peptide": "SglM",
+      "resid": 14,
+      "resname": "LEU",
+      "role": "alanine substitution reduces lysis",
+      "quote": "Substitution of several residues led to a reduction, but not abolition, of lytic activity",
+      "locator": "Fig. 2a",
+      "verify": {
+        "type": "peptide_contact",
+        "params": {
+          "min_atoms": 1
+        }
+      }
+    },
+    {
+      "peptide": "SglM",
+      "resid": 20,
+      "resname": "ILE",
+      "role": "Ile20 substitution delays lysis onset (partly a protein-level effect)",
+      "quote": "The exception is Ile20, which resulted in delayed lysis onset, possibly because of lower protein levels in the membrane",
+      "locator": "Extended Data Fig. 3a,b",
+      "expectation": "weak",
+      "verify": {
+        "type": "peptide_contact",
+        "params": {
+          "min_atoms": 1
+        }
+      }
+    },
+    {
+      "peptide": "SglPP7",
+      "resid": 36,
+      "resname": "TYR",
+      "role": "only TM residue whose alanine substitution substantially reduces lytic activity; packs against TM2/TM7 near Q244",
+      "quote": "Only one mutation (Tyr36) in the TM resulted in a substantial reduction of lytic activity",
+      "locator": "Fig. 2a",
+      "verify": {
+        "type": "peptide_contact",
+        "params": {
+          "min_atoms": 1
+        }
+      }
+    },
+    {
+      "peptide": "SglPP7",
+      "resid": 49,
+      "resname": "PRO",
+      "role": "important for activity",
+      "quote": "Pro49, Ile50 and Trp53 being important for activity",
+      "locator": "Fig. 2e",
+      "verify": {
+        "type": "peptide_contact",
+        "params": {
+          "min_atoms": 1
+        }
+      }
+    },
+    {
+      "peptide": "SglPP7",
+      "resid": 50,
+      "resname": "ILE",
+      "role": "important for activity",
+      "quote": "Pro49, Ile50 and Trp53 being important for activity",
+      "locator": "Fig. 2e",
+      "verify": {
+        "type": "peptide_contact",
+        "params": {
+          "min_atoms": 1
+        }
+      }
+    },
+    {
+      "peptide": "SglPP7",
+      "resid": 53,
+      "resname": "TRP",
+      "role": "important for activity",
+      "quote": "Pro49, Ile50 and Trp53 being important for activity",
+      "locator": "Fig. 2e",
+      "verify": {
+        "type": "peptide_contact",
+        "params": {
+          "min_atoms": 1
+        }
+      }
+    },
+    {
+      "peptide": "SglPP7",
+      "resid": 55,
+      "resname": "VAL",
+      "role": "C-terminal carboxylate contacts Arg53 and Lys368; deleting Val55 partially abolishes lysis",
+      "quote": "Deletion of the last residue, Val55, resulted in a partial loss of lytic activity",
+      "locator": "Fig. 2d,e",
+      "verify": {
+        "type": "peptide_salt_bridge",
+        "params": {
+          "murj": [
+            53,
+            368
+          ],
+          "cutoff": 4.0
+        }
+      }
+    },
+    {
+      "peptide": "SglCJ3",
+      "resid": 76,
+      "resname": "TYR",
+      "role": "packs against TM2 and TM7",
+      "quote": "Tyr76 and Thr80 pack against TM2 and TM7",
+      "locator": "Fig. 3e",
+      "verify": {
+        "type": "peptide_contact",
+        "params": {
+          "min_atoms": 1
+        }
+      }
+    },
+    {
+      "peptide": "SglCJ3",
+      "resid": 80,
+      "resname": "THR",
+      "role": "packs against TM2 and TM7",
+      "quote": "Tyr76 and Thr80 pack against TM2 and TM7",
+      "locator": "Fig. 3e",
+      "verify": {
+        "type": "peptide_contact",
+        "params": {
+          "min_atoms": 1
+        }
+      }
+    },
+    {
+      "peptide": "SglCJ3",
+      "resid": 85,
+      "resname": "ARG",
+      "role": "periplasmic end of the TM helix, interacts with the MurJ TM3-4 loop",
+      "quote": "Arg85 is located at the periplasmic end of the TM helix and interacts with the MurJ TM3-4 loop",
+      "locator": "Fig. 3e",
+      "verify": {
+        "type": "peptide_contact",
+        "params": {
+          "min_atoms": 1
+        }
+      }
+    },
+    {
+      "peptide": "SglCJ3",
+      "resid": 91,
+      "resname": "HIS",
+      "role": "C-terminal helix residue important for activity",
+      "quote": "SglCJ3 residues His91, Leu95, Glu96 and Pro101 being important for activity",
+      "locator": "Fig. 3f",
+      "verify": {
+        "type": "peptide_contact",
+        "params": {
+          "min_atoms": 1
+        }
+      }
+    },
+    {
+      "peptide": "SglCJ3",
+      "resid": 95,
+      "resname": "LEU",
+      "role": "C-terminal helix residue important for activity",
+      "quote": "SglCJ3 residues His91, Leu95, Glu96 and Pro101 being important for activity",
+      "locator": "Fig. 3f",
+      "verify": {
+        "type": "peptide_contact",
+        "params": {
+          "min_atoms": 1
+        }
+      }
+    },
+    {
+      "peptide": "SglCJ3",
+      "resid": 96,
+      "resname": "GLU",
+      "role": "salt bridges to Lys46 and Arg270",
+      "quote": "Glu96 forms salt bridges with Lys46 and Arg270 of MurJ",
+      "locator": "Fig. 4d",
+      "verify": {
+        "type": "peptide_salt_bridge",
+        "params": {
+          "murj": [
+            46,
+            270
+          ],
+          "min_partners": 1,
+          "cutoff": 4.0
+        }
+      }
+    },
+    {
+      "peptide": "SglCJ3",
+      "resid": 101,
+      "resname": "PRO",
+      "role": "C-terminal helix residue important for activity",
+      "quote": "SglCJ3 residues His91, Leu95, Glu96 and Pro101 being important for activity",
+      "locator": "Fig. 3f",
+      "verify": {
+        "type": "peptide_contact",
+        "params": {
+          "min_atoms": 1
+        }
+      }
+    },
+    {
+      "peptide": "SglCJ3",
+      "resid": 103,
+      "resname": "LEU",
+      "role": "C-terminal carboxylate contacts Arg53 and Lys368",
+      "quote": "The C-terminal carboxylates of both SglPP7 and SglCJ3 make contact with Arg53 in TM2 and Lys368 in TM10 of MurJ",
+      "locator": "Fig. 4e",
+      "verify": {
+        "type": "peptide_salt_bridge",
+        "params": {
+          "murj": [
+            53,
+            368
+          ],
+          "cutoff": 4.0
+        }
+      }
+    }
+  ],
+  "unverifiable_claims": [
+    {
+      "claim": "Thirteen of the residues in MurJ that Sgls contact are completely conserved across diderms.",
+      "quote": "Thirteen of the residues in MurJ that Sgls contact are completely conserved across diderms",
+      "locator": "Fig. 4f",
+      "why_not_verified": "Requires a multiple sequence alignment over diderm MurJ orthologues, which is not part of this repository. Note that 13 is a SEQUENCE-conservation count; it is not the same quantity as the geometric convergence count computed here (residues contacting the peptide in all three deposited structures)."
+    },
+    {
+      "claim": "Sgls stall the lipid II transport cycle by trapping MurJ in an outward-facing (periplasm-open) state.",
+      "locator": "Discussion",
+      "why_not_verified": "A conformational claim. This repository measures the peptide-bound state only; state selectivity must be tested downstream against an inward-facing structure."
+    }
+  ],
+  "design_thresholds": {
+    "probe_radius_A": 1.4,
+    "contact_cutoff_A": 4.5,
+    "salt_bridge_cutoff_A": 4.0,
+    "note": "Receiver-side thresholds used by evidence.py and by the design pipeline. Kept here so that the report and the design stage cannot drift apart."
+  }
+}

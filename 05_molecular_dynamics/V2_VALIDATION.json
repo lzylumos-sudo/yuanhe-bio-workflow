@@ -1,0 +1,144 @@
+{
+  "created_utc": "2026-10-16T06:23:50.720740+00:00",
+  "version": "2.0.0",
+  "native_v2_status": "BLOCKED_NO_ACCESSIBLE_UBUNTU_RUNTIME",
+  "host": {
+    "system": "Darwin",
+    "machine": "arm64",
+    "release": "25.5.0"
+  },
+  "test_python": "/opt/schrodinger/suites2026-2/internal/bin/python3",
+  "rdkit": "2025.09.6-sch",
+  "checks": [
+    {
+      "name": "portable_v2_unit_and_integration",
+      "status": "PASS",
+      "run": 77,
+      "passed": 76,
+      "skipped": 1,
+      "native_skipped": "test_backend_native_v2 (explicit Linux opt-in)",
+      "command": "python -B -m unittest discover -s tests -p 'test_*v2.py' -v",
+      "log": "installation_evidence/v2_portable_tests.log",
+      "scope": "Actual file parsing/RDKit chemistry/fixtures; simulated executor only for state transition tests. No native MD."
+    },
+    {
+      "name": "backend_after_xml_metadata_addition",
+      "status": "PASS",
+      "passed": 22,
+      "command": "python -B -m unittest discover -s tests -p test_backend_v2.py -q",
+      "log": "installation_evidence/v2_backend_final.log"
+    },
+    {
+      "name": "legacy_embedded_contract",
+      "status": "PASS",
+      "command": "python -B tests/test_embedded_chemistry.py",
+      "scope": "roundtrip, pose preservation, PDB width, missing/duplicate/hash corruption rejection"
+    },
+    {
+      "name": "legacy_integrity_context_test",
+      "status": "BLOCKED",
+      "exit_code": 1,
+      "command": "python -B tests/test_integrity.py",
+      "reason": "ModuleNotFoundError: No module named 'openmm'. This Mac runtime has no OpenMM; this is not a target Linux failure."
+    },
+    {
+      "name": "python_ast_and_bash_syntax",
+      "status": "PASS"
+    },
+    {
+      "name": "linux_driver_mac_guard",
+      "status": "PASS",
+      "observed": "BLOCKED exit4; no native subprocess commands; no simulation started"
+    },
+    {
+      "name": "frozen_legacy_source_integrity",
+      "status": "PASS",
+      "checked": 19,
+      "unchanged": true
+    },
+    {
+      "name": "ubuntu_prepare_parameterize_build_minimize_equilibrate_produce_analyze",
+      "status": "NOT_RUN"
+    },
+    {
+      "name": "ubuntu_actual_interrupt_checkpoint_resume",
+      "status": "NOT_RUN"
+    }
+  ],
+  "input_R2": {
+    "source_sha256": "06a21910cc4176f33ca588b7221aa4d9e97e34b395568a9811ccc041d980eb86",
+    "fixture_sha256": "06a21910cc4176f33ca588b7221aa4d9e97e34b395568a9811ccc041d980eb86",
+    "original_atoms": 3094,
+    "ligand_atoms": 92,
+    "ligand_heavy_atoms": 45,
+    "ligand_hydrogens": 47,
+    "ligand_edges": 98,
+    "formal_charge": 2,
+    "charge_sites_original_serial": [
+      3022,
+      3028
+    ],
+    "histidine_variants": {
+      "HIE": [
+        151,
+        268
+      ],
+      "HID_inferred_from_explicit_HD1": [
+        95,
+        120,
+        181,
+        227
+      ]
+    },
+    "source_unchanged": true,
+    "scientific_decisions": "NOT_APPROVED; candidate identity, target construct and HXT terminal state require user decisions. Test approvals simulate mechanics only."
+  },
+  "public_input_integration": [
+    {
+      "fixture": "1brs",
+      "exit_code": 3,
+      "status": "WAITING_FOR_DECISION",
+      "error": "",
+      "output_tail": "{\n  \"status\": \"WAITING_FOR_DECISION\",\n  \"job\": \"/Users/lizhiyu/Documents/Codex/2026-10-16/zhiyu-li-nexus-structural-biology-04/work/md_upgrade/05_molecular_dynamics/runs/integration_1brs\",\n  \"pending\": [\n    {\n      \"type\": \"missing_backbone\",\n      \"message\": \"Protein residue is missing backbone atoms; automatic side-chain repair is insufficient.\",\n      \"residue_id\": \"r0108\",\n      \"missing_atoms\": [\n        \"O\"\n      ],\n      \"id\": \"d0001\"\n    },\n    {\n      \"type\": \"missing_backbone\",\n      \"message\": \"Protein residue is missing backbone atoms; automatic side-chain repair is insufficient.\",\n      \"residue_id\": \"r0197\",\n      \"missing_atoms\": [\n        \"O\"\n      ],\n      \"id\": \"d0002\"\n    }\n  ]\n}\n"
+    },
+    {
+      "fixture": "1fap",
+      "exit_code": 0,
+      "status": "READY",
+      "error": "",
+      "output_tail": "任务：/Users/lizhiyu/Documents/Codex/2026-10-16/zhiyu-li-nexus-structural-biology-04/work/md_upgrade/05_molecular_dynamics/runs/integration_1fap\n实际设置：{\"MD\": {\"engine\": \"openmm\", \"temperature\": 300, \"pressure\": 1, \"timestep\": \"2fs\", \"minimization\": true, \"minimization_max_iterations\": 5000, \"equilibration\": \"200ps\", \"nvt\": \"100ps\", \"npt\": \"100ps\", \"production\": \"100ps\", \"protein_forcefield\": \"amber14-all.xml\", \"water_forcefield\": \"amber14/tip3p.xml\", \"ligand_forcefield\": \"gaff-2.11\", \"water_model\": \"tip3p\", \"padding_nm\": 1.2, \"ionic_strength_molar\": 0.15, \"nonbonded_cutoff_nm\": 0.9, \"switch_distance_nm\": 0.8, \"friction_per_ps\": 1.0, \"restraint_k_kj_mol_nm2\": 1000, \"platform\": \"CPU\", \"precision\": \"mixed\", \"cpu_threads\": 2, \"report_interval\": \"10ps\", \"checkpoint_interval\": \"100ps\", \"seed\": 20261008, \"pressure_unit\": \"atm\"}, \"replicates\": 1}\n"
+    },
+    {
+      "fixture": "1fkj_single_file",
+      "exit_code": 0,
+      "status": "READY",
+      "error": "",
+      "output_tail": "任务：/Users/lizhiyu/Documents/Codex/2026-10-16/zhiyu-li-nexus-structural-biology-04/work/md_upgrade/05_molecular_dynamics/runs/integration_1fkj_single_file\n实际设置：{\"MD\": {\"engine\": \"openmm\", \"temperature\": 300, \"pressure\": 1, \"timestep\": \"2fs\", \"minimization\": true, \"minimization_max_iterations\": 5000, \"equilibration\": \"200ps\", \"nvt\": \"100ps\", \"npt\": \"100ps\", \"production\": \"100ps\", \"protein_forcefield\": \"amber14-all.xml\", \"water_forcefield\": \"amber14/tip3p.xml\", \"ligand_forcefield\": \"gaff-2.11\", \"water_model\": \"tip3p\", \"padding_nm\": 1.2, \"ionic_strength_molar\": 0.15, \"nonbonded_cutoff_nm\": 0.9, \"switch_distance_nm\": 0.8, \"friction_per_ps\": 1.0, \"restraint_k_kj_mol_nm2\": 1000, \"platform\": \"CPU\", \"precision\": \"mixed\", \"cpu_threads\": 2, \"report_interval\": \"10ps\", \"checkpoint_interval\": \"100ps\", \"seed\": 20261008, \"pressure_unit\": \"atm\"}, \"replicates\": 1}\n"
+    },
+    {
+      "fixture": "rosetta_single_file_v2",
+      "exit_code": 3,
+      "status": "WAITING_FOR_DECISION",
+      "error": "",
+      "output_tail": "{\n  \"status\": \"WAITING_FOR_DECISION\",\n  \"job\": \"/Users/lizhiyu/Documents/Codex/2026-10-16/zhiyu-li-nexus-structural-biology-04/work/md_upgrade/05_molecular_dynamics/runs/integration_rosetta_single_file_v2\",\n  \"pending\": [\n    {\n      \"type\": \"backbone_discontinuity\",\n      \"message\": \"Adjacent listed residues have an abnormal C-N distance; do not build a peptide bond automatically.\",\n      \"residue_ids\": [\n        \"r0285\",\n        \"r0286\"\n      ],\n      \"distance_angstrom\": 9.438554391430925,\n      \"id\": \"d0001\"\n    }\n  ]\n}\n"
+    }
+  ],
+  "ubuntu_next_commands": [
+    "bash setup.sh",
+    "source runtime.sh",
+    "python scripts/check_environment.py --native --output installation_evidence/my-environment-check.json",
+    "NEXUS_NATIVE_TESTS=1 python -B -m unittest discover -s tests -p test_backend_native_v2.py -v",
+    "python scripts/validate_v2_ubuntu.py --max-seconds 1200"
+  ],
+  "scope_limitations": [
+    "One retained noncovalent small molecule only; multiple protein chains allowed.",
+    "Metals, covalent ligands, modified residues, membrane and nonaqueous protocols blocked/unvalidated.",
+    "Only ff14SB + GAFF2.11/AmberTools AM1-BCC + matching TIP3P/NaCl preset enabled.",
+    "Protein RMSD uses C-alpha selection from preserved legacy analyzer.",
+    "No long production simulations started; no convergence or affinity claims."
+  ],
+  "deployment_procedure_test": {
+    "status": "PASS",
+    "scope": "Local clone: snapshot57 files -> deploy31 files -> hash verify -> rollback -> original hash verify. External deployment audit is separately recorded in .backups/<id>/deployment.json."
+  }
+}

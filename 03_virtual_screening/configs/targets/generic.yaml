@@ -1,0 +1,22 @@
+target_id: generic
+display_name: "Generic post-docking screening (no configured local region)"
+organism: ""
+uniprot: ""
+native_length: 0
+
+structures:
+  primary:
+    pdb_id: 1DRF
+    chain: A
+    role: "receptor used by the imported docking run"
+
+membrane:
+  status: unavailable
+  method: not_built
+  source: ""
+  uncertainty: high
+  note: "generic profile: no membrane information is configured, so none is claimed"
+
+md_protocol:
+  engine: openmm
+  membrane_required: false

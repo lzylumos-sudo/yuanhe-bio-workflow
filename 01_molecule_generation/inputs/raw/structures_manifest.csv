@@ -1,0 +1,4 @@
+source_path,structure_id,role,sha256
+../9nu4.pdb,9NU4,primary,ec509ae9f04236407d515de6f64095fefb44a8432eca8287e9bd8b3f75c78a3a
+../9NU5.pdb,9NU5,reference,e1d3d42c10c793edec5db6ebbded238c7bb136539e35fe3a87f926d049a3d605
+../9NU8.pdb,9NU8,reference,d1a8d1ad8949c83cc7a6ae430227bb75136e3dd34b68f09d044cbd6ffcbad1d2

@@ -1,0 +1,50 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "zvss"
+version = "0.9.0"
+description = "ZVSS - Zhiyu Virtual Screening Studio: GNINA batch results to membrane-MD-ready candidates"
+readme = "README.md"
+requires-python = ">=3.11"
+license = { text = "MIT (project code). Third-party components keep their own licenses." }
+authors = [{ name = "ZVSS build" }]
+dependencies = [
+  "numpy>=1.26",
+  "scipy>=1.11",
+  "pandas>=2.1",
+  "rdkit>=2023.9",
+  "gemmi>=0.6",
+  "pyyaml>=6.0",
+  "requests>=2.31",
+  "psutil>=5.9",
+  "jinja2>=3.1",
+  "fastapi>=0.110",
+  "uvicorn>=0.29",
+  "pydantic>=2.5",
+  "python-multipart>=0.0.9",
+  "MDAnalysis>=2.7",
+  "prolif>=2.0",
+  "posebusters>=0.4",
+]
+
+[project.optional-dependencies]
+dev = ["pytest>=7.4"]
+
+[project.scripts]
+zvss = "zvss.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+zvss = ["web/templates/*", "web/static/*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q"
+markers = [
+  "integration: needs real third-party tools or real data",
+  "golden: frozen selection fixture",
+]

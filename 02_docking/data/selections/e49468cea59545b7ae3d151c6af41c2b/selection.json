@@ -1,0 +1,38 @@
+{
+  "source_run": "runs/20261013_104206_d78a5f9f32",
+  "operation": "refinement",
+  "basis": "original parent ranking TopK",
+  "top_k": 1,
+  "poses": [
+    {
+      "run_id": "20261013_104206_d78a5f9f32",
+      "parent_id": "P000021",
+      "original_name": "demo_020",
+      "state_id": "P000021_S01",
+      "conformer_id": "P000021_S01_C01",
+      "pose_id": "P000021_S01_C01_seed20261012_pose001",
+      "engine": "vina",
+      "engine_version": "1.2.7",
+      "scoring_function": "vina",
+      "model_id": "",
+      "seed": "20261012",
+      "vina_affinity_kcal_mol": "-5.631",
+      "empirical_score_kcal_mol": "",
+      "cnn_pose_score": "",
+      "cnn_affinity_pK": "",
+      "cnn_vs": "",
+      "prep_status": "success",
+      "dock_status": "success",
+      "qc_flags": "",
+      "receptor_hash": "49ffd433cba1d4f1b77ab2f54b85e1bd9f84b58839f481587ec01ee134c7dde8",
+      "box_hash": "ca0f055747bc4ec723142680c4abc2d573846acb8678aed914708ccc27840441",
+      "pose_file": "entries/P000021_S01_C01_seed20261012/pose_001.sdf",
+      "aggregate_score": "-5.631",
+      "seed_scores": "[-5.631]",
+      "seed_count": "1",
+      "state_count": "1",
+      "aggregation": "median_of_seed_representative_scores; actual_pose_nearest_median",
+      "rank": "1"
+    }
+  ]
+}

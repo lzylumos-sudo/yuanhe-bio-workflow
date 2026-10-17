@@ -1,0 +1,3675 @@
+{
+  "input_sha256": "ff760ed2371f8f813836381df992a971f6b5a0417177e0ee54d30ad86ff2b059",
+  "model_index": 0,
+  "chains": [
+    "A"
+  ],
+  "available_chains": [
+    "A"
+  ],
+  "hetero": [
+    {
+      "residue": "A:613",
+      "name": "SO4"
+    },
+    {
+      "residue": "A:614",
+      "name": "SO4"
+    },
+    {
+      "residue": "A:187",
+      "name": "FOL"
+    },
+    {
+      "residue": "A:615",
+      "name": "HOH"
+    },
+    {
+      "residue": "A:616",
+      "name": "HOH"
+    },
+    {
+      "residue": "A:617",
+      "name": "HOH"
+    },
+    {
+      "residue": "A:618",
+      "name": "HOH"
+    },
+    {
+      "residue": "A:619",
+      "name": "HOH"
+    },
+    {
+      "residue": "A:620",
+      "name": "HOH"
+    },
+    {
+      "residue": "A:621",
+      "name": "HOH"
+    },
+    {
+      "residue": "A:622",
+      "name": "HOH"
+    },
+    {
+      "residue": "A:623",
+      "name": "HOH"
+    },
+    {
+      "residue": "A:624",
+      "name": "HOH"
+    },
+    {
+      "residue": "A:625",
+      "name": "HOH"
+    },
+    {
+      "residue": "A:626",
+      "name": "HOH"
+    },
+    {
+      "residue": "A:627",
+      "name": "HOH"
+    },
+    {
+      "residue": "A:628",
+      "name": "HOH"
+    },
+    {
+      "residue": "A:629",
+      "name": "HOH"
+    },
+    {
+      "residue": "A:630",
+      "name": "HOH"
+    },
+    {
+      "residue": "A:631",
+      "name": "HOH"
+    },
+    {
+      "residue": "A:632",
+      "name": "HOH"
+    },
+    {
+      "residue": "A:633",
+      "name": "HOH"
+    },
+    {
+      "residue": "A:634",
+      "name": "HOH"
+    },
+    {
+      "residue": "A:635",
+      "name": "HOH"
+    },
+    {
+      "residue": "A:636",
+      "name": "HOH"
+    },
+    {
+      "residue": "A:637",
+      "name": "HOH"
+    },
+    {
+      "residue": "A:638",
+      "name": "HOH"
+    },
+    {
+      "residue": "A:639",
+      "name": "HOH"
+    },
+    {
+      "residue": "A:640",
+      "name": "HOH"
+    },
+    {
+      "residue": "A:641",
+      "name": "HOH"
+    },
+    {
+      "residue": "A:642",
+      "name": "HOH"
+    },
+    {
+      "residue": "A:643",
+      "name": "HOH"
+    },
+    {
+      "residue": "A:644",
+      "name": "HOH"
+    },
+    {
+      "residue": "A:645",
+      "name": "HOH"
+    },
+    {
+      "residue": "A:646",
+      "name": "HOH"
+    },
+    {
+      "residue": "A:647",
+      "name": "HOH"
+    },
+    {
+      "residue": "A:648",
+      "name": "HOH"
+    },
+    {
+      "residue": "A:649",
+      "name": "HOH"
+    },
+    {
+      "residue": "A:650",
+      "name": "HOH"
+    },
+    {
+      "residue": "A:651",
+      "name": "HOH"
+    },
+    {
+      "residue": "A:652",
+      "name": "HOH"
+    },
+    {
+      "residue": "A:653",
+      "name": "HOH"
+    },
+    {
+      "residue": "A:654",
+      "name": "HOH"
+    },
+    {
+      "residue": "A:655",
+      "name": "HOH"
+    },
+    {
+      "residue": "A:656",
+      "name": "HOH"
+    },
+    {
+      "residue": "A:657",
+      "name": "HOH"
+    },
+    {
+      "residue": "A:658",
+      "name": "HOH"
+    },
+    {
+      "residue": "A:659",
+      "name": "HOH"
+    },
+    {
+      "residue": "A:660",
+      "name": "HOH"
+    },
+    {
+      "residue": "A:661",
+      "name": "HOH"
+    },
+    {
+      "residue": "A:662",
+      "name": "HOH"
+    },
+    {
+      "residue": "A:663",
+      "name": "HOH"
+    },
+    {
+      "residue": "A:664",
+      "name": "HOH"
+    },
+    {
+      "residue": "A:665",
+      "name": "HOH"
+    },
+    {
+      "residue": "A:666",
+      "name": "HOH"
+    },
+    {
+      "residue": "A:667",
+      "name": "HOH"
+    },
+    {
+      "residue": "A:668",
+      "name": "HOH"
+    },
+    {
+      "residue": "A:669",
+      "name": "HOH"
+    },
+    {
+      "residue": "A:670",
+      "name": "HOH"
+    },
+    {
+      "residue": "A:671",
+      "name": "HOH"
+    },
+    {
+      "residue": "A:672",
+      "name": "HOH"
+    },
+    {
+      "residue": "A:673",
+      "name": "HOH"
+    },
+    {
+      "residue": "A:674",
+      "name": "HOH"
+    },
+    {
+      "residue": "A:675",
+      "name": "HOH"
+    },
+    {
+      "residue": "A:676",
+      "name": "HOH"
+    },
+    {
+      "residue": "A:677",
+      "name": "HOH"
+    },
+    {
+      "residue": "A:678",
+      "name": "HOH"
+    },
+    {
+      "residue": "A:679",
+      "name": "HOH"
+    },
+    {
+      "residue": "A:680",
+      "name": "HOH"
+    },
+    {
+      "residue": "A:681",
+      "name": "HOH"
+    },
+    {
+      "residue": "A:682",
+      "name": "HOH"
+    },
+    {
+      "residue": "A:683",
+      "name": "HOH"
+    },
+    {
+      "residue": "A:684",
+      "name": "HOH"
+    },
+    {
+      "residue": "A:685",
+      "name": "HOH"
+    },
+    {
+      "residue": "A:686",
+      "name": "HOH"
+    },
+    {
+      "residue": "A:687",
+      "name": "HOH"
+    },
+    {
+      "residue": "A:688",
+      "name": "HOH"
+    },
+    {
+      "residue": "A:689",
+      "name": "HOH"
+    },
+    {
+      "residue": "A:690",
+      "name": "HOH"
+    },
+    {
+      "residue": "A:691",
+      "name": "HOH"
+    },
+    {
+      "residue": "A:692",
+      "name": "HOH"
+    },
+    {
+      "residue": "A:693",
+      "name": "HOH"
+    },
+    {
+      "residue": "A:694",
+      "name": "HOH"
+    },
+    {
+      "residue": "A:695",
+      "name": "HOH"
+    },
+    {
+      "residue": "A:696",
+      "name": "HOH"
+    },
+    {
+      "residue": "A:697",
+      "name": "HOH"
+    },
+    {
+      "residue": "A:698",
+      "name": "HOH"
+    },
+    {
+      "residue": "A:699",
+      "name": "HOH"
+    },
+    {
+      "residue": "A:700",
+      "name": "HOH"
+    },
+    {
+      "residue": "A:701",
+      "name": "HOH"
+    },
+    {
+      "residue": "A:702",
+      "name": "HOH"
+    },
+    {
+      "residue": "A:703",
+      "name": "HOH"
+    },
+    {
+      "residue": "A:704",
+      "name": "HOH"
+    },
+    {
+      "residue": "A:705",
+      "name": "HOH"
+    },
+    {
+      "residue": "A:706",
+      "name": "HOH"
+    },
+    {
+      "residue": "A:707",
+      "name": "HOH"
+    },
+    {
+      "residue": "A:708",
+      "name": "HOH"
+    },
+    {
+      "residue": "A:709",
+      "name": "HOH"
+    },
+    {
+      "residue": "A:710",
+      "name": "HOH"
+    },
+    {
+      "residue": "A:711",
+      "name": "HOH"
+    },
+    {
+      "residue": "A:712",
+      "name": "HOH"
+    },
+    {
+      "residue": "A:713",
+      "name": "HOH"
+    },
+    {
+      "residue": "A:714",
+      "name": "HOH"
+    },
+    {
+      "residue": "A:715",
+      "name": "HOH"
+    },
+    {
+      "residue": "A:716",
+      "name": "HOH"
+    },
+    {
+      "residue": "A:717",
+      "name": "HOH"
+    },
+    {
+      "residue": "A:718",
+      "name": "HOH"
+    },
+    {
+      "residue": "A:719",
+      "name": "HOH"
+    },
+    {
+      "residue": "A:720",
+      "name": "HOH"
+    },
+    {
+      "residue": "A:721",
+      "name": "HOH"
+    },
+    {
+      "residue": "A:722",
+      "name": "HOH"
+    },
+    {
+      "residue": "A:723",
+      "name": "HOH"
+    },
+    {
+      "residue": "A:724",
+      "name": "HOH"
+    },
+    {
+      "residue": "A:725",
+      "name": "HOH"
+    },
+    {
+      "residue": "A:726",
+      "name": "HOH"
+    },
+    {
+      "residue": "A:727",
+      "name": "HOH"
+    },
+    {
+      "residue": "A:728",
+      "name": "HOH"
+    },
+    {
+      "residue": "A:729",
+      "name": "HOH"
+    },
+    {
+      "residue": "A:730",
+      "name": "HOH"
+    },
+    {
+      "residue": "A:731",
+      "name": "HOH"
+    },
+    {
+      "residue": "A:732",
+      "name": "HOH"
+    },
+    {
+      "residue": "A:733",
+      "name": "HOH"
+    },
+    {
+      "residue": "A:734",
+      "name": "HOH"
+    },
+    {
+      "residue": "A:735",
+      "name": "HOH"
+    },
+    {
+      "residue": "A:736",
+      "name": "HOH"
+    },
+    {
+      "residue": "A:737",
+      "name": "HOH"
+    },
+    {
+      "residue": "A:738",
+      "name": "HOH"
+    },
+    {
+      "residue": "A:739",
+      "name": "HOH"
+    },
+    {
+      "residue": "A:740",
+      "name": "HOH"
+    },
+    {
+      "residue": "A:741",
+      "name": "HOH"
+    },
+    {
+      "residue": "A:742",
+      "name": "HOH"
+    },
+    {
+      "residue": "A:743",
+      "name": "HOH"
+    },
+    {
+      "residue": "A:744",
+      "name": "HOH"
+    },
+    {
+      "residue": "A:745",
+      "name": "HOH"
+    },
+    {
+      "residue": "A:746",
+      "name": "HOH"
+    },
+    {
+      "residue": "A:747",
+      "name": "HOH"
+    },
+    {
+      "residue": "A:748",
+      "name": "HOH"
+    },
+    {
+      "residue": "A:749",
+      "name": "HOH"
+    },
+    {
+      "residue": "A:750",
+      "name": "HOH"
+    },
+    {
+      "residue": "A:751",
+      "name": "HOH"
+    },
+    {
+      "residue": "A:752",
+      "name": "HOH"
+    },
+    {
+      "residue": "A:753",
+      "name": "HOH"
+    },
+    {
+      "residue": "A:754",
+      "name": "HOH"
+    },
+    {
+      "residue": "A:755",
+      "name": "HOH"
+    },
+    {
+      "residue": "A:756",
+      "name": "HOH"
+    },
+    {
+      "residue": "A:757",
+      "name": "HOH"
+    },
+    {
+      "residue": "A:758",
+      "name": "HOH"
+    },
+    {
+      "residue": "A:759",
+      "name": "HOH"
+    },
+    {
+      "residue": "A:760",
+      "name": "HOH"
+    },
+    {
+      "residue": "A:761",
+      "name": "HOH"
+    },
+    {
+      "residue": "A:762",
+      "name": "HOH"
+    },
+    {
+      "residue": "A:763",
+      "name": "HOH"
+    },
+    {
+      "residue": "A:764",
+      "name": "HOH"
+    },
+    {
+      "residue": "A:765",
+      "name": "HOH"
+    },
+    {
+      "residue": "A:766",
+      "name": "HOH"
+    },
+    {
+      "residue": "A:767",
+      "name": "HOH"
+    },
+    {
+      "residue": "A:768",
+      "name": "HOH"
+    },
+    {
+      "residue": "A:769",
+      "name": "HOH"
+    },
+    {
+      "residue": "A:770",
+      "name": "HOH"
+    },
+    {
+      "residue": "A:771",
+      "name": "HOH"
+    },
+    {
+      "residue": "A:772",
+      "name": "HOH"
+    },
+    {
+      "residue": "A:773",
+      "name": "HOH"
+    },
+    {
+      "residue": "A:774",
+      "name": "HOH"
+    },
+    {
+      "residue": "A:775",
+      "name": "HOH"
+    },
+    {
+      "residue": "A:776",
+      "name": "HOH"
+    },
+    {
+      "residue": "A:777",
+      "name": "HOH"
+    },
+    {
+      "residue": "A:778",
+      "name": "HOH"
+    },
+    {
+      "residue": "A:779",
+      "name": "HOH"
+    },
+    {
+      "residue": "A:780",
+      "name": "HOH"
+    },
+    {
+      "residue": "A:781",
+      "name": "HOH"
+    },
+    {
+      "residue": "A:782",
+      "name": "HOH"
+    },
+    {
+      "residue": "A:783",
+      "name": "HOH"
+    },
+    {
+      "residue": "A:784",
+      "name": "HOH"
+    },
+    {
+      "residue": "A:785",
+      "name": "HOH"
+    },
+    {
+      "residue": "A:786",
+      "name": "HOH"
+    },
+    {
+      "residue": "A:787",
+      "name": "HOH"
+    },
+    {
+      "residue": "A:788",
+      "name": "HOH"
+    },
+    {
+      "residue": "A:789",
+      "name": "HOH"
+    },
+    {
+      "residue": "A:790",
+      "name": "HOH"
+    },
+    {
+      "residue": "A:791",
+      "name": "HOH"
+    },
+    {
+      "residue": "A:792",
+      "name": "HOH"
+    },
+    {
+      "residue": "A:793",
+      "name": "HOH"
+    },
+    {
+      "residue": "A:794",
+      "name": "HOH"
+    },
+    {
+      "residue": "A:795",
+      "name": "HOH"
+    },
+    {
+      "residue": "A:796",
+      "name": "HOH"
+    },
+    {
+      "residue": "A:797",
+      "name": "HOH"
+    },
+    {
+      "residue": "A:798",
+      "name": "HOH"
+    },
+    {
+      "residue": "A:799",
+      "name": "HOH"
+    },
+    {
+      "residue": "A:800",
+      "name": "HOH"
+    },
+    {
+      "residue": "A:801",
+      "name": "HOH"
+    },
+    {
+      "residue": "A:802",
+      "name": "HOH"
+    },
+    {
+      "residue": "A:803",
+      "name": "HOH"
+    },
+    {
+      "residue": "A:804",
+      "name": "HOH"
+    },
+    {
+      "residue": "A:805",
+      "name": "HOH"
+    },
+    {
+      "residue": "A:806",
+      "name": "HOH"
+    },
+    {
+      "residue": "A:807",
+      "name": "HOH"
+    },
+    {
+      "residue": "A:808",
+      "name": "HOH"
+    },
+    {
+      "residue": "A:809",
+      "name": "HOH"
+    },
+    {
+      "residue": "A:810",
+      "name": "HOH"
+    },
+    {
+      "residue": "A:811",
+      "name": "HOH"
+    },
+    {
+      "residue": "A:812",
+      "name": "HOH"
+    },
+    {
+      "residue": "A:813",
+      "name": "HOH"
+    },
+    {
+      "residue": "A:814",
+      "name": "HOH"
+    },
+    {
+      "residue": "A:815",
+      "name": "HOH"
+    },
+    {
+      "residue": "A:816",
+      "name": "HOH"
+    },
+    {
+      "residue": "A:817",
+      "name": "HOH"
+    },
+    {
+      "residue": "A:818",
+      "name": "HOH"
+    },
+    {
+      "residue": "A:819",
+      "name": "HOH"
+    },
+    {
+      "residue": "A:820",
+      "name": "HOH"
+    },
+    {
+      "residue": "A:821",
+      "name": "HOH"
+    },
+    {
+      "residue": "A:822",
+      "name": "HOH"
+    },
+    {
+      "residue": "A:823",
+      "name": "HOH"
+    },
+    {
+      "residue": "A:824",
+      "name": "HOH"
+    },
+    {
+      "residue": "A:825",
+      "name": "HOH"
+    },
+    {
+      "residue": "A:826",
+      "name": "HOH"
+    },
+    {
+      "residue": "A:827",
+      "name": "HOH"
+    },
+    {
+      "residue": "A:828",
+      "name": "HOH"
+    },
+    {
+      "residue": "A:829",
+      "name": "HOH"
+    },
+    {
+      "residue": "A:830",
+      "name": "HOH"
+    },
+    {
+      "residue": "A:831",
+      "name": "HOH"
+    },
+    {
+      "residue": "A:832",
+      "name": "HOH"
+    },
+    {
+      "residue": "A:833",
+      "name": "HOH"
+    },
+    {
+      "residue": "A:834",
+      "name": "HOH"
+    },
+    {
+      "residue": "A:835",
+      "name": "HOH"
+    },
+    {
+      "residue": "A:836",
+      "name": "HOH"
+    },
+    {
+      "residue": "A:837",
+      "name": "HOH"
+    },
+    {
+      "residue": "A:838",
+      "name": "HOH"
+    },
+    {
+      "residue": "A:839",
+      "name": "HOH"
+    },
+    {
+      "residue": "A:840",
+      "name": "HOH"
+    },
+    {
+      "residue": "A:841",
+      "name": "HOH"
+    },
+    {
+      "residue": "A:842",
+      "name": "HOH"
+    },
+    {
+      "residue": "A:843",
+      "name": "HOH"
+    },
+    {
+      "residue": "A:844",
+      "name": "HOH"
+    },
+    {
+      "residue": "A:845",
+      "name": "HOH"
+    },
+    {
+      "residue": "A:846",
+      "name": "HOH"
+    },
+    {
+      "residue": "A:847",
+      "name": "HOH"
+    },
+    {
+      "residue": "A:848",
+      "name": "HOH"
+    },
+    {
+      "residue": "A:849",
+      "name": "HOH"
+    },
+    {
+      "residue": "A:850",
+      "name": "HOH"
+    },
+    {
+      "residue": "A:851",
+      "name": "HOH"
+    },
+    {
+      "residue": "A:852",
+      "name": "HOH"
+    },
+    {
+      "residue": "A:853",
+      "name": "HOH"
+    },
+    {
+      "residue": "A:854",
+      "name": "HOH"
+    },
+    {
+      "residue": "A:855",
+      "name": "HOH"
+    },
+    {
+      "residue": "A:856",
+      "name": "HOH"
+    },
+    {
+      "residue": "A:857",
+      "name": "HOH"
+    },
+    {
+      "residue": "A:858",
+      "name": "HOH"
+    },
+    {
+      "residue": "A:859",
+      "name": "HOH"
+    },
+    {
+      "residue": "A:860",
+      "name": "HOH"
+    },
+    {
+      "residue": "A:861",
+      "name": "HOH"
+    },
+    {
+      "residue": "A:862",
+      "name": "HOH"
+    },
+    {
+      "residue": "A:863",
+      "name": "HOH"
+    }
+  ],
+  "altloc": [],
+  "chain_breaks": [],
+  "residues": [
+    {
+      "id": "A:1",
+      "name": "VAL",
+      "atoms": [
+        "N",
+        "CA",
+        "C",
+        "O",
+        "CB",
+        "CG1",
+        "CG2"
+      ]
+    },
+    {
+      "id": "A:2",
+      "name": "GLY",
+      "atoms": [
+        "N",
+        "CA",
+        "C",
+        "O"
+      ]
+    },
+    {
+      "id": "A:3",
+      "name": "SER",
+      "atoms": [
+        "N",
+        "CA",
+        "C",
+        "O",
+        "CB",
+        "OG"
+      ]
+    },
+    {
+      "id": "A:4",
+      "name": "LEU",
+      "atoms": [
+        "N",
+        "CA",
+        "C",
+        "O",
+        "CB",
+        "CG",
+        "CD1",
+        "CD2"
+      ]
+    },
+    {
+      "id": "A:5",
+      "name": "ASN",
+      "atoms": [
+        "N",
+        "CA",
+        "C",
+        "O",
+        "CB",
+        "CG",
+        "OD1",
+        "ND2"
+      ]
+    },
+    {
+      "id": "A:6",
+      "name": "CYS",
+      "atoms": [
+        "N",
+        "CA",
+        "C",
+        "O",
+        "CB",
+        "SG"
+      ]
+    },
+    {
+      "id": "A:7",
+      "name": "ILE",
+      "atoms": [
+        "N",
+        "CA",
+        "C",
+        "O",
+        "CB",
+        "CG1",
+        "CG2",
+        "CD1"
+      ]
+    },
+    {
+      "id": "A:8",
+      "name": "VAL",
+      "atoms": [
+        "N",
+        "CA",
+        "C",
+        "O",
+        "CB",
+        "CG1",
+        "CG2"
+      ]
+    },
+    {
+      "id": "A:9",
+      "name": "ALA",
+      "atoms": [
+        "N",
+        "CA",
+        "C",
+        "O",
+        "CB"
+      ]
+    },
+    {
+      "id": "A:10",
+      "name": "VAL",
+      "atoms": [
+        "N",
+        "CA",
+        "C",
+        "O",
+        "CB",
+        "CG1",
+        "CG2"
+      ]
+    },
+    {
+      "id": "A:11",
+      "name": "SER",
+      "atoms": [
+        "N",
+        "CA",
+        "C",
+        "O",
+        "CB",
+        "OG"
+      ]
+    },
+    {
+      "id": "A:12",
+      "name": "GLN",
+      "atoms": [
+        "N",
+        "CA",
+        "C",
+        "O"
+      ]
+    },
+    {
+      "id": "A:13",
+      "name": "ASN",
+      "atoms": [
+        "N",
+        "CA",
+        "C",
+        "O",
+        "CB",
+        "CG",
+        "OD1",
+        "ND2"
+      ]
+    },
+    {
+      "id": "A:14",
+      "name": "MET",
+      "atoms": [
+        "N",
+        "CA",
+        "C",
+        "O",
+        "CB",
+        "CG",
+        "SD",
+        "CE"
+      ]
+    },
+    {
+      "id": "A:15",
+      "name": "GLY",
+      "atoms": [
+        "N",
+        "CA",
+        "C",
+        "O"
+      ]
+    },
+    {
+      "id": "A:16",
+      "name": "ILE",
+      "atoms": [
+        "N",
+        "CA",
+        "C",
+        "O",
+        "CB",
+        "CG1",
+        "CG2",
+        "CD1"
+      ]
+    },
+    {
+      "id": "A:17",
+      "name": "GLY",
+      "atoms": [
+        "N",
+        "CA",
+        "C",
+        "O"
+      ]
+    },
+    {
+      "id": "A:18",
+      "name": "LYS",
+      "atoms": [
+        "N",
+        "CA",
+        "C",
+        "O",
+        "CB",
+        "CG",
+        "CD",
+        "CE",
+        "NZ"
+      ]
+    },
+    {
+      "id": "A:19",
+      "name": "ASN",
+      "atoms": [
+        "N",
+        "CA",
+        "C",
+        "O",
+        "CB",
+        "CG",
+        "OD1",
+        "ND2"
+      ]
+    },
+    {
+      "id": "A:20",
+      "name": "GLY",
+      "atoms": [
+        "N",
+        "CA",
+        "C",
+        "O"
+      ]
+    },
+    {
+      "id": "A:21",
+      "name": "ASP",
+      "atoms": [
+        "N",
+        "CA",
+        "C",
+        "O",
+        "CB",
+        "CG",
+        "OD1",
+        "OD2"
+      ]
+    },
+    {
+      "id": "A:22",
+      "name": "LEU",
+      "atoms": [
+        "N",
+        "CA",
+        "C",
+        "O",
+        "CB",
+        "CG",
+        "CD1",
+        "CD2"
+      ]
+    },
+    {
+      "id": "A:23",
+      "name": "PRO",
+      "atoms": [
+        "N",
+        "CA",
+        "C",
+        "O",
+        "CB",
+        "CG",
+        "CD"
+      ]
+    },
+    {
+      "id": "A:24",
+      "name": "TRP",
+      "atoms": [
+        "N",
+        "CA",
+        "C",
+        "O",
+        "CB",
+        "CG",
+        "CD1",
+        "CD2",
+        "NE1",
+        "CE2",
+        "CE3",
+        "CZ2",
+        "CZ3",
+        "CH2"
+      ]
+    },
+    {
+      "id": "A:25",
+      "name": "PRO",
+      "atoms": [
+        "N",
+        "CA",
+        "C",
+        "O",
+        "CB",
+        "CG",
+        "CD"
+      ]
+    },
+    {
+      "id": "A:26",
+      "name": "PRO",
+      "atoms": [
+        "N",
+        "CA",
+        "C",
+        "O",
+        "CB",
+        "CG",
+        "CD"
+      ]
+    },
+    {
+      "id": "A:27",
+      "name": "LEU",
+      "atoms": [
+        "N",
+        "CA",
+        "C",
+        "O",
+        "CB",
+        "CG",
+        "CD1",
+        "CD2"
+      ]
+    },
+    {
+      "id": "A:28",
+      "name": "ARG",
+      "atoms": [
+        "N",
+        "CA",
+        "C",
+        "O",
+        "CB",
+        "CG",
+        "CD",
+        "NE",
+        "CZ",
+        "NH1",
+        "NH2"
+      ]
+    },
+    {
+      "id": "A:29",
+      "name": "ASN",
+      "atoms": [
+        "N",
+        "CA",
+        "C",
+        "O",
+        "CB",
+        "CG",
+        "OD1",
+        "ND2"
+      ]
+    },
+    {
+      "id": "A:30",
+      "name": "GLU",
+      "atoms": [
+        "N",
+        "CA",
+        "C",
+        "O",
+        "CB",
+        "CG",
+        "CD",
+        "OE1",
+        "OE2"
+      ]
+    },
+    {
+      "id": "A:31",
+      "name": "PHE",
+      "atoms": [
+        "N",
+        "CA",
+        "C",
+        "O",
+        "CB",
+        "CG",
+        "CD1",
+        "CD2",
+        "CE1",
+        "CE2",
+        "CZ"
+      ]
+    },
+    {
+      "id": "A:32",
+      "name": "ARG",
+      "atoms": [
+        "N",
+        "CA",
+        "C",
+        "O",
+        "CB",
+        "CG",
+        "CD",
+        "NE",
+        "CZ",
+        "NH1",
+        "NH2"
+      ]
+    },
+    {
+      "id": "A:33",
+      "name": "TYR",
+      "atoms": [
+        "N",
+        "CA",
+        "C",
+        "O",
+        "CB",
+        "CG",
+        "CD1",
+        "CD2",
+        "CE1",
+        "CE2",
+        "CZ",
+        "OH"
+      ]
+    },
+    {
+      "id": "A:34",
+      "name": "PHE",
+      "atoms": [
+        "N",
+        "CA",
+        "C",
+        "O",
+        "CB",
+        "CG",
+        "CD1",
+        "CD2",
+        "CE1",
+        "CE2",
+        "CZ"
+      ]
+    },
+    {
+      "id": "A:35",
+      "name": "GLN",
+      "atoms": [
+        "N",
+        "CA",
+        "C",
+        "O",
+        "CB",
+        "CG",
+        "CD",
+        "OE1",
+        "NE2"
+      ]
+    },
+    {
+      "id": "A:36",
+      "name": "ARG",
+      "atoms": [
+        "N",
+        "CA",
+        "C",
+        "O",
+        "CB",
+        "CG",
+        "CD",
+        "NE",
+        "CZ",
+        "NH1",
+        "NH2"
+      ]
+    },
+    {
+      "id": "A:37",
+      "name": "MET",
+      "atoms": [
+        "N",
+        "CA",
+        "C",
+        "O",
+        "CB",
+        "CG",
+        "SD",
+        "CE"
+      ]
+    },
+    {
+      "id": "A:38",
+      "name": "THR",
+      "atoms": [
+        "N",
+        "CA",
+        "C",
+        "O",
+        "CB",
+        "OG1",
+        "CG2"
+      ]
+    },
+    {
+      "id": "A:39",
+      "name": "THR",
+      "atoms": [
+        "N",
+        "CA",
+        "C",
+        "O",
+        "CB",
+        "OG1",
+        "CG2"
+      ]
+    },
+    {
+      "id": "A:40",
+      "name": "THR",
+      "atoms": [
+        "N",
+        "CA",
+        "C",
+        "O",
+        "CB",
+        "OG1",
+        "CG2"
+      ]
+    },
+    {
+      "id": "A:41",
+      "name": "SER",
+      "atoms": [
+        "N",
+        "CA",
+        "C",
+        "O",
+        "CB",
+        "OG"
+      ]
+    },
+    {
+      "id": "A:42",
+      "name": "SER",
+      "atoms": [
+        "N",
+        "CA",
+        "C",
+        "O",
+        "CB",
+        "OG"
+      ]
+    },
+    {
+      "id": "A:43",
+      "name": "VAL",
+      "atoms": [
+        "N",
+        "CA",
+        "C",
+        "O",
+        "CB",
+        "CG1",
+        "CG2"
+      ]
+    },
+    {
+      "id": "A:44",
+      "name": "GLU",
+      "atoms": [
+        "N",
+        "CA",
+        "C",
+        "O",
+        "CB",
+        "CG",
+        "CD",
+        "OE1",
+        "OE2"
+      ]
+    },
+    {
+      "id": "A:45",
+      "name": "GLY",
+      "atoms": [
+        "N",
+        "CA",
+        "C",
+        "O"
+      ]
+    },
+    {
+      "id": "A:46",
+      "name": "LYS",
+      "atoms": [
+        "N",
+        "CA",
+        "C",
+        "O",
+        "CB",
+        "CG",
+        "CD",
+        "CE",
+        "NZ"
+      ]
+    },
+    {
+      "id": "A:47",
+      "name": "GLN",
+      "atoms": [
+        "N",
+        "CA",
+        "C",
+        "O",
+        "CB",
+        "CG",
+        "CD",
+        "OE1",
+        "NE2"
+      ]
+    },
+    {
+      "id": "A:48",
+      "name": "ASN",
+      "atoms": [
+        "N",
+        "CA",
+        "C",
+        "O",
+        "CB",
+        "CG",
+        "OD1",
+        "ND2"
+      ]
+    },
+    {
+      "id": "A:49",
+      "name": "LEU",
+      "atoms": [
+        "N",
+        "CA",
+        "C",
+        "O",
+        "CB",
+        "CG",
+        "CD1",
+        "CD2"
+      ]
+    },
+    {
+      "id": "A:50",
+      "name": "VAL",
+      "atoms": [
+        "N",
+        "CA",
+        "C",
+        "O",
+        "CB",
+        "CG1",
+        "CG2"
+      ]
+    },
+    {
+      "id": "A:51",
+      "name": "ILE",
+      "atoms": [
+        "N",
+        "CA",
+        "C",
+        "O",
+        "CB",
+        "CG1",
+        "CG2",
+        "CD1"
+      ]
+    },
+    {
+      "id": "A:52",
+      "name": "MET",
+      "atoms": [
+        "N",
+        "CA",
+        "C",
+        "O",
+        "CB",
+        "CG",
+        "SD",
+        "CE"
+      ]
+    },
+    {
+      "id": "A:53",
+      "name": "GLY",
+      "atoms": [
+        "N",
+        "CA",
+        "C",
+        "O"
+      ]
+    },
+    {
+      "id": "A:54",
+      "name": "LYS",
+      "atoms": [
+        "N",
+        "CA",
+        "C",
+        "O",
+        "CB",
+        "CG",
+        "CD",
+        "CE",
+        "NZ"
+      ]
+    },
+    {
+      "id": "A:55",
+      "name": "LYS",
+      "atoms": [
+        "N",
+        "CA",
+        "C",
+        "O",
+        "CB",
+        "CG",
+        "CD",
+        "CE",
+        "NZ"
+      ]
+    },
+    {
+      "id": "A:56",
+      "name": "THR",
+      "atoms": [
+        "N",
+        "CA",
+        "C",
+        "O",
+        "CB",
+        "OG1",
+        "CG2"
+      ]
+    },
+    {
+      "id": "A:57",
+      "name": "TRP",
+      "atoms": [
+        "N",
+        "CA",
+        "C",
+        "O",
+        "CB",
+        "CG",
+        "CD1",
+        "CD2",
+        "NE1",
+        "CE2",
+        "CE3",
+        "CZ2",
+        "CZ3",
+        "CH2"
+      ]
+    },
+    {
+      "id": "A:58",
+      "name": "PHE",
+      "atoms": [
+        "N",
+        "CA",
+        "C",
+        "O",
+        "CB",
+        "CG",
+        "CD1",
+        "CD2",
+        "CE1",
+        "CE2",
+        "CZ"
+      ]
+    },
+    {
+      "id": "A:59",
+      "name": "SER",
+      "atoms": [
+        "N",
+        "CA",
+        "C",
+        "O",
+        "CB",
+        "OG"
+      ]
+    },
+    {
+      "id": "A:60",
+      "name": "ILE",
+      "atoms": [
+        "N",
+        "CA",
+        "C",
+        "O",
+        "CB",
+        "CG1",
+        "CG2",
+        "CD1"
+      ]
+    },
+    {
+      "id": "A:61",
+      "name": "PRO",
+      "atoms": [
+        "N",
+        "CA",
+        "C",
+        "O",
+        "CB",
+        "CG",
+        "CD"
+      ]
+    },
+    {
+      "id": "A:62",
+      "name": "GLU",
+      "atoms": [
+        "N",
+        "CA",
+        "C",
+        "O",
+        "CB",
+        "CG",
+        "CD",
+        "OE1",
+        "OE2"
+      ]
+    },
+    {
+      "id": "A:63",
+      "name": "LYS",
+      "atoms": [
+        "N",
+        "CA",
+        "C",
+        "O",
+        "CB",
+        "CG",
+        "CD",
+        "CE",
+        "NZ"
+      ]
+    },
+    {
+      "id": "A:64",
+      "name": "ASN",
+      "atoms": [
+        "N",
+        "CA",
+        "C",
+        "O",
+        "CB",
+        "CG",
+        "OD1",
+        "ND2"
+      ]
+    },
+    {
+      "id": "A:65",
+      "name": "ARG",
+      "atoms": [
+        "N",
+        "CA",
+        "C",
+        "O",
+        "CB",
+        "CG",
+        "CD",
+        "NE",
+        "CZ",
+        "NH1",
+        "NH2"
+      ]
+    },
+    {
+      "id": "A:66",
+      "name": "PRO",
+      "atoms": [
+        "N",
+        "CA",
+        "C",
+        "O",
+        "CB",
+        "CG",
+        "CD"
+      ]
+    },
+    {
+      "id": "A:67",
+      "name": "LEU",
+      "atoms": [
+        "N",
+        "CA",
+        "C",
+        "O",
+        "CB",
+        "CG",
+        "CD1",
+        "CD2"
+      ]
+    },
+    {
+      "id": "A:68",
+      "name": "LYS",
+      "atoms": [
+        "N",
+        "CA",
+        "C",
+        "O",
+        "CB",
+        "CG",
+        "CD",
+        "CE",
+        "NZ"
+      ]
+    },
+    {
+      "id": "A:69",
+      "name": "GLY",
+      "atoms": [
+        "N",
+        "CA",
+        "C",
+        "O"
+      ]
+    },
+    {
+      "id": "A:70",
+      "name": "ARG",
+      "atoms": [
+        "N",
+        "CA",
+        "C",
+        "O",
+        "CB",
+        "CG",
+        "CD",
+        "NE",
+        "CZ",
+        "NH1",
+        "NH2"
+      ]
+    },
+    {
+      "id": "A:71",
+      "name": "ILE",
+      "atoms": [
+        "N",
+        "CA",
+        "C",
+        "O",
+        "CB",
+        "CG1",
+        "CG2",
+        "CD1"
+      ]
+    },
+    {
+      "id": "A:72",
+      "name": "ASN",
+      "atoms": [
+        "N",
+        "CA",
+        "C",
+        "O",
+        "CB",
+        "CG",
+        "OD1",
+        "ND2"
+      ]
+    },
+    {
+      "id": "A:73",
+      "name": "LEU",
+      "atoms": [
+        "N",
+        "CA",
+        "C",
+        "O",
+        "CB",
+        "CG",
+        "CD1",
+        "CD2"
+      ]
+    },
+    {
+      "id": "A:74",
+      "name": "VAL",
+      "atoms": [
+        "N",
+        "CA",
+        "C",
+        "O",
+        "CB",
+        "CG1",
+        "CG2"
+      ]
+    },
+    {
+      "id": "A:75",
+      "name": "LEU",
+      "atoms": [
+        "N",
+        "CA",
+        "C",
+        "O",
+        "CB",
+        "CG",
+        "CD1",
+        "CD2"
+      ]
+    },
+    {
+      "id": "A:76",
+      "name": "SER",
+      "atoms": [
+        "N",
+        "CA",
+        "C",
+        "O",
+        "CB",
+        "OG"
+      ]
+    },
+    {
+      "id": "A:77",
+      "name": "ARG",
+      "atoms": [
+        "N",
+        "CA",
+        "C",
+        "O",
+        "CB",
+        "CG",
+        "CD",
+        "NE",
+        "CZ",
+        "NH1",
+        "NH2"
+      ]
+    },
+    {
+      "id": "A:78",
+      "name": "GLU",
+      "atoms": [
+        "N",
+        "CA",
+        "C",
+        "O",
+        "CB",
+        "CG",
+        "CD",
+        "OE1",
+        "OE2"
+      ]
+    },
+    {
+      "id": "A:79",
+      "name": "LEU",
+      "atoms": [
+        "N",
+        "CA",
+        "C",
+        "O",
+        "CB",
+        "CG",
+        "CD1",
+        "CD2"
+      ]
+    },
+    {
+      "id": "A:80",
+      "name": "LYS",
+      "atoms": [
+        "N",
+        "CA",
+        "C",
+        "O",
+        "CB",
+        "CG",
+        "CD",
+        "CE",
+        "NZ"
+      ]
+    },
+    {
+      "id": "A:81",
+      "name": "GLU",
+      "atoms": [
+        "N",
+        "CA",
+        "C",
+        "O",
+        "CB",
+        "CG",
+        "CD",
+        "OE1",
+        "OE2"
+      ]
+    },
+    {
+      "id": "A:82",
+      "name": "PRO",
+      "atoms": [
+        "N",
+        "CA",
+        "C",
+        "O",
+        "CB",
+        "CG",
+        "CD"
+      ]
+    },
+    {
+      "id": "A:83",
+      "name": "PRO",
+      "atoms": [
+        "N",
+        "CA",
+        "C",
+        "O",
+        "CB",
+        "CG",
+        "CD"
+      ]
+    },
+    {
+      "id": "A:84",
+      "name": "GLN",
+      "atoms": [
+        "N",
+        "CA",
+        "C",
+        "O",
+        "CB",
+        "CG",
+        "CD",
+        "OE1",
+        "NE2"
+      ]
+    },
+    {
+      "id": "A:85",
+      "name": "GLY",
+      "atoms": [
+        "N",
+        "CA",
+        "C",
+        "O"
+      ]
+    },
+    {
+      "id": "A:86",
+      "name": "ALA",
+      "atoms": [
+        "N",
+        "CA",
+        "C",
+        "O",
+        "CB"
+      ]
+    },
+    {
+      "id": "A:87",
+      "name": "HIS",
+      "atoms": [
+        "N",
+        "CA",
+        "C",
+        "O",
+        "CB",
+        "CG",
+        "ND1",
+        "CD2",
+        "CE1",
+        "NE2"
+      ]
+    },
+    {
+      "id": "A:88",
+      "name": "PHE",
+      "atoms": [
+        "N",
+        "CA",
+        "C",
+        "O",
+        "CB",
+        "CG",
+        "CD1",
+        "CD2",
+        "CE1",
+        "CE2",
+        "CZ"
+      ]
+    },
+    {
+      "id": "A:89",
+      "name": "LEU",
+      "atoms": [
+        "N",
+        "CA",
+        "C",
+        "O",
+        "CB",
+        "CG",
+        "CD1",
+        "CD2"
+      ]
+    },
+    {
+      "id": "A:90",
+      "name": "SER",
+      "atoms": [
+        "N",
+        "CA",
+        "C",
+        "O",
+        "CB",
+        "OG"
+      ]
+    },
+    {
+      "id": "A:91",
+      "name": "ARG",
+      "atoms": [
+        "N",
+        "CA",
+        "C",
+        "O",
+        "CB",
+        "CG",
+        "CD",
+        "NE",
+        "CZ",
+        "NH1",
+        "NH2"
+      ]
+    },
+    {
+      "id": "A:92",
+      "name": "SER",
+      "atoms": [
+        "N",
+        "CA",
+        "C",
+        "O",
+        "CB",
+        "OG"
+      ]
+    },
+    {
+      "id": "A:93",
+      "name": "LEU",
+      "atoms": [
+        "N",
+        "CA",
+        "C",
+        "O",
+        "CB",
+        "CG",
+        "CD1",
+        "CD2"
+      ]
+    },
+    {
+      "id": "A:94",
+      "name": "ASP",
+      "atoms": [
+        "N",
+        "CA",
+        "C",
+        "O",
+        "CB",
+        "CG",
+        "OD1",
+        "OD2"
+      ]
+    },
+    {
+      "id": "A:95",
+      "name": "ASP",
+      "atoms": [
+        "N",
+        "CA",
+        "C",
+        "O",
+        "CB",
+        "CG",
+        "OD1",
+        "OD2"
+      ]
+    },
+    {
+      "id": "A:96",
+      "name": "ALA",
+      "atoms": [
+        "N",
+        "CA",
+        "C",
+        "O",
+        "CB"
+      ]
+    },
+    {
+      "id": "A:97",
+      "name": "LEU",
+      "atoms": [
+        "N",
+        "CA",
+        "C",
+        "O",
+        "CB",
+        "CG",
+        "CD1",
+        "CD2"
+      ]
+    },
+    {
+      "id": "A:98",
+      "name": "LYS",
+      "atoms": [
+        "N",
+        "CA",
+        "C",
+        "O",
+        "CB",
+        "CG",
+        "CD",
+        "CE",
+        "NZ"
+      ]
+    },
+    {
+      "id": "A:99",
+      "name": "LEU",
+      "atoms": [
+        "N",
+        "CA",
+        "C",
+        "O",
+        "CB",
+        "CG",
+        "CD1",
+        "CD2"
+      ]
+    },
+    {
+      "id": "A:100",
+      "name": "THR",
+      "atoms": [
+        "N",
+        "CA",
+        "C",
+        "O",
+        "CB",
+        "OG1",
+        "CG2"
+      ]
+    },
+    {
+      "id": "A:101",
+      "name": "GLU",
+      "atoms": [
+        "N",
+        "CA",
+        "C",
+        "O",
+        "CB",
+        "CG",
+        "CD",
+        "OE1",
+        "OE2"
+      ]
+    },
+    {
+      "id": "A:102",
+      "name": "GLN",
+      "atoms": [
+        "N",
+        "CA",
+        "C",
+        "O",
+        "CB",
+        "CG",
+        "CD",
+        "OE1",
+        "NE2"
+      ]
+    },
+    {
+      "id": "A:103",
+      "name": "PRO",
+      "atoms": [
+        "N",
+        "CA",
+        "C",
+        "O",
+        "CB",
+        "CG",
+        "CD"
+      ]
+    },
+    {
+      "id": "A:104",
+      "name": "GLU",
+      "atoms": [
+        "N",
+        "CA",
+        "C",
+        "O",
+        "CB",
+        "CG",
+        "CD",
+        "OE1",
+        "OE2"
+      ]
+    },
+    {
+      "id": "A:105",
+      "name": "LEU",
+      "atoms": [
+        "N",
+        "CA",
+        "C",
+        "O",
+        "CB",
+        "CG",
+        "CD1",
+        "CD2"
+      ]
+    },
+    {
+      "id": "A:106",
+      "name": "ALA",
+      "atoms": [
+        "N",
+        "CA",
+        "C",
+        "O",
+        "CB"
+      ]
+    },
+    {
+      "id": "A:107",
+      "name": "ASN",
+      "atoms": [
+        "N",
+        "CA",
+        "C",
+        "O",
+        "CB",
+        "CG",
+        "OD1",
+        "ND2"
+      ]
+    },
+    {
+      "id": "A:108",
+      "name": "LYS",
+      "atoms": [
+        "N",
+        "CA",
+        "C",
+        "O",
+        "CB",
+        "CG",
+        "CD",
+        "CE",
+        "NZ"
+      ]
+    },
+    {
+      "id": "A:109",
+      "name": "VAL",
+      "atoms": [
+        "N",
+        "CA",
+        "C",
+        "O",
+        "CB",
+        "CG1",
+        "CG2"
+      ]
+    },
+    {
+      "id": "A:110",
+      "name": "ASP",
+      "atoms": [
+        "N",
+        "CA",
+        "C",
+        "O",
+        "CB",
+        "CG",
+        "OD1",
+        "OD2"
+      ]
+    },
+    {
+      "id": "A:111",
+      "name": "MET",
+      "atoms": [
+        "N",
+        "CA",
+        "C",
+        "O",
+        "CB",
+        "CG",
+        "SD",
+        "CE"
+      ]
+    },
+    {
+      "id": "A:112",
+      "name": "VAL",
+      "atoms": [
+        "N",
+        "CA",
+        "C",
+        "O",
+        "CB",
+        "CG1",
+        "CG2"
+      ]
+    },
+    {
+      "id": "A:113",
+      "name": "TRP",
+      "atoms": [
+        "N",
+        "CA",
+        "C",
+        "O",
+        "CB",
+        "CG",
+        "CD1",
+        "CD2",
+        "NE1",
+        "CE2",
+        "CE3",
+        "CZ2",
+        "CZ3",
+        "CH2"
+      ]
+    },
+    {
+      "id": "A:114",
+      "name": "ILE",
+      "atoms": [
+        "N",
+        "CA",
+        "C",
+        "O",
+        "CB",
+        "CG1",
+        "CG2",
+        "CD1"
+      ]
+    },
+    {
+      "id": "A:115",
+      "name": "VAL",
+      "atoms": [
+        "N",
+        "CA",
+        "C",
+        "O",
+        "CB",
+        "CG1",
+        "CG2"
+      ]
+    },
+    {
+      "id": "A:116",
+      "name": "GLY",
+      "atoms": [
+        "N",
+        "CA",
+        "C",
+        "O"
+      ]
+    },
+    {
+      "id": "A:117",
+      "name": "GLY",
+      "atoms": [
+        "N",
+        "CA",
+        "C",
+        "O"
+      ]
+    },
+    {
+      "id": "A:118",
+      "name": "SER",
+      "atoms": [
+        "N",
+        "CA",
+        "C",
+        "O",
+        "CB",
+        "OG"
+      ]
+    },
+    {
+      "id": "A:119",
+      "name": "SER",
+      "atoms": [
+        "N",
+        "CA",
+        "C",
+        "O",
+        "CB",
+        "OG"
+      ]
+    },
+    {
+      "id": "A:120",
+      "name": "VAL",
+      "atoms": [
+        "N",
+        "CA",
+        "C",
+        "O",
+        "CB",
+        "CG1",
+        "CG2"
+      ]
+    },
+    {
+      "id": "A:121",
+      "name": "TYR",
+      "atoms": [
+        "N",
+        "CA",
+        "C",
+        "O",
+        "CB",
+        "CG",
+        "CD1",
+        "CD2",
+        "CE1",
+        "CE2",
+        "CZ",
+        "OH"
+      ]
+    },
+    {
+      "id": "A:122",
+      "name": "LYS",
+      "atoms": [
+        "N",
+        "CA",
+        "C",
+        "O",
+        "CB",
+        "CG",
+        "CD",
+        "CE",
+        "NZ"
+      ]
+    },
+    {
+      "id": "A:123",
+      "name": "GLU",
+      "atoms": [
+        "N",
+        "CA",
+        "C",
+        "O",
+        "CB",
+        "CG",
+        "CD",
+        "OE1",
+        "OE2"
+      ]
+    },
+    {
+      "id": "A:124",
+      "name": "ALA",
+      "atoms": [
+        "N",
+        "CA",
+        "C",
+        "O",
+        "CB"
+      ]
+    },
+    {
+      "id": "A:125",
+      "name": "MET",
+      "atoms": [
+        "N",
+        "CA",
+        "C",
+        "O",
+        "CB",
+        "CG",
+        "SD",
+        "CE"
+      ]
+    },
+    {
+      "id": "A:126",
+      "name": "ASN",
+      "atoms": [
+        "N",
+        "CA",
+        "C",
+        "O",
+        "CB",
+        "CG",
+        "OD1",
+        "ND2"
+      ]
+    },
+    {
+      "id": "A:127",
+      "name": "HIS",
+      "atoms": [
+        "N",
+        "CA",
+        "C",
+        "O",
+        "CB",
+        "CG",
+        "ND1",
+        "CD2",
+        "CE1",
+        "NE2"
+      ]
+    },
+    {
+      "id": "A:128",
+      "name": "PRO",
+      "atoms": [
+        "N",
+        "CA",
+        "C",
+        "O",
+        "CB",
+        "CG",
+        "CD"
+      ]
+    },
+    {
+      "id": "A:129",
+      "name": "GLY",
+      "atoms": [
+        "N",
+        "CA",
+        "C",
+        "O"
+      ]
+    },
+    {
+      "id": "A:130",
+      "name": "HIS",
+      "atoms": [
+        "N",
+        "CA",
+        "C",
+        "O",
+        "CB",
+        "CG",
+        "ND1",
+        "CD2",
+        "CE1",
+        "NE2"
+      ]
+    },
+    {
+      "id": "A:131",
+      "name": "LEU",
+      "atoms": [
+        "N",
+        "CA",
+        "C",
+        "O",
+        "CB",
+        "CG",
+        "CD1",
+        "CD2"
+      ]
+    },
+    {
+      "id": "A:132",
+      "name": "LYS",
+      "atoms": [
+        "N",
+        "CA",
+        "C",
+        "O",
+        "CB",
+        "CG",
+        "CD",
+        "CE",
+        "NZ"
+      ]
+    },
+    {
+      "id": "A:133",
+      "name": "LEU",
+      "atoms": [
+        "N",
+        "CA",
+        "C",
+        "O",
+        "CB",
+        "CG",
+        "CD1",
+        "CD2"
+      ]
+    },
+    {
+      "id": "A:134",
+      "name": "PHE",
+      "atoms": [
+        "N",
+        "CA",
+        "C",
+        "O",
+        "CB",
+        "CG",
+        "CD1",
+        "CD2",
+        "CE1",
+        "CE2",
+        "CZ"
+      ]
+    },
+    {
+      "id": "A:135",
+      "name": "VAL",
+      "atoms": [
+        "N",
+        "CA",
+        "C",
+        "O",
+        "CB",
+        "CG1",
+        "CG2"
+      ]
+    },
+    {
+      "id": "A:136",
+      "name": "THR",
+      "atoms": [
+        "N",
+        "CA",
+        "C",
+        "O",
+        "CB",
+        "OG1",
+        "CG2"
+      ]
+    },
+    {
+      "id": "A:137",
+      "name": "ARG",
+      "atoms": [
+        "N",
+        "CA",
+        "C",
+        "O",
+        "CB",
+        "CG",
+        "CD",
+        "NE",
+        "CZ",
+        "NH1",
+        "NH2"
+      ]
+    },
+    {
+      "id": "A:138",
+      "name": "ILE",
+      "atoms": [
+        "N",
+        "CA",
+        "C",
+        "O",
+        "CB",
+        "CG1",
+        "CG2",
+        "CD1"
+      ]
+    },
+    {
+      "id": "A:139",
+      "name": "MET",
+      "atoms": [
+        "N",
+        "CA",
+        "C",
+        "O",
+        "CB",
+        "CG",
+        "SD",
+        "CE"
+      ]
+    },
+    {
+      "id": "A:140",
+      "name": "GLN",
+      "atoms": [
+        "N",
+        "CA",
+        "C",
+        "O",
+        "CB",
+        "CG",
+        "CD",
+        "OE1",
+        "NE2"
+      ]
+    },
+    {
+      "id": "A:141",
+      "name": "ASP",
+      "atoms": [
+        "N",
+        "CA",
+        "C",
+        "O",
+        "CB",
+        "CG",
+        "OD1",
+        "OD2"
+      ]
+    },
+    {
+      "id": "A:142",
+      "name": "PHE",
+      "atoms": [
+        "N",
+        "CA",
+        "C",
+        "O",
+        "CB",
+        "CG",
+        "CD1",
+        "CD2",
+        "CE1",
+        "CE2",
+        "CZ"
+      ]
+    },
+    {
+      "id": "A:143",
+      "name": "GLU",
+      "atoms": [
+        "N",
+        "CA",
+        "C",
+        "O",
+        "CB",
+        "CG",
+        "CD",
+        "OE1",
+        "OE2"
+      ]
+    },
+    {
+      "id": "A:144",
+      "name": "SER",
+      "atoms": [
+        "N",
+        "CA",
+        "C",
+        "O",
+        "CB",
+        "OG"
+      ]
+    },
+    {
+      "id": "A:145",
+      "name": "ASP",
+      "atoms": [
+        "N",
+        "CA",
+        "C",
+        "O",
+        "CB",
+        "CG",
+        "OD1",
+        "OD2"
+      ]
+    },
+    {
+      "id": "A:146",
+      "name": "THR",
+      "atoms": [
+        "N",
+        "CA",
+        "C",
+        "O",
+        "CB",
+        "OG1",
+        "CG2"
+      ]
+    },
+    {
+      "id": "A:147",
+      "name": "PHE",
+      "atoms": [
+        "N",
+        "CA",
+        "C",
+        "O",
+        "CB",
+        "CG",
+        "CD1",
+        "CD2",
+        "CE1",
+        "CE2",
+        "CZ"
+      ]
+    },
+    {
+      "id": "A:148",
+      "name": "PHE",
+      "atoms": [
+        "N",
+        "CA",
+        "C",
+        "O",
+        "CB",
+        "CG",
+        "CD1",
+        "CD2",
+        "CE1",
+        "CE2",
+        "CZ"
+      ]
+    },
+    {
+      "id": "A:149",
+      "name": "PRO",
+      "atoms": [
+        "N",
+        "CA",
+        "C",
+        "O",
+        "CB",
+        "CG",
+        "CD"
+      ]
+    },
+    {
+      "id": "A:150",
+      "name": "GLU",
+      "atoms": [
+        "N",
+        "CA",
+        "C",
+        "O",
+        "CB",
+        "CG",
+        "CD",
+        "OE1",
+        "OE2"
+      ]
+    },
+    {
+      "id": "A:151",
+      "name": "ILE",
+      "atoms": [
+        "N",
+        "CA",
+        "C",
+        "O",
+        "CB",
+        "CG1",
+        "CG2",
+        "CD1"
+      ]
+    },
+    {
+      "id": "A:152",
+      "name": "ASP",
+      "atoms": [
+        "N",
+        "CA",
+        "C",
+        "O",
+        "CB",
+        "CG",
+        "OD1",
+        "OD2"
+      ]
+    },
+    {
+      "id": "A:153",
+      "name": "LEU",
+      "atoms": [
+        "N",
+        "CA",
+        "C",
+        "O",
+        "CB",
+        "CG",
+        "CD1",
+        "CD2"
+      ]
+    },
+    {
+      "id": "A:154",
+      "name": "GLU",
+      "atoms": [
+        "N",
+        "CA",
+        "C",
+        "O",
+        "CB",
+        "CG",
+        "CD",
+        "OE1",
+        "OE2"
+      ]
+    },
+    {
+      "id": "A:155",
+      "name": "LYS",
+      "atoms": [
+        "N",
+        "CA",
+        "C",
+        "O",
+        "CB",
+        "CG",
+        "CD",
+        "CE",
+        "NZ"
+      ]
+    },
+    {
+      "id": "A:156",
+      "name": "TYR",
+      "atoms": [
+        "N",
+        "CA",
+        "C",
+        "O",
+        "CB",
+        "CG",
+        "CD1",
+        "CD2",
+        "CE1",
+        "CE2",
+        "CZ",
+        "OH"
+      ]
+    },
+    {
+      "id": "A:157",
+      "name": "LYS",
+      "atoms": [
+        "N",
+        "CA",
+        "C",
+        "O",
+        "CB",
+        "CG",
+        "CD",
+        "CE",
+        "NZ"
+      ]
+    },
+    {
+      "id": "A:158",
+      "name": "LEU",
+      "atoms": [
+        "N",
+        "CA",
+        "C",
+        "O",
+        "CB",
+        "CG",
+        "CD1",
+        "CD2"
+      ]
+    },
+    {
+      "id": "A:159",
+      "name": "LEU",
+      "atoms": [
+        "N",
+        "CA",
+        "C",
+        "O",
+        "CB",
+        "CG",
+        "CD1",
+        "CD2"
+      ]
+    },
+    {
+      "id": "A:160",
+      "name": "PRO",
+      "atoms": [
+        "N",
+        "CA",
+        "C",
+        "O",
+        "CB",
+        "CG",
+        "CD"
+      ]
+    },
+    {
+      "id": "A:161",
+      "name": "GLU",
+      "atoms": [
+        "N",
+        "CA",
+        "C",
+        "O",
+        "CB",
+        "CG",
+        "CD",
+        "OE1",
+        "OE2"
+      ]
+    },
+    {
+      "id": "A:162",
+      "name": "TYR",
+      "atoms": [
+        "N",
+        "CA",
+        "C",
+        "O",
+        "CB",
+        "CG",
+        "CD1",
+        "CD2",
+        "CE1",
+        "CE2",
+        "CZ",
+        "OH"
+      ]
+    },
+    {
+      "id": "A:163",
+      "name": "PRO",
+      "atoms": [
+        "N",
+        "CA",
+        "C",
+        "O",
+        "CB",
+        "CG",
+        "CD"
+      ]
+    },
+    {
+      "id": "A:164",
+      "name": "GLY",
+      "atoms": [
+        "N",
+        "CA",
+        "C",
+        "O"
+      ]
+    },
+    {
+      "id": "A:165",
+      "name": "VAL",
+      "atoms": [
+        "N",
+        "CA",
+        "C",
+        "O",
+        "CB",
+        "CG1",
+        "CG2"
+      ]
+    },
+    {
+      "id": "A:166",
+      "name": "LEU",
+      "atoms": [
+        "N",
+        "CA",
+        "C",
+        "O",
+        "CB",
+        "CG",
+        "CD1",
+        "CD2"
+      ]
+    },
+    {
+      "id": "A:167",
+      "name": "SER",
+      "atoms": [
+        "N",
+        "CA",
+        "C",
+        "O",
+        "CB",
+        "OG"
+      ]
+    },
+    {
+      "id": "A:168",
+      "name": "ASP",
+      "atoms": [
+        "N",
+        "CA",
+        "C",
+        "O",
+        "CB",
+        "CG",
+        "OD1",
+        "OD2"
+      ]
+    },
+    {
+      "id": "A:169",
+      "name": "VAL",
+      "atoms": [
+        "N",
+        "CA",
+        "C",
+        "O",
+        "CB",
+        "CG1",
+        "CG2"
+      ]
+    },
+    {
+      "id": "A:170",
+      "name": "GLN",
+      "atoms": [
+        "N",
+        "CA",
+        "C",
+        "O",
+        "CB",
+        "CG",
+        "CD",
+        "OE1",
+        "NE2"
+      ]
+    },
+    {
+      "id": "A:171",
+      "name": "GLU",
+      "atoms": [
+        "N",
+        "CA",
+        "C",
+        "O",
+        "CB",
+        "CG",
+        "CD",
+        "OE1",
+        "OE2"
+      ]
+    },
+    {
+      "id": "A:172",
+      "name": "GLU",
+      "atoms": [
+        "N",
+        "CA",
+        "C",
+        "O",
+        "CB",
+        "CG",
+        "CD",
+        "OE1",
+        "OE2"
+      ]
+    },
+    {
+      "id": "A:173",
+      "name": "LYS",
+      "atoms": [
+        "N",
+        "CA",
+        "C",
+        "O",
+        "CB",
+        "CG",
+        "CD",
+        "CE",
+        "NZ"
+      ]
+    },
+    {
+      "id": "A:174",
+      "name": "GLY",
+      "atoms": [
+        "N",
+        "CA",
+        "C",
+        "O"
+      ]
+    },
+    {
+      "id": "A:175",
+      "name": "ILE",
+      "atoms": [
+        "N",
+        "CA",
+        "C",
+        "O",
+        "CB",
+        "CG1",
+        "CG2",
+        "CD1"
+      ]
+    },
+    {
+      "id": "A:176",
+      "name": "LYS",
+      "atoms": [
+        "N",
+        "CA",
+        "C",
+        "O",
+        "CB",
+        "CG",
+        "CD",
+        "CE",
+        "NZ"
+      ]
+    },
+    {
+      "id": "A:177",
+      "name": "TYR",
+      "atoms": [
+        "N",
+        "CA",
+        "C",
+        "O",
+        "CB",
+        "CG",
+        "CD1",
+        "CD2",
+        "CE1",
+        "CE2",
+        "CZ",
+        "OH"
+      ]
+    },
+    {
+      "id": "A:178",
+      "name": "LYS",
+      "atoms": [
+        "N",
+        "CA",
+        "C",
+        "O",
+        "CB",
+        "CG",
+        "CD",
+        "CE",
+        "NZ"
+      ]
+    },
+    {
+      "id": "A:179",
+      "name": "PHE",
+      "atoms": [
+        "N",
+        "CA",
+        "C",
+        "O",
+        "CB",
+        "CG",
+        "CD1",
+        "CD2",
+        "CE1",
+        "CE2",
+        "CZ"
+      ]
+    },
+    {
+      "id": "A:180",
+      "name": "GLU",
+      "atoms": [
+        "N",
+        "CA",
+        "C",
+        "O",
+        "CB",
+        "CG",
+        "CD",
+        "OE1",
+        "OE2"
+      ]
+    },
+    {
+      "id": "A:181",
+      "name": "VAL",
+      "atoms": [
+        "N",
+        "CA",
+        "C",
+        "O",
+        "CB",
+        "CG1",
+        "CG2"
+      ]
+    },
+    {
+      "id": "A:182",
+      "name": "TYR",
+      "atoms": [
+        "N",
+        "CA",
+        "C",
+        "O",
+        "CB",
+        "CG",
+        "CD1",
+        "CD2",
+        "CE1",
+        "CE2",
+        "CZ",
+        "OH"
+      ]
+    },
+    {
+      "id": "A:183",
+      "name": "GLU",
+      "atoms": [
+        "N",
+        "CA",
+        "C",
+        "O",
+        "CB",
+        "CG",
+        "CD",
+        "OE1",
+        "OE2"
+      ]
+    },
+    {
+      "id": "A:184",
+      "name": "LYS",
+      "atoms": [
+        "N",
+        "CA",
+        "C",
+        "O",
+        "CB",
+        "CG",
+        "CD",
+        "CE",
+        "NZ"
+      ]
+    },
+    {
+      "id": "A:185",
+      "name": "ASN",
+      "atoms": [
+        "N",
+        "CA",
+        "C",
+        "O",
+        "CB",
+        "CG",
+        "OD1",
+        "ND2"
+      ]
+    },
+    {
+      "id": "A:186",
+      "name": "ASP",
+      "atoms": [
+        "N",
+        "CA",
+        "C",
+        "O",
+        "CB",
+        "CG",
+        "OD1",
+        "OD2",
+        "OXT"
+      ]
+    }
+  ],
+  "nonstandard": [],
+  "metals": [],
+  "covalent_records": [],
+  "protonation": "Meeko residue templates; default HIS tautomer; no pH microstate determination",
+  "confirmed": true,
+  "repair": {
+    "method": "PDBFixer missing atoms only; no loop reconstruction",
+    "seed": 20261012,
+    "added_sidechain_atoms": [
+      {
+        "residue": "A:12",
+        "name": "GLN",
+        "atoms": [
+          "CB",
+          "CG",
+          "CD",
+          "OE1",
+          "NE2"
+        ]
+      }
+    ],
+    "terminal_atoms": [],
+    "omitted_missing_residues": "{}"
+  },
+  "classroom_policy": false,
+  "kept_hetero": [],
+  "argv": [
+    "/opt/sbvs/env/bin/mk_prepare_receptor.py",
+    "-i",
+    "/mnt/f/02_docking/data/receptors/f800eeedf8a944e5acba5b306cee06e2/receptor_prepared.pdb",
+    "-o",
+    "/mnt/f/02_docking/data/receptors/f800eeedf8a944e5acba5b306cee06e2/receptor",
+    "-p",
+    "-j",
+    "--write_pdb",
+    "/mnt/f/02_docking/data/receptors/f800eeedf8a944e5acba5b306cee06e2/receptor_hydrogenated.pdb"
+  ],
+  "receptor_sha256": "49ffd433cba1d4f1b77ab2f54b85e1bd9f84b58839f481587ec01ee134c7dde8"
+}

@@ -1,0 +1,60 @@
+protein:
+  rebuild_hydrogens: true
+  ph: 7.0
+  remove_water: true
+  remove_heterogens: false
+  allow_missing_residues: false
+MD:
+  engine: openmm
+  temperature: 300
+  pressure: 1
+  timestep: 2fs
+  minimization: true
+  minimization_max_iterations: 5000
+  equilibration: 200ps
+  nvt: 100ps
+  npt: 100ps
+  production: 100ns
+  protein_forcefield: amber14-all.xml
+  water_forcefield: amber14/tip3p.xml
+  ligand_forcefield: gaff-2.11
+  water_model: tip3p
+  padding_nm: 1.2
+  ionic_strength_molar: 0.15
+  nonbonded_cutoff_nm: 0.9
+  switch_distance_nm: 0.8
+  friction_per_ps: 1.0
+  restraint_k_kj_mol_nm2: 1000
+  platform: CPU
+  precision: mixed
+  cpu_threads: 4
+  report_interval: 10ps
+  checkpoint_interval: 100ps
+  seed: 20261008
+  pressure_unit: atm
+analysis:
+  rmsd: true
+  rmsf: true
+  hbond: true
+  contacts: true
+  distance: true
+  stride: 1
+  discard_ns: 0
+  contact_cutoff_angstrom: 4.5
+  hbond_distance_angstrom: 3.0
+  hbond_angle_degrees: 150
+  key_residue_occupancy: 0.3
+  distance_pairs: []
+  groups: {}
+  sasa: true
+  sasa_stride: 10
+  sasa_points: 100
+  sasa_probe_angstrom: 1.4
+replicates: 3
+mmgbsa:
+  enabled: true
+  igb: 5
+  salt_molar: 0.15
+  max_frames: 200
+  start_ns: 0
+  entropy: false

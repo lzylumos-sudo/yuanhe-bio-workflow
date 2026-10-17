@@ -1,0 +1,23 @@
+{
+  "engine": "gnina",
+  "device": "auto",
+  "exhaustiveness": 32,
+  "num_modes": 9,
+  "seeds": [
+    11,
+    23,
+    47
+  ],
+  "workers": 1,
+  "cpu_per_job": 2,
+  "ligand_states": "preserve",
+  "conformers_retained": 3,
+  "per_ligand_timeout_seconds": 1200,
+  "receptor": "data/prepared/demo_1drf/receptor.pdbqt",
+  "receptor_pdb": "data/prepared/demo_1drf/receptor_hydrogenated.pdb",
+  "box": "data/prepared/demo_1drf/box.json",
+  "empirical_scoring": "vina",
+  "cnn_model": "crossdock_default2018_1_3",
+  "operation": "redock",
+  "conformers_generated": 8
+}

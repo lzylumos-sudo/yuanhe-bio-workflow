@@ -1,0 +1,6 @@
+{
+  "BEN": {
+    "smiles": "NC(=[NH2+])c1ccccc1",
+    "note": "Benzamidinium (amidine protonated, +1, physiological pH). Overrides the neutral CCD default."
+  }
+}

@@ -1,0 +1,84 @@
+{
+  "system_type": "protein_ligand",
+  "ligand": {
+    "chain": "A",
+    "resid": "108",
+    "insertion_code": "",
+    "resname": "FK5",
+    "template_sdf": "ligand.sdf",
+    "atom_mapping": {
+      "C1": 1,
+      "C2": 2,
+      "C3": 3,
+      "C4": 4,
+      "C5": 5,
+      "C6": 6,
+      "C8": 7,
+      "C9": 8,
+      "C10": 9,
+      "C11": 10,
+      "C12": 11,
+      "C13": 12,
+      "C14": 13,
+      "C15": 14,
+      "C16": 15,
+      "C17": 16,
+      "C18": 17,
+      "C19": 18,
+      "C20": 19,
+      "C21": 20,
+      "C22": 21,
+      "C23": 22,
+      "C24": 23,
+      "C25": 24,
+      "C26": 25,
+      "C27": 26,
+      "C28": 27,
+      "C29": 28,
+      "C30": 29,
+      "C31": 30,
+      "C32": 31,
+      "C33": 32,
+      "C34": 33,
+      "C35": 34,
+      "C36": 35,
+      "C37": 36,
+      "C38": 37,
+      "C39": 38,
+      "C40": 39,
+      "C41": 40,
+      "C42": 41,
+      "C43": 42,
+      "C44": 43,
+      "C45": 44,
+      "N7": 45,
+      "O1": 46,
+      "O2": 47,
+      "O3": 48,
+      "O4": 49,
+      "O5": 50,
+      "O6": 51,
+      "O7": 52,
+      "O8": 53,
+      "O9": 54,
+      "O10": 55,
+      "O11": 56,
+      "O12": 57
+    }
+  },
+  "analysis": {
+    "groups": {
+      "protein_a": {
+        "chains": [
+          "A"
+        ],
+        "label": "FKBP12"
+      }
+    }
+  },
+  "provenance": {
+    "public_pdb": "1FKJ",
+    "source": "public RCSB structure and CCD ligand definition",
+    "note": "Deposited FKBP12-small molecule complex; ligand chemistry is the current wwPDB CCD FK5 definition. A workflow validation fixture, not an affinity or pose prediction benchmark. The deposited ligand is identified by CCD FK5; the historical entry title uses FK506."
+  }
+}

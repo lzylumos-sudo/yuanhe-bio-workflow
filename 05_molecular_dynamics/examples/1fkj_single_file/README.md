@@ -1,0 +1,1 @@
+This public 1FKJ complex.pdb embeds its verified SDF and manifest in hashed REMARK 950 records. Copying this single PDB retains the chemical definition; no adjacent ligand.sdf or manifest is required. Coordinates are identical to the separate public 1fkj fixture.

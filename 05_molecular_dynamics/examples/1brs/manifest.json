@@ -1,0 +1,25 @@
+{
+  "system_type": "protein_protein",
+  "ligand": null,
+  "analysis": {
+    "groups": {
+      "protein_a": {
+        "chains": [
+          "C"
+        ],
+        "label": "Barnase"
+      },
+      "protein_b": {
+        "chains": [
+          "F"
+        ],
+        "label": "Barstar"
+      }
+    }
+  },
+  "provenance": {
+    "public_pdb": "1BRS",
+    "source": "public RCSB structure and CCD ligand definition",
+    "note": "Deposited biological assembly 3: barnase chain C and barstar chain F. Barnase chain C lacks the experimentally unresolved N-terminal Ala1/Gln2; the derived fixture explicitly models the crystallized C3-110 construct. The source publication describes barstar as a C40A/C82A double mutant; this is not a wild-type-only benchmark. No internal missing residues are silently bridged; the observed sequence is checked before use."
+  }
+}

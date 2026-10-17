@@ -1,0 +1,75 @@
+target_id: ecmurj
+display_name: "E. coli MurJ (MOP flippase) - local TM2/TM7 region"
+organism: "Escherichia coli K-12"
+uniprot: P0AF16
+native_length: 511
+
+structures:
+  primary:
+    pdb_id: 9NU4
+    chain: A
+    species: "Escherichia coli"
+    role: "reference construct (Sgl-bound, outward-facing)"
+    source_url: "https://www.ebi.ac.uk/pdbe/entry-files/download/9nu4_updated.cif"
+    conformational_state: "outward-facing / Sgl-bound"
+    notes: "chain A carries the K5F/S12I/M13A construct plus an N-terminal fusion and a C-terminal tag"
+  comparisons:
+    - pdb_id: 9NU5
+      chain: A
+      role: "comparison, Sgl-bound state"
+    - pdb_id: 9NU8
+      chain: A
+      role: "comparison, Sgl-bound state"
+    - pdb_id: 6CC4
+      chain: A
+      role: "comparison, inward-open (fusion protein)"
+    - pdb_id: 7WAG
+      chain: A
+      role: "comparison, squeezed state (V10R/S11C)"
+
+construct:
+  declared_length: 614
+  # Author numbering equals native numbering for this construct (auth 3 == P0AF16 3);
+  # the mmCIF label_seq_id is auth + 104 (label 107 == auth 3).
+  native_range: [3, 500]
+  label_native_offset: 0
+  fusion_nterm: [1, 106]
+  mutations:
+    - {auth_resseq: 5, construct_resname: PHE, native_resname: LYS}
+    - {auth_resseq: 12, construct_resname: ILE, native_resname: SER}
+    - {auth_resseq: 13, construct_resname: ALA, native_resname: MET}
+  c_terminal_tag:
+    sequence: SAWSHPQFEK
+    auth_range: [501, 510]
+    note: "affinity tag after native residue 500"
+
+region:
+  contact_cutoff_A: 4.5
+  sides:
+    - name: TM2
+      chain: A
+      native_residues: [50, 51, 53, 54]
+      note: "lateral gate / TM2 side of the proposed cavity"
+    - name: TM7
+      chain: A
+      native_residues: [237, 240, 241, 244]
+      note: "TM7 side of the proposed cavity"
+  box_padding_A: 5.0
+  box_min_size_A: 14.0
+  box_max_size_A: 30.0
+
+membrane:
+  status: unavailable
+  method: not_built
+  source: ""
+  uncertainty: high
+  note: "no membrane orientation was transferred from OPM; only a TM-bundle geometric proxy is computed"
+
+md_protocol:
+  engine: openmm
+  membrane_required: true
+  note: "downstream MD project has no membrane protocol; membrane MD stays blocked"
+
+analysis_selections:
+  tv_region: "TM2/TM7 native residues listed above"
+  distal_control: "not configured"

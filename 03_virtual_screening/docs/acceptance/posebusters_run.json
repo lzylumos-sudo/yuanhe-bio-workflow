@@ -1,0 +1,137 @@
+{
+ "posebusters_version": "0.6.5",
+ "scratch_root": "C:\\Users\\user\\AppData\\Local\\Temp\\dsh-iKCsDM\\zvss-scratch",
+ "ligand": "F:\\MemPilot\\runs\\public20_engineering\\entries\\P000005_S01_C01_seed20261015\\input.sdf",
+ "receptor": "F:\\MemPilot\\runs\\public20_engineering\\protocol_inputs\\receptor_prepared.pdb",
+ "results": {
+  "real_pose": {
+   "atoms": 12,
+   "checks": 22,
+   "passed": 22,
+   "failed": [],
+   "items": {
+    "mol_pred_loaded": true,
+    "mol_cond_loaded": true,
+    "sanitization": true,
+    "inchi_convertible": true,
+    "all_atoms_connected": true,
+    "no_radicals": true,
+    "bond_lengths": true,
+    "bond_angles": true,
+    "internal_steric_clash": true,
+    "aromatic_ring_flatness": true,
+    "non-aromatic_ring_non-flatness": true,
+    "double_bond_flatness": true,
+    "internal_energy": true,
+    "protein-ligand_maximum_distance": true,
+    "minimum_distance_to_protein": true,
+    "minimum_distance_to_organic_cofactors": true,
+    "minimum_distance_to_inorganic_cofactors": true,
+    "minimum_distance_to_waters": true,
+    "volume_overlap_with_protein": true,
+    "volume_overlap_with_organic_cofactors": true,
+    "volume_overlap_with_inorganic_cofactors": true,
+    "volume_overlap_with_waters": true
+   }
+  },
+  "translated_8A_into_protein": {
+   "atoms": 12,
+   "checks": 22,
+   "passed": 20,
+   "failed": [
+    "minimum_distance_to_protein",
+    "volume_overlap_with_protein"
+   ],
+   "items": {
+    "mol_pred_loaded": true,
+    "mol_cond_loaded": true,
+    "sanitization": true,
+    "inchi_convertible": true,
+    "all_atoms_connected": true,
+    "no_radicals": true,
+    "bond_lengths": true,
+    "bond_angles": true,
+    "internal_steric_clash": true,
+    "aromatic_ring_flatness": true,
+    "non-aromatic_ring_non-flatness": true,
+    "double_bond_flatness": true,
+    "internal_energy": true,
+    "protein-ligand_maximum_distance": true,
+    "minimum_distance_to_protein": false,
+    "minimum_distance_to_organic_cofactors": true,
+    "minimum_distance_to_inorganic_cofactors": true,
+    "minimum_distance_to_waters": true,
+    "volume_overlap_with_protein": false,
+    "volume_overlap_with_organic_cofactors": true,
+    "volume_overlap_with_inorganic_cofactors": true,
+    "volume_overlap_with_waters": true
+   }
+  },
+  "stretched_bond_2.2A": {
+   "atoms": 12,
+   "checks": 22,
+   "passed": 20,
+   "failed": [
+    "bond_lengths",
+    "internal_energy"
+   ],
+   "items": {
+    "mol_pred_loaded": true,
+    "mol_cond_loaded": true,
+    "sanitization": true,
+    "inchi_convertible": true,
+    "all_atoms_connected": true,
+    "no_radicals": true,
+    "bond_lengths": false,
+    "bond_angles": true,
+    "internal_steric_clash": true,
+    "aromatic_ring_flatness": true,
+    "non-aromatic_ring_non-flatness": true,
+    "double_bond_flatness": true,
+    "internal_energy": false,
+    "protein-ligand_maximum_distance": true,
+    "minimum_distance_to_protein": true,
+    "minimum_distance_to_organic_cofactors": true,
+    "minimum_distance_to_inorganic_cofactors": true,
+    "minimum_distance_to_waters": true,
+    "volume_overlap_with_protein": true,
+    "volume_overlap_with_organic_cofactors": true,
+    "volume_overlap_with_inorganic_cofactors": true,
+    "volume_overlap_with_waters": true
+   }
+  },
+  "all_atoms_overlapped": {
+   "atoms": 12,
+   "checks": 21,
+   "passed": 18,
+   "failed": [
+    "bond_lengths",
+    "bond_angles",
+    "protein-ligand_maximum_distance"
+   ],
+   "items": {
+    "mol_pred_loaded": true,
+    "mol_cond_loaded": true,
+    "sanitization": true,
+    "inchi_convertible": true,
+    "all_atoms_connected": true,
+    "no_radicals": true,
+    "bond_lengths": false,
+    "bond_angles": false,
+    "internal_steric_clash": true,
+    "aromatic_ring_flatness": true,
+    "non-aromatic_ring_non-flatness": true,
+    "double_bond_flatness": true,
+    "protein-ligand_maximum_distance": false,
+    "minimum_distance_to_protein": true,
+    "minimum_distance_to_organic_cofactors": true,
+    "minimum_distance_to_inorganic_cofactors": true,
+    "minimum_distance_to_waters": true,
+    "volume_overlap_with_protein": true,
+    "volume_overlap_with_organic_cofactors": true,
+    "volume_overlap_with_inorganic_cofactors": true,
+    "volume_overlap_with_waters": true
+   }
+  }
+ }
+}

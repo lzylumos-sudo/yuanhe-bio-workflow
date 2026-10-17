@@ -1,0 +1,84 @@
+<!doctype html>
+<html lang="zh">
+<head>
+  <meta charset="utf-8">
+  <title>ZVSS · {{ run_id }}</title>
+  <style>
+    body { font-family: -apple-system, "Segoe UI", "Microsoft YaHei", sans-serif; margin: 2rem auto; max-width: 1100px; color: #1b1b1b; }
+    h1 { font-size: 1.3rem; } h2 { font-size: 1.05rem; margin-top: 2rem; }
+    table { border-collapse: collapse; width: 100%; font-size: 0.85rem; }
+    th, td { border-bottom: 1px solid #e3e3e3; padding: 6px 8px; text-align: left; }
+    th { background: #f6f7f9; }
+    code { background: #f2f3f5; padding: 1px 4px; border-radius: 3px; }
+    .muted { color: #6a6f76; font-size: 0.82rem; }
+    .tag { padding: 0 6px; border-radius: 3px; font-size: 0.75rem; }
+    .ok { background: #e6f4ea; color: #1c6b3a; } .err { background: #fdecea; color: #a52a2a; }
+  </style>
+</head>
+<body>
+<p><a href="/">← 全部运行</a></p>
+<h1>{{ run_id }} <span class="muted">{{ run.status }}</span></h1>
+<p class="muted">
+  靶点 <code>{{ run.target_id }}</code> · 预算 <code>{{ run.budget }}</code> ·
+  配置摘要 <code>{{ run.config_hash }}</code> · 选择版本 <code>{{ selection_version or '—' }}</code> ·
+  <a href="/report/{{ run_id }}">原始报告</a>
+</p>
+
+<h2>阶段状态</h2>
+<table>
+  <tr><th>阶段</th><th>状态</th><th>要点</th></tr>
+  {% for name, s in stages.items() %}
+  <tr>
+    <td>{{ name }}</td>
+    <td><span class="tag {{ 'ok' if s.status == 'done' else 'err' }}">{{ s.status }}</span></td>
+    <td class="muted">
+      {% if s.status == 'error' %}{{ (s.detail or {}).get('error', '')[:160] }}
+      {% elif name == 'import' %}位姿导入 {{ (s.detail or {}).get('poses_imported') }} / 失败 {{ (s.detail or {}).get('poses_failed') }}
+      {% elif name == 'selection' %}主要 {{ ((s.detail or {}).get('primary') or [])|length }} · 探索 {{ ((s.detail or {}).get('exploratory') or [])|length }} · 排除 {{ (s.detail or {}).get('excluded') }}
+      {% elif name == 'md' %}任务包 {{ (s.detail or {}).get('count') }} · 就绪 {{ (s.detail or {}).get('ready') }} · 阻塞 {{ (s.detail or {}).get('blocked') }}
+      {% elif name == 'redock' %}{{ (s.detail or {}).get('status') }} {{ (s.detail or {}).get('reason_code', '') }}
+      {% else %}—{% endif %}
+    </td>
+  </tr>
+  {% endfor %}
+</table>
+
+<h2>候选</h2>
+{% if primary or exploratory %}
+<table>
+  <tr><th>角色</th><th>序号</th><th>化合物</th><th>化学状态</th><th>位姿</th><th>层</th><th>综合分</th></tr>
+  {% for e in primary + exploratory %}
+  <tr>
+    <td>{{ e.selection_role }}</td><td>{{ e.selection_order }}</td>
+    <td><code>{{ e.compound_id }}</code></td><td class="muted"><code>{{ e.state_id }}</code></td>
+    <td class="muted"><code>{{ e.pose_id }}</code></td><td>{{ e.tier }}</td><td>{{ '%.4f'|format(e.evidence_score or 0) }}</td>
+  </tr>
+  {% endfor %}
+</table>
+{% else %}<p class="muted">本轮未产生候选（见报告中排除理由）。</p>{% endif %}
+
+<h2>排名（前 40）</h2>
+{% if ranking %}
+<table>
+  <tr><th>#</th><th>化合物</th><th>层</th><th>综合分</th><th>缺失证据</th></tr>
+  {% for e in ranking %}
+  <tr>
+    <td>{{ e.rank }}</td><td><code>{{ e.compound_id }}</code></td><td>{{ e.tier }}</td>
+    <td>{{ '%.4f'|format(e.evidence_score or 0) }}</td>
+    <td class="muted">{{ (e.components_missing or [])|join(', ') or '—' }}</td>
+  </tr>
+  {% endfor %}
+</table>
+{% else %}<p class="muted">尚无排名。</p>{% endif %}
+
+{% if exclusions %}
+<h2>排除（前 20）</h2>
+<table>
+  <tr><th>化合物</th><th>理由码</th><th>说明</th></tr>
+  {% for e in exclusions[:20] %}
+  <tr><td><code>{{ e.compound_id }}</code></td><td>{{ e.reason_code }}</td><td class="muted">{{ e.detail }}</td></tr>
+  {% endfor %}
+</table>
+{% endif %}
+</body>
+</html>

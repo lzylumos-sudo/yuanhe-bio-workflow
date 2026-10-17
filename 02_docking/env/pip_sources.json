@@ -1,0 +1,86 @@
+[
+  {
+    "name": "nvidia-cuda-nvrtc-cu12",
+    "version": "12.9.86",
+    "source": "https://pypi.org/project/nvidia-cuda-nvrtc-cu12/12.9.86/",
+    "license": "LicenseRef-NVIDIA-Proprietary",
+    "installer": "pip\n"
+  },
+  {
+    "name": "nvidia-cusparse-cu12",
+    "version": "12.5.8.93",
+    "source": "https://pypi.org/project/nvidia-cusparse-cu12/12.5.8.93/",
+    "license": "NVIDIA Proprietary Software",
+    "installer": "pip\n"
+  },
+  {
+    "name": "molscrub",
+    "version": "0.2.2",
+    "source": "https://pypi.org/project/molscrub/0.2.2/",
+    "license": "GPL-v3",
+    "installer": "pip\n"
+  },
+  {
+    "name": "nvidia-cudnn-cu12",
+    "version": "9.10.2.21",
+    "source": "https://pypi.org/project/nvidia-cudnn-cu12/9.10.2.21/",
+    "license": "LicenseRef-NVIDIA-Proprietary",
+    "installer": "pip\n"
+  },
+  {
+    "name": "nvidia-cufft-cu12",
+    "version": "11.3.3.83",
+    "source": "https://pypi.org/project/nvidia-cufft-cu12/11.3.3.83/",
+    "license": "NVIDIA Proprietary Software",
+    "installer": "pip\n"
+  },
+  {
+    "name": "pyee",
+    "version": "13.0.1",
+    "source": "https://pypi.org/project/pyee/13.0.1/",
+    "license": "MIT",
+    "installer": "pip\n"
+  },
+  {
+    "name": "playwright",
+    "version": "1.55.0",
+    "source": "https://pypi.org/project/playwright/1.55.0/",
+    "license": null,
+    "installer": "pip\n"
+  },
+  {
+    "name": "nvidia-cublas-cu12",
+    "version": "12.9.2.10",
+    "source": "https://pypi.org/project/nvidia-cublas-cu12/12.9.2.10/",
+    "license": null,
+    "installer": "pip\n"
+  },
+  {
+    "name": "greenlet",
+    "version": "3.5.6",
+    "source": "https://pypi.org/project/greenlet/3.5.6/",
+    "license": null,
+    "installer": "pip\n"
+  },
+  {
+    "name": "nvidia-nvjitlink-cu12",
+    "version": "12.8.93",
+    "source": "https://pypi.org/project/nvidia-nvjitlink-cu12/12.8.93/",
+    "license": "NVIDIA Proprietary Software",
+    "installer": "pip\n"
+  },
+  {
+    "name": "nvidia-cusolver-cu12",
+    "version": "11.7.3.90",
+    "source": "https://pypi.org/project/nvidia-cusolver-cu12/11.7.3.90/",
+    "license": "NVIDIA Proprietary Software",
+    "installer": "pip\n"
+  },
+  {
+    "name": "nvidia-cuda-runtime-cu12",
+    "version": "12.8.90",
+    "source": "https://pypi.org/project/nvidia-cuda-runtime-cu12/12.8.90/",
+    "license": "NVIDIA Proprietary Software",
+    "installer": "pip\n"
+  }
+]

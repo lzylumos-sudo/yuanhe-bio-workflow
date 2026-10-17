@@ -1,0 +1,9 @@
+MD:
+  production: 10ns
+  platform: CPU
+  cpu_threads: 4
+replicates: 1
+analysis:
+  sasa_stride: 10
+mmgbsa:
+  max_frames: 100

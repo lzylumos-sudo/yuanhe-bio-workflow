@@ -1,0 +1,7 @@
+{
+  "input_sha256": {
+    "examples/public_validation/protein_ligand_1fkj/complex.pdb": "7f3357ce3f86a3694f264eb423bfca2f6ce6f9d3cdad852e8f39e0464e210314",
+    "examples/public_validation/protein_ligand_1fkj/ligand.sdf": "d8f8bfb401dcfeeae9aae6b8ac38a37dd4bc2f2c7ec99e6edf2cf83adb0fc0f4"
+  },
+  "system_type": "protein_ligand"
+}

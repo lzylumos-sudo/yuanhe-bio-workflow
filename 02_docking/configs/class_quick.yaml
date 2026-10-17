@@ -1,0 +1,17 @@
+{
+  "engine": "vina",
+  "device": "cpu",
+  "exhaustiveness": 4,
+  "num_modes": 3,
+  "seeds": [
+    20261012
+  ],
+  "workers": 1,
+  "cpu_per_job": 2,
+  "ligand_states": "preserve",
+  "conformers_retained": 1,
+  "per_ligand_timeout_seconds": 120,
+  "receptor": "data/prepared/demo_1drf/receptor.pdbqt",
+  "receptor_pdb": "data/prepared/demo_1drf/receptor_prepared.pdb",
+  "box": "data/prepared/demo_1drf/box.json"
+}

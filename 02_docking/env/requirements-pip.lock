@@ -1,0 +1,13 @@
+# pip supplements only; conda packages are pinned separately
+greenlet==3.5.6
+molscrub==0.2.2
+nvidia-cublas-cu12==12.9.2.10
+nvidia-cuda-nvrtc-cu12==12.9.86
+nvidia-cuda-runtime-cu12==12.8.90
+nvidia-cudnn-cu12==9.10.2.21
+nvidia-cufft-cu12==11.3.3.83
+nvidia-cusolver-cu12==11.7.3.90
+nvidia-cusparse-cu12==12.5.8.93
+nvidia-nvjitlink-cu12==12.8.93
+playwright==1.55.0
+pyee==13.0.1

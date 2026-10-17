@@ -1,0 +1,1 @@
+"""Separate real executable adapters."""

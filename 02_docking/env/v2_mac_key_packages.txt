@@ -1,0 +1,10 @@
+python-3.12.15-hd05a0c4_2_cpython.conda
+python-dateutil-2.9.0.post0-pyhe01879c_2.conda
+numpy-2.5.4-py312hff34920_0.conda
+scipy-1.18.1-py312h84b0c4e_1.conda
+vina-1.2.7-py312h6d95f44_0.conda
+openmm-8.6.1-py312h381a2f6_0_khronos.conda
+pdbfixer-1.12-pyhd8ed1ab_1.conda
+rdkit-2026.03.1-py312h7e68b95_0.conda
+gemmi==0.7.5
+meeko==0.8.0

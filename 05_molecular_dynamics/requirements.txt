@@ -1,0 +1,7 @@
+# Use environment.yml / explicit conda lock for the complete scientific stack.
+# AmberTools, Open Babel and the CUDA runtime are not safely replaced by pip here.
+PyYAML==6.0.3
+numpy==2.4.6
+pandas==2.3.3
+matplotlib==3.11.2
+biopython==1.88

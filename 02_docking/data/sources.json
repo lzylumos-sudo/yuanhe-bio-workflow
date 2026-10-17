@@ -1,0 +1,14 @@
+[
+  {
+    "url": "https://files.rcsb.org/download/1DRF.pdb",
+    "path": "data/raw/1DRF.pdb",
+    "sha256": "ff760ed2371f8f813836381df992a971f6b5a0417177e0ee54d30ad86ff2b059",
+    "retrieved_at": 1791888007.1504679
+  },
+  {
+    "url": "https://files.rcsb.org/ligands/download/FOL.cif",
+    "path": "data/reference/FOL.cif",
+    "sha256": "636229d84a3d5709d52e69ddd9ca21777441980c944d7b6b5361a0e9a5da6804",
+    "retrieved_at": 1791888007.153218
+  }
+]

@@ -1,0 +1,7 @@
+{
+  "input_sha256": {
+    "examples/public_validation/ternary_1fap/complex.pdb": "f6b0f80cb4a80acab47e21d2b56b3789176b58f26f57f25322f50471f7e2cf93",
+    "examples/public_validation/ternary_1fap/ligand.sdf": "ce4c9a67563d5ab6a0e799282842faae0fa920101228c97552d8ae0641fcffc2"
+  },
+  "system_type": "ternary"
+}

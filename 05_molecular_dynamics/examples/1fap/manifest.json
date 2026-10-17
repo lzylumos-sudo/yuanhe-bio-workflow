@@ -1,0 +1,98 @@
+{
+  "system_type": "ternary",
+  "ligand": {
+    "chain": "A",
+    "resid": "108",
+    "insertion_code": "",
+    "resname": "RAP",
+    "template_sdf": "ligand.sdf",
+    "atom_mapping": {
+      "C1": 1,
+      "O1": 2,
+      "O2": 3,
+      "C2": 4,
+      "C3": 5,
+      "C4": 6,
+      "C5": 7,
+      "C6": 8,
+      "N7": 9,
+      "C8": 10,
+      "O3": 11,
+      "C9": 12,
+      "O4": 13,
+      "C10": 14,
+      "O5": 15,
+      "O6": 16,
+      "C11": 17,
+      "C12": 18,
+      "C13": 19,
+      "C14": 20,
+      "C15": 21,
+      "C16": 22,
+      "O7": 23,
+      "C17": 24,
+      "C18": 25,
+      "C19": 26,
+      "C20": 27,
+      "C21": 28,
+      "C22": 29,
+      "C23": 30,
+      "C24": 31,
+      "C25": 32,
+      "C26": 33,
+      "O8": 34,
+      "C27": 35,
+      "O9": 36,
+      "C28": 37,
+      "O10": 38,
+      "C29": 39,
+      "C30": 40,
+      "C31": 41,
+      "C32": 42,
+      "O11": 43,
+      "C33": 44,
+      "C34": 45,
+      "C35": 46,
+      "C36": 47,
+      "C37": 48,
+      "C38": 49,
+      "C39": 50,
+      "O12": 51,
+      "C40": 52,
+      "O13": 53,
+      "C41": 54,
+      "C42": 55,
+      "C43": 56,
+      "C44": 57,
+      "C45": 58,
+      "C46": 59,
+      "C47": 60,
+      "C48": 61,
+      "C49": 62,
+      "C50": 63,
+      "C51": 64,
+      "C52": 65
+    }
+  },
+  "analysis": {
+    "groups": {
+      "e3": {
+        "chains": [
+          "A"
+        ],
+        "label": "FKBP12 recruitment anchor (not an E3 ligase)"
+      },
+      "target": {
+        "chains": [
+          "B"
+        ],
+        "label": "FRAP/mTOR FRB domain"
+      }
+    }
+  },
+  "provenance": {
+    "public_pdb": "1FAP",
+    "source": "public RCSB structure and CCD ligand definition",
+    "note": "Experimental FKBP12-rapamycin-FRB ternary recruitment complex. The e3 software role is an anchor alias in this fixture; FKBP12 is NOT an E3 ligase. This verifies a two-protein-plus-glue MD workflow and recruitment geometry only. It does not validate E3 ligase recruitment, ubiquitination, degradation, cooperativity or de novo ternary modeling. Rapamycin is a public molecular-dimerization reference; no private molecular glue is used."
+  }
+}

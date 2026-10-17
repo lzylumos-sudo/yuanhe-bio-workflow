@@ -1,0 +1,6 @@
+{
+  "input_sha256": {
+    "examples/public_validation/protein_protein_1brs/complex.pdb": "9aebf6c1b94145d2fe01e72fa98d768555bba2b8c511f77f8d53fb0bbbd8c8c9"
+  },
+  "system_type": "protein_protein"
+}

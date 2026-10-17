@@ -1,0 +1,17 @@
+{
+ "bootstrap": {
+  "scratch": "C:\\Users\\user\\AppData\\Local\\Temp\\dsh-iKCsDM\\zvss-scratch",
+  "rdkit_data": "C:\\Users\\user\\AppData\\Local\\Temp\\dsh-iKCsDM\\zvss-scratch\\rdkit-data",
+  "scratch_source": "environment"
+ },
+ "posebusters_version": "0.6.5",
+ "real_pose": {
+  "failed": []
+ },
+ "broken_pose": {
+  "failed": [
+   "minimum_distance_to_protein",
+   "volume_overlap_with_protein"
+  ]
+ }
+}

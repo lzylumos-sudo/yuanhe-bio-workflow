@@ -1,0 +1,52 @@
+============================= test session starts ==============================
+platform darwin -- Python 3.11.17, pytest-8.3.4, pluggy-1.7.0 -- /opt/miniconda3/envs/zlis/bin/python3
+rootdir: /Volumes/Zhiyu Li/Nexus_Structural_Biology/04_interaction_analysis/tests
+collecting ... collected 40 items
+
+test_diagram.py::test_labels_inside_canvas_and_not_overlapping[publication] PASSED [  2%]
+test_diagram.py::test_labels_inside_canvas_and_not_overlapping[detailed] PASSED [  5%]
+test_diagram.py::test_labels_inside_canvas_and_not_overlapping[audit] PASSED [  7%]
+test_diagram.py::test_hbond_arrow_points_donor_to_acceptor PASSED        [ 10%]
+test_diagram.py::test_no_arrows_on_non_hbond_lines PASSED                [ 12%]
+test_diagram.py::test_layout_json_roundtrip PASSED                       [ 15%]
+test_diagram.py::test_all_formats_written PASSED                         [ 17%]
+test_pipeline.py::test_two_hbonds_from_same_residue_both_listed PASSED   [ 20%]
+test_pipeline.py::test_donor_side_and_backbone_vs_sidechain_on_real_structures PASSED [ 22%]
+test_pipeline.py::test_heavy_atoms_never_move PASSED                     [ 25%]
+test_pipeline.py::test_atom_uid_exists_in_input_pdb_and_exports PASSED   [ 27%]
+test_pipeline.py::test_exported_pdb_contains_only_real_atoms PASSED      [ 30%]
+test_pipeline.py::test_ligand_sdf_has_input_pose PASSED                  [ 32%]
+test_pipeline.py::test_no_waters_means_no_water_bridge_and_no_water_in_pdb PASSED [ 35%]
+test_pipeline.py::test_sdf_template_with_different_atom_order_and_coordinates PASSED [ 37%]
+test_pipeline.py::test_wrong_template_is_reported_not_silently_used PASSED [ 40%]
+test_pipeline.py::test_unknown_ligand_without_template_is_flagged PASSED [ 42%]
+test_pipeline.py::test_missing_hydrogens_are_added_and_reported PASSED   [ 45%]
+test_pipeline.py::test_insertion_code_is_carried_through PASSED          [ 47%]
+test_pipeline.py::test_multi_model_models_are_not_mixed PASSED           [ 50%]
+test_pipeline.py::test_multichain_same_resseq_distinguished PASSED       [ 52%]
+test_pipeline.py::test_moved_project_dir_with_spaces_and_chinese PASSED  [ 55%]
+test_pipeline.py::test_pse_reopens_with_objects_and_arrows PASSED        [ 57%]
+test_pipeline.py::test_scene_reads_same_json_and_has_no_interaction_logic PASSED [ 60%]
+test_thresholds.py::test_hbond_ligand_donor_positive PASSED              [ 62%]
+test_thresholds.py::test_hbond_protein_donor_positive PASSED             [ 65%]
+test_thresholds.py::test_hbond_distance_boundary[hbond_ligand_donor] PASSED [ 67%]
+test_thresholds.py::test_hbond_distance_boundary[hbond_protein_donor] PASSED [ 70%]
+test_thresholds.py::test_hbond_angle_boundary PASSED                     [ 72%]
+test_thresholds.py::test_ionic_positive_both_orientations PASSED         [ 75%]
+test_thresholds.py::test_ionic_boundary_and_negative PASSED              [ 77%]
+test_thresholds.py::test_hydrophobic_boundary PASSED                     [ 80%]
+test_thresholds.py::test_pi_pi_boundary PASSED                           [ 82%]
+test_thresholds.py::test_cation_pi_boundary PASSED                       [ 85%]
+test_thresholds.py::test_no_cation_pi_for_neutral_amine PASSED           [ 87%]
+test_thresholds.py::test_halogen_boundary PASSED                         [ 90%]
+test_thresholds.py::test_metal_boundary PASSED                           [ 92%]
+test_thresholds.py::test_water_bridge_present_only_with_a_real_water PASSED [ 95%]
+test_thresholds.py::test_water_bridge_boundary_and_no_water PASSED       [ 97%]
+test_thresholds.py::test_event_ids_unique_and_ordered PASSED             [100%]
+
+=============================== warnings summary ===============================
+test_diagram.py::test_labels_inside_canvas_and_not_overlapping[publication]
+  <frozen importlib._bootstrap>:241: RuntimeWarning: numpy.ndarray size changed, may indicate binary incompatibility. Expected 16 from C header, got 96 from PyObject
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+======================== 40 passed, 1 warning in 19.13s ========================

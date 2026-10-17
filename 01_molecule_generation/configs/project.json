@@ -1,0 +1,104 @@
+{
+  "schema_version": "2.0",
+  "project": "MurJ Peptide2Mol + REINVENT4 pre-docking library",
+  "primary_structure": {
+    "structure_id": "9NU4",
+    "path": "../data/structures/9nu4.pdb",
+    "sha256": "ec509ae9f04236407d515de6f64095fefb44a8432eca8287e9bd8b3f75c78a3a",
+    "receptor_chain": "A",
+    "peptide_chain": "B",
+    "receptor_target_range": [
+      5,
+      500
+    ],
+    "coordinate_frame": "9NU4_deposited"
+  },
+  "reference_structures": [
+    {
+      "structure_id": "9NU5",
+      "path": "../data/structures/9nu5.pdb",
+      "receptor_chain": "A",
+      "peptide_chain": "B"
+    },
+    {
+      "structure_id": "9NU8",
+      "path": "../data/structures/9nu8.pdb",
+      "receptor_chain": "A",
+      "peptide_chain": "B"
+    }
+  ],
+  "pocket": {
+    "radius_A": 6.0,
+    "complete_residues": true,
+    "exclude_peptide_from_receptor": true
+  },
+  "models": {
+    "peptide2mol": {
+      "repo_commit": "2c5af9628aeeab5ed2dff5dc5326ce2463316291",
+      "checkpoint": "vendor/Peptide2Mol/ckpts/PMT_major.ckpt",
+      "checkpoint_sha256": "7dc82c4f895efea83764ce25c2fae5787f9f25b7935590e5119bde7199540129",
+      "mode": "de_novo",
+      "sample_budget": 20,
+      "seeds": [
+        17,
+        29
+      ]
+    },
+    "reinvent4": {
+      "repo_commit": "3cf206ea5b385ac955dc44bbae6063b55ee31e0a",
+      "prior": "vendor/REINVENT4/priors/libinvent.prior",
+      "prior_sha256": "03e6cbe8a53e59a4ac3aa6728d041f1957bdd07b5eefdf2cfc5c8591036075af",
+      "sample_budget_per_core": 20,
+      "seed": 41,
+      "device": "cpu"
+    }
+  },
+  "chemistry": {
+    "standardization_version": "rdkit-v2-isomeric-preserve-charge-1",
+    "allowed_elements": [
+      "C",
+      "N",
+      "O",
+      "F",
+      "P",
+      "S",
+      "Cl",
+      "Br",
+      "I",
+      "B"
+    ],
+    "formal_charge_range": [
+      -1,
+      1
+    ],
+    "property_preferences": {
+      "MW": [
+        180,
+        500
+      ],
+      "cLogP": [
+        -1.0,
+        4.5
+      ],
+      "TPSA": [
+        20,
+        110
+      ],
+      "HBD_max": 3,
+      "RotB_max": 8
+    }
+  },
+  "geometry": {
+    "conformers_per_state": 20,
+    "etkdg_seed": 20261017,
+    "feature_radius_A": 2.5,
+    "hard_clash_A": 1.8,
+    "anchor_cutoff_A": 4.0
+  },
+  "execution": {
+    "gnina": false,
+    "molecular_dynamics": false,
+    "allow_legacy_generator_fallback": false,
+    "formal_export_requires_real_model_provenance": true
+  }
+}

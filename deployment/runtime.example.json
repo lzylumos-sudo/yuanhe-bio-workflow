@@ -1,0 +1,8 @@
+{
+  "chem_python": "/opt/yuanhe/envs/chem/bin/python",
+  "screen_python": "/opt/yuanhe/envs/chem/bin/python",
+  "peptide_python": "/opt/yuanhe/envs/peptide2mol/bin/python",
+  "reinvent_executable": "/opt/yuanhe/envs/reinvent4/bin/reinvent",
+  "gnina": "/opt/sbvs/vendor/gnina",
+  "gmx": "gmx"
+}

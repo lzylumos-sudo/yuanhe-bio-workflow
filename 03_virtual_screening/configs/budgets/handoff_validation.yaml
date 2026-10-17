@@ -1,0 +1,39 @@
+budget_id: handoff_validation
+description: >-
+  Packaging-test profile. It exists only to exercise the MD hand-off writer
+  end-to-end (protocol/units/mapping/coordinates) and MUST NOT be used to make a
+  scientific candidate claim: it removes the re-dock, strain and membrane
+  requirements, so its "primary" list is a packaging fixture, not a screening
+  result. Screening runs use quick.yaml or full.yaml, where a missing evidence
+  item leaves the formal primary list empty.
+redock_max_parents: 20
+deep_max_parents: 10
+md_max_parents: 2
+md_primary_slots: 2
+md_exploratory_slots: 0
+poses_per_parent_max: 2
+seeds: [17, 41, 97]
+cluster_rmsd_A: 2.0
+redock_explore_fraction: 0.2
+deep_explore_fraction: 0.2
+fingerprint_radius: 2
+fingerprint_bits: 2048
+scaffold_max_per_group: 2
+similarity_ceiling: 0.7
+membrane_alert_burden_max: 3
+strain_max_kcal: 25.0
+pareto_objectives:
+  - {name: affinity, direction: maximize}
+  - {name: mechanism, direction: maximize}
+  - {name: strain, direction: minimize}
+tier_requirements:
+  A: ["pose_qa_pass", "score_present", "region_contact_positive"]
+  B: ["pose_qa_pass", "score_present"]
+  C: ["pose_qa_flagged_or_region_missing"]
+  D: ["geometry_fail_or_no_contacts"]
+not_run: ["redock"]
+qualification:
+  formal_requirements: [pose_qa]
+  redock_seeds_required: 3
+  supporting_seeds_required: 2
+  display_primary_slots: 2

@@ -1,0 +1,28 @@
+{
+  "confirmed": true,
+  "box_confirmed": true,
+  "keep_hetero": [],
+  "repair_missing_sidechains": true,
+  "altloc": "A",
+  "box": {
+    "center": [
+      30.228406250000003,
+      16.25209375,
+      -1.92059375
+    ],
+    "size": [
+      18.549187499999995,
+      22.2458125,
+      19.3268125
+    ],
+    "padding_per_side": 5,
+    "method": "geometric_center_max_deviation",
+    "reference_sha256": "c9c8bf1f3f4cd2d4aaa0fdd440369fa96502b4a702b761d031d5663f3cde3268",
+    "units": "angstrom",
+    "receptor_sha256": "49ffd433cba1d4f1b77ab2f54b85e1bd9f84b58839f481587ec01ee134c7dde8"
+  },
+  "reviewer": "AUTOMATED_PUBLIC_DEMO_ACCEPTANCE",
+  "test_only": true,
+  "input_sha256": "ff760ed2371f8f813836381df992a971f6b5a0417177e0ee54d30ad86ff2b059",
+  "model_index": 0
+}

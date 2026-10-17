@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="zh">
+<head>
+  <meta charset="utf-8">
+  <title>ZVSS {{ version }}</title>
+  <style>
+    body { font-family: -apple-system, "Segoe UI", "Microsoft YaHei", sans-serif; margin: 2rem auto; max-width: 1100px; color: #1b1b1b; }
+    h1 { font-size: 1.4rem; } h2 { font-size: 1.1rem; margin-top: 2rem; }
+    table { border-collapse: collapse; width: 100%; font-size: 0.86rem; }
+    th, td { border-bottom: 1px solid #e3e3e3; padding: 6px 8px; text-align: left; vertical-align: top; }
+    th { background: #f6f7f9; font-weight: 600; }
+    code { background: #f2f3f5; padding: 1px 4px; border-radius: 3px; }
+    .muted { color: #6a6f76; font-size: 0.82rem; }
+    .tag { display: inline-block; padding: 0 6px; border-radius: 3px; font-size: 0.75rem; }
+    .ok { background: #e6f4ea; color: #1c6b3a; } .err { background: #fdecea; color: #a52a2a; }
+    a { color: #1a56b0; text-decoration: none; }
+  </style>
+</head>
+<body>
+<h1>ZVSS · Zhiyu Virtual Screening Studio <span class="muted">v{{ version }}</span></h1>
+<p class="muted">本机 127.0.0.1 服务；页面只读展示数据库与已生成的报告文件，不触发计算。</p>
+
+<h2>运行记录</h2>
+{% if runs %}
+<table>
+  <tr><th>run_id</th><th>状态</th><th>靶点</th><th>预算</th><th>配置摘要</th><th>创建</th></tr>
+  {% for r in runs %}
+  <tr>
+    <td><a href="/run/{{ r.run_id }}">{{ r.run_id }}</a></td>
+    <td><span class="tag {{ 'ok' if r.status == 'completed' else ('err' if r.status == 'failed' else '') }}">{{ r.status }}</span></td>
+    <td>{{ r.target_id or '' }}</td>
+    <td>{{ r.budget or '' }}</td>
+    <td><code>{{ r.config_hash or '' }}</code></td>
+    <td class="muted">{{ r.created or '' }}</td>
+  </tr>
+  {% endfor %}
+</table>
+{% else %}
+<p class="muted">暂无运行记录。执行 <code>zvss run --input &lt;目录&gt; --target &lt;目标配置&gt;</code> 后再刷新。</p>
+{% endif %}
+</body>
+</html>

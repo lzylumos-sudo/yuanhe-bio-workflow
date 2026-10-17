@@ -1,0 +1,608 @@
+# -*- coding: utf-8 -*-
+"""webui.server -- dependency-free HTTP server for the WEDGE-Design web console.
+
+    python run_webui.py                # http://127.0.0.1:8777
+    python run_webui.py --port 9000 --no-browser
+
+Serves the single-page front-end from ``webui/static`` and a small JSON API over
+the files that the pipeline writes (``results/``, ``evidence/``).
+Only the Python standard library is used, so the console runs on the same
+laptop CPU as the pipeline itself.
+"""
+from __future__ import annotations
+
+import json
+from pathlib import Path
+import mimetypes
+import os
+import posixpath
+import re
+import socket
+import sys
+import threading
+import time
+import urllib.parse
+import webbrowser
+from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
+from webui import data, jobs, stages, workflow                                   # noqa: E402
+
+STATIC = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'static')
+ROOT = data.ROOT
+FILE_DIRS = ('results', 'evidence', 'figures', 'docs', 'priors')
+VERSION = '1.0.0'
+
+MIME = {
+    '.html': 'text/html; charset=utf-8', '.css': 'text/css; charset=utf-8',
+    '.js': 'text/javascript; charset=utf-8', '.mjs': 'text/javascript; charset=utf-8',
+    '.json': 'application/json; charset=utf-8', '.md': 'text/markdown; charset=utf-8',
+    '.png': 'image/png', '.jpg': 'image/jpeg', '.svg': 'image/svg+xml',
+    '.ico': 'image/x-icon', '.csv': 'text/csv; charset=utf-8',
+    '.sdf': 'chemical/x-mdl-sdfile', '.pdb': 'chemical/x-pdb',
+    '.woff2': 'font/woff2', '.txt': 'text/plain; charset=utf-8',
+}
+
+
+# ---------------------------------------------------------------------------
+# helpers
+# ---------------------------------------------------------------------------
+def _json(payload, status=200):
+    body = json.dumps(payload, ensure_ascii=False, default=str).encode('utf-8')
+    return status, 'application/json; charset=utf-8', body
+
+
+def _error(message, status=400, **extra):
+    return _json(dict(error=message, status=status, **extra), status)
+
+
+class HttpError(Exception):
+    def __init__(self, message, status=400):
+        super().__init__(message)
+        self.status = status
+
+
+# ---------------------------------------------------------------------------
+# API
+# ---------------------------------------------------------------------------
+def api_health(q):
+    return _json(dict(ok=True, version=VERSION, time=time.time(), jobs=len(jobs.list_jobs(999))))
+
+
+def api_meta(q):
+    return _json(data.meta())
+
+
+def api_overview(q):
+    summary = data.summary() or {}
+    return _json(dict(
+        summary=summary,
+        funnel=summary.get('funnel', {}),
+        filters=data.filter_summary(),
+        evidence=data.evidence_status(),
+        n_scaffolds=summary.get('n_scaffolds'),
+        best=summary.get('best', []),
+        features=summary.get('features', []),
+        axes=data.axes(),
+        hotspots=(data.hotpsots_raw() or [])[:12],
+        poses=len(data.poses_top()),
+        pocket=data.pocket(),
+        meta=data.meta(),
+    ))
+
+
+def api_hotspots(q):
+    rows = data.hotpsots_raw()
+    return _json(dict(rows=rows, n=len(rows),
+                      n_common=sum(1 for r in rows if float(r.get('convergence') or 0) >= 1.0)))
+
+
+def api_pharmacophore(q):
+    ph = data.pharmacophore() or {}
+    return _json(dict(features=ph.get('features', []), pairs=ph.get('pairs', []),
+                      axes=data.axes(), pocket=data.pocket()))
+
+
+def api_pocket(q):
+    return _json(dict(pocket=data.pocket(), status=data.pocket_status()))
+
+
+def api_pocket_points(q):
+    step = float(q.get('step', ['0.8'])[0] or 0.8)
+    step = max(0.5, min(2.0, step))
+    payload = data.pocket_points(step)
+    return _json(payload, 200 if payload['status'] == 'ready' else 202)
+
+
+def api_axes(q):
+    return _json(dict(axes=data.axes()))
+
+
+def api_scaffolds(q):
+    rows = data.scaffold_rows()
+    return _json(dict(rows=rows, n=len(rows), filters=data.filter_summary(),
+                      poses=len(data.poses_top())))
+
+
+def api_filters(q):
+    return _json(dict(rows=data.filter_rows(), summary=data.filter_summary(),
+                      n=len(data.filter_rows())))
+
+
+def api_poses(q):
+    return _json(dict(top=data.poses_top(), diverse=data.poses_diverse()))
+
+
+def api_scene(q):
+    ref = (q.get('ref', [data.REF_TAG])[0] or data.REF_TAG)
+    ligand = q.get('ligand', [None])[0]
+    radius = float(q.get('radius', ['13'])[0] or 13)
+    radius = max(6.0, min(30.0, radius))
+    return _json(data.scene(ref=ref, ligand=ligand, radius=radius))
+
+
+def api_evidence_report(q):
+    return _json(dict(markdown=data.evidence_report(),
+                      status=data.evidence_status(),
+                      generated=data._mtime(data.rel('evidence/report.md')),  # noqa: SLF001
+                      atom_budget=data.atom_budget()))
+
+
+def api_evidence_priors(q):
+    return _json(dict(rows=data.priors_check(), status=data.evidence_status(),
+                      resolved=data.priors_resolved()))
+
+
+def api_evidence_census(q):
+    return _json(dict(census=data.census(), atom_budget=data.atom_budget(),
+                      status=data.evidence_status()))
+
+
+def api_evidence_interface(q):
+    return _json(dict(murj=data.interface_murj(), peptide=data.interface_peptide(),
+                      anchors=data.anchors(),
+                      hotspots=data.hotpsots_raw()))
+
+
+def api_evidence_anchors(q):
+    return _json(dict(anchors=data.anchors()))
+
+
+def api_docs(q):
+    return _json(dict(docs=data.docs_list()))
+
+
+def api_doc(q, name):
+    text = data.doc(name)
+    if not text:
+        raise HttpError(f'文档不存在: {name}', 404)
+    return _json(dict(name=name, markdown=text))
+
+
+def api_job_kinds(q):
+    return _json(dict(kinds=jobs.list_kinds()))
+
+
+def api_jobs_get(q):
+    return _json(dict(jobs=jobs.list_jobs(40), kinds=jobs.list_kinds()))
+
+
+def api_job_one(q, job_id):
+    since = int(q.get('since', ['0'])[0] or 0)
+    job = jobs.get_job(job_id, since=since)
+    if job is None:
+        raise HttpError(f'任务不存在: {job_id}', 404)
+    return _json(job)
+
+
+def api_jobs_start(q, body):
+    kind = (body or {}).get('kind')
+    payload = (body or {}).get('params') or {}
+    try:
+        job_id = jobs.start(kind, payload)
+    except ValueError as exc:
+        raise HttpError(str(exc), 400) from exc
+    except RuntimeError as exc:
+        raise HttpError(str(exc), 409) from exc
+    return _json(dict(id=job_id), 201)
+
+
+def api_job_cancel(q, body, job_id):
+    try:
+        ok = jobs.cancel(job_id)
+    except KeyError as exc:
+        raise HttpError(f'任务不存在: {job_id}', 404) from exc
+    return _json(dict(cancelled=ok, id=job_id))
+
+
+def _demo(q):
+    return (q.get('demo', ['0'])[0] or '0') in ('1', 'true')
+
+
+def api_workflow(q):
+    return _json(stages.workflow(_demo(q)))
+
+
+def _stage_key(key):
+    if key not in stages.BY_KEY:
+        raise HttpError(f'未知阶段: {key}', 404)
+    return key
+
+
+def api_stage_molecules(q, key):
+    return _json(stages.molecules(_stage_key(key), _demo(q)))
+
+
+def api_stage_pose(q, key):
+    return _json(stages.pose(_stage_key(key), q.get('id', [''])[0], _demo(q)))
+
+
+def api_mol2d(q):
+    return _json(stages.mol2d(q.get('smiles', [''])[0][:400]))
+
+
+# ---------------------------------------------------------------------------
+# routing table: (method, regex, handler)
+# ---------------------------------------------------------------------------
+
+def api_project(q):
+    return _json(workflow.inventory())
+
+def api_project_create(q, body):
+    return _json(workflow.create(body), 201)
+
+def api_project_run(q, rid):
+    return _json(workflow.status(rid))
+
+def api_project_start(q, body, rid, key):
+    return _json(workflow.start(rid,key), 202)
+
+def api_project_review(q, body, rid, key):
+    return _json(workflow.review(rid,key,body))
+
+def api_project_cancel(q, body, rid):
+    return _json(workflow.cancel(rid))
+
+def api_project_log(q, rid, key):
+    return _json(workflow.log(rid,key))
+
+def api_project_rows(q, rid, key):
+    import csv
+    if key not in [x[0] for x in workflow.STAGES]:
+        raise HttpError('未知阶段',404)
+    path=workflow.run_dir(rid)/key/'molecules.csv'
+    if not path.exists():return _json({'rows':[],'total':0})
+    with path.open(encoding='utf-8-sig',newline='') as f:rows=list(csv.DictReader(f))
+    query=q.get('search',[''])[0].lower()
+    if query:rows=[r for r in rows if query in str(r).lower()]
+    offset=max(0,int(q.get('offset',['0'])[0]))
+    return _json({'rows':rows[offset:offset+100],'total':len(rows),'offset':offset})
+
+def api_project_pose(q, rid, key):
+    from rdkit import Chem
+    d=workflow.run_dir(rid);ident=q.get('id',[''])[0]
+    path=None;caption='分子坐标；未进行蛋白坐标系叠合'
+    if key=='peptide2mol':
+        rows=workflow.read(d/key/'seeds.json',[])
+        row=next((x for x in rows if x['id']==ident),None)
+        if row:path=d/row['raw_sdf']
+    elif key in ('reinvent4','docking'):
+        rows=workflow.read(d/'reinvent4/candidates.json',[])
+        row=next((x for x in rows if x['id']==ident),None)
+        if row:path=d/row['sdf'] if key=='reinvent4' else d/'docking/jobs'/ident/'poses.sdf'
+    if path is None or not path.resolve().is_relative_to(d.resolve()) or not path.is_file():
+        return _json({'atoms':[],'caption':'当前记录没有可读取的三维产物'})
+    mol=next((m for m in Chem.SDMolSupplier(str(path),removeHs=True) if m is not None),None)
+    if mol is None or not mol.GetNumConformers():return _json({'atoms':[],'caption':'SDF 坐标不可读'})
+    atoms=[{'p':list(mol.GetConformer().GetAtomPosition(a.GetIdx())),'chain':'LIG','name':'CA','element':a.GetSymbol()} for a in mol.GetAtoms()]
+    if key=='docking':
+        caption='GNINA 原始第一位姿与实际对接受体；并非自动选定的最佳位姿'
+        receptor=d/'docking/receptor.pdb'
+        for line in receptor.read_text().splitlines():
+            if line.startswith('ATOM  '):
+                xyz=[float(line[30:38]),float(line[38:46]),float(line[46:54])]
+                if any(sum((x-y)**2 for x,y in zip(xyz,a['p']))<100 for a in atoms if a['chain']=='LIG'):
+                    atoms.append({'p':xyz,'chain':'REC','name':line[12:16].strip()})
+    return _json({'atoms':atoms,'caption':caption})
+
+def api_project_structure(q, rid):
+    d=workflow.run_dir(rid);path=d/'input.pdb'
+    atoms=[]
+    if path.exists():
+        for line in path.read_text().splitlines():
+            if line.startswith('ATOM  '):
+                try:atoms.append({'p':[float(line[30:38]),float(line[38:46]),float(line[46:54])],'chain':line[21:22], 'name':line[12:16].strip(),'residue':line[17:27].strip()})
+                except ValueError:pass
+    return _json({'atoms':atoms})
+
+ROUTES = [
+    ('GET', r'^/api/project$', api_project),
+    ('POST', r'^/api/project/runs$', api_project_create),
+    ('GET', r'^/api/project/run/(?P<rid>[A-Za-z0-9_-]+)$', api_project_run),
+    ('GET', r'^/api/project/run/(?P<rid>[A-Za-z0-9_-]+)/structure$', api_project_structure),
+    ('GET', r'^/api/project/run/(?P<rid>[A-Za-z0-9_-]+)/pose/(?P<key>[a-z0-9]+)$', api_project_pose),
+    ('GET', r'^/api/project/run/(?P<rid>[A-Za-z0-9_-]+)/rows/(?P<key>[a-z0-9]+)$', api_project_rows),
+    ('GET', r'^/api/project/run/(?P<rid>[A-Za-z0-9_-]+)/log/(?P<key>[a-z0-9]+)$', api_project_log),
+    ('POST', r'^/api/project/run/(?P<rid>[A-Za-z0-9_-]+)/start/(?P<key>[a-z0-9]+)$', api_project_start),
+    ('POST', r'^/api/project/run/(?P<rid>[A-Za-z0-9_-]+)/cancel$', api_project_cancel),
+    ('POST', r'^/api/project/run/(?P<rid>[A-Za-z0-9_-]+)/review/(?P<key>[a-z0-9]+)$', api_project_review),
+    ('GET', r'^/api/health$', api_health),
+    ('GET', r'^/api/meta$', api_meta),
+    ('GET', r'^/api/overview$', api_overview),
+    ('GET', r'^/api/workflow$', api_workflow),
+    ('GET', r'^/api/stage/(?P<key>[a-z_]+)/molecules$', api_stage_molecules),
+    ('GET', r'^/api/stage/(?P<key>[a-z_]+)/pose$', api_stage_pose),
+    ('GET', r'^/api/mol2d$', api_mol2d),
+    ('GET', r'^/api/hotspots$', api_hotspots),
+    ('GET', r'^/api/pharmacophore$', api_pharmacophore),
+    ('GET', r'^/api/pocket$', api_pocket),
+    ('GET', r'^/api/pocket/points$', api_pocket_points),
+    ('GET', r'^/api/axes$', api_axes),
+    ('GET', r'^/api/scaffolds$', api_scaffolds),
+    ('GET', r'^/api/filters$', api_filters),
+    ('GET', r'^/api/poses$', api_poses),
+    ('GET', r'^/api/scene$', api_scene),
+    ('GET', r'^/api/evidence/report$', api_evidence_report),
+    ('GET', r'^/api/evidence/priors$', api_evidence_priors),
+    ('GET', r'^/api/evidence/census$', api_evidence_census),
+    ('GET', r'^/api/evidence/interface$', api_evidence_interface),
+    ('GET', r'^/api/evidence/anchors$', api_evidence_anchors),
+    ('GET', r'^/api/docs$', api_docs),
+    ('GET', r'^/api/docs/(?P<name>[^/]+)$', api_doc),
+    ('GET', r'^/api/jobs$', api_jobs_get),
+    ('GET', r'^/api/jobs/kinds$', api_job_kinds),
+    ('GET', r'^/api/jobs/(?P<job_id>[0-9a-f]+)$', api_job_one),
+    ('POST', r'^/api/jobs$', api_jobs_start),
+    ('POST', r'^/api/jobs/(?P<job_id>[0-9a-f]+)/cancel$', api_job_cancel),
+]
+COMPILED = [(m, re.compile(p), h) for m, p, h in ROUTES]
+
+
+def dispatch(method, path, query, body):
+    for m, rx, handler in COMPILED:
+        if m != method:
+            continue
+        match = rx.match(path)
+        if not match:
+            continue
+        kwargs = match.groupdict()
+        try:
+            if method == 'POST':
+                return handler(query, body, **kwargs) if kwargs else handler(query, body)
+            return handler(query, **kwargs) if kwargs else handler(query)
+        except HttpError:
+            raise
+        except (ValueError, KeyError) as exc:
+            return _error(f'{type(exc).__name__}: {exc}', 400)
+        except OSError as exc:
+            return _error(f'文件读取失败: {exc}', 500)
+        except Exception as exc:                            # noqa: BLE001
+            import traceback
+            traceback.print_exc()
+            return _error(f'{type(exc).__name__}: {exc}', 500)
+    raise HttpError(f'未知接口: {method} {path}', 404)
+
+
+# ---------------------------------------------------------------------------
+# static files
+# ---------------------------------------------------------------------------
+def _safe_join(base, rel_url):
+    rel_url = urllib.parse.unquote(rel_url).split('?')[0].split('#')[0]
+    rel_url = rel_url.replace('\\', '/')
+    norm = posixpath.normpath('/' + rel_url).lstrip('/')
+    full = os.path.realpath(os.path.join(base, norm))
+    if os.path.commonpath([full, os.path.realpath(base)]) != os.path.realpath(base):
+        raise HttpError('非法路径', 403)
+    return full
+
+
+class Handler(BaseHTTPRequestHandler):
+    server_version = f'WEDGE-Design-UI/{VERSION}'
+    protocol_version = 'HTTP/1.1'
+
+    def _valid_host(self):
+        host = self.headers.get('Host', '').split(':')[0].lower()
+        return host in {'localhost', '127.0.0.1', self.server.server_address[0]}
+
+    def log_message(self, fmt, *args):                       # quieter log
+        if os.environ.get('WEDGE_UI_VERBOSE'):
+            sys.stderr.write('%s - %s\n' % (self.address_string(), fmt % args))
+
+    def _send(self, status, ctype, body, extra=None):
+        self.send_response(status)
+        self.send_header('Content-Type', ctype)
+        self.send_header('Content-Length', str(len(body)))
+        self.send_header('Cache-Control', 'no-store')
+        for key, value in (extra or {}).items():
+            self.send_header(key, value)
+        self.end_headers()
+        if self.command != 'HEAD':
+            try:
+                self.wfile.write(body)
+            except (BrokenPipeError, ConnectionResetError):
+                pass
+
+    def do_OPTIONS(self):                                    # noqa: N802
+        self.send_response(204)
+        self.send_header('Allow', 'GET, POST, HEAD, OPTIONS')
+        self.send_header('Content-Length', '0')
+        self.end_headers()
+
+    def do_HEAD(self):                                       # noqa: N802
+        self.do_GET()
+
+    def do_GET(self):                                        # noqa: N802
+        if not self._valid_host():
+            self._send(*_error('Host 不匹配', 403)); return
+        parsed = urllib.parse.urlsplit(self.path)
+        path = urllib.parse.unquote(parsed.path)
+        query = urllib.parse.parse_qs(parsed.query)
+        try:
+            if path.startswith('/api/'):
+                status, ctype, body = dispatch('GET', path, query, None)
+                self._send(status, ctype, body)
+                return
+            if path.startswith('/artifacts/'):
+                full = _safe_join(str(workflow.RUNS), path[len('/artifacts/'):])
+                if not os.path.isfile(full): raise HttpError('产物不存在',404)
+                self._send_file(full, {'Content-Disposition': 'attachment', 'X-Content-Type-Options': 'nosniff'})
+                return
+            if path.startswith('/files/'):
+                self._serve_data_file(path[len('/files/'):], query)
+                return
+            self._serve_static(path)
+        except HttpError as exc:
+            status, ctype, body = _error(str(exc), exc.status)
+            self._send(status, ctype, body)
+        except Exception as exc:                             # noqa: BLE001
+            import traceback
+            traceback.print_exc()
+            status, ctype, body = _error(f'{type(exc).__name__}: {exc}', 500)
+            self._send(status, ctype, body)
+
+    def do_POST(self):                                       # noqa: N802
+        if not self._valid_host():
+            self.close_connection = True
+            self._send(*_error('Host 不匹配', 403)); return
+        parsed = urllib.parse.urlsplit(self.path)
+        query = urllib.parse.parse_qs(parsed.query)
+        origin = self.headers.get('Origin')
+        host = self.headers.get('Host', '')
+        if origin and origin != 'http://' + host:
+            self.close_connection = True
+            self._send(*_error('跨站写请求被拒绝', 403)); return
+        if self.headers.get('Sec-Fetch-Site') == 'cross-site':
+            self.close_connection = True
+            self._send(*_error('跨站写请求被拒绝', 403)); return
+        try:
+            length = int(self.headers.get('Content-Length') or 0)
+            if not 0 <= length <= 1024 * 1024:
+                raise ValueError()
+        except ValueError:
+            self.close_connection = True
+            self._send(*_error('请求体长度无效或超过 1 MB', 413)); return
+        raw = self.rfile.read(length) if length else b'{}'
+        try:
+            body = json.loads(raw.decode('utf-8') or '{}')
+            if not isinstance(body, dict):
+                raise ValueError('JSON body must be an object')
+        except ValueError:
+            self._send(*_error('请求体不是合法 JSON', 400))
+            return
+        try:
+            status, ctype, payload = dispatch('POST', parsed.path, query, body)
+            self._send(status, ctype, payload)
+        except HttpError as exc:
+            self._send(*_error(str(exc), exc.status))
+        except Exception as exc:                             # noqa: BLE001
+            import traceback
+            traceback.print_exc()
+            self._send(*_error(f'{type(exc).__name__}: {exc}', 500))
+
+    # -- static ------------------------------------------------------------
+    def _serve_static(self, path):
+        if path in ('', '/'):
+            path = '/index.html'
+        full = _safe_join(STATIC, path)
+        if not os.path.isfile(full):
+            # a missing asset is an error (a 200 with index.html would surface as
+            # "Unexpected token '<'" in the browser); only extension-less paths
+            # fall back to the SPA shell.
+            if os.path.splitext(path)[1]:
+                raise HttpError(f'前端资源不存在: {path}', 404)
+            full = os.path.join(STATIC, 'index.html')
+            if not os.path.isfile(full):
+                raise HttpError('运行时缺少前端文件 webui/static/index.html', 500)
+        self._send_file(full)
+
+    def _serve_data_file(self, rel_path, query):
+        rel_path = urllib.parse.unquote(rel_path)
+        top = rel_path.split('/')[0]
+        if top not in FILE_DIRS:
+            raise HttpError(f'只允许下载 {"/".join(FILE_DIRS)} 下的文件', 403)
+        full = _safe_join(os.path.join(ROOT, top), rel_path[len(top) + 1:])
+        if not os.path.isfile(full):
+            raise HttpError(f'文件不存在: {rel_path}', 404)
+        name = os.path.basename(full)
+        extra = {}
+        if query.get('download'):
+            extra['Content-Disposition'] = (
+                "attachment; filename*=UTF-8''" + urllib.parse.quote(name))
+        self._send_file(full, extra)
+
+    def _send_file(self, full, extra=None):
+        stat = os.stat(full)
+        ext = os.path.splitext(full)[1].lower()
+        ctype = MIME.get(ext) or mimetypes.guess_type(full)[0] or 'application/octet-stream'
+        self.send_response(200)
+        self.send_header('Content-Type', ctype)
+        self.send_header('Content-Length', str(stat.st_size))
+        self.send_header('Last-Modified', self.date_time_string(stat.st_mtime))
+        self.send_header('Cache-Control', 'no-cache')
+        for key, value in (extra or {}).items():
+            self.send_header(key, value)
+        self.end_headers()
+        if self.command == 'HEAD':
+            return
+        with open(full, 'rb') as fh:
+            try:
+                while True:
+                    chunk = fh.read(262144)
+                    if not chunk:
+                        break
+                    self.wfile.write(chunk)
+            except (BrokenPipeError, ConnectionResetError):
+                pass
+
+
+class Server(ThreadingHTTPServer):
+    daemon_threads = True
+    allow_reuse_address = True
+
+    def handle_error(self, request, client_address):
+        # 浏览器刷新/关闭标签页、预连接探测都会直接 RST 连接；这类中断不是错误，
+        # 不打印 traceback（否则控制台会被 WinError 10054 刷屏）。
+        exc = sys.exc_info()[1]
+        if isinstance(exc, (ConnectionResetError, ConnectionAbortedError, BrokenPipeError)):
+            return
+        super().handle_error(request, client_address)
+
+
+def _pick_port(host, port, tries=20):
+    for offset in range(tries):
+        candidate = port + offset
+        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
+            sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+            try:
+                sock.bind((host, candidate))
+            except OSError:
+                continue
+        return candidate
+    raise OSError(f'{host}:{port}-{port + tries} 全部被占用')
+
+
+def serve(host='127.0.0.1', port=8777, open_browser=True, quiet=False):
+    if not os.path.isdir(STATIC):
+        print(f'[webui] 前端目录不存在: {STATIC}', file=sys.stderr)
+        return 2
+    port = _pick_port(host, port)
+    httpd = Server((host, port), Handler)
+    url = f'http://{host}:{port}/'
+    if not quiet:
+        print('=' * 62)
+        print('  WEDGE-Design 控制台  (WEDGE-Design web console)')
+        print(f'  {url}')
+        print(f'  工作目录 {ROOT}')
+        print(f'  Python {sys.version.split()[0]}   仅依赖标准库')
+        print('  Ctrl+C 结束')
+        print('=' * 62, flush=True)
+    if open_browser:
+        threading.Timer(0.6, lambda: webbrowser.open(url)).start()
+    try:
+        httpd.serve_forever(poll_interval=0.3)
+    except KeyboardInterrupt:
+        print('\n[webui] 已停止')
+    finally:
+        httpd.server_close()
+    return 0

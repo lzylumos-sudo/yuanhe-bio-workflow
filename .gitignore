@@ -1,0 +1,35 @@
+# Machine-specific state and secrets
+.DS_Store
+._*
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.env
+.env.*
+!.env.example
+.venv/
+venv/
+node_modules/
+*.egg-info/
+deployment/runtime.json
+# External models, environments and generated output
+vendor/
+envs/
+runtime/
+workflow_runs/
+runs/
+results/
+exports/
+logs/
+cache/
+installation_evidence/
+*.ckpt
+*.prior
+*.pt
+*.pth
+*.vhdx
+*.dcd
+*.xtc
+*.trr
+*.chk
+*.tar.gz

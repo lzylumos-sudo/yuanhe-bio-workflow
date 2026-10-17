@@ -1,0 +1,31 @@
+scoring:
+  weights:
+    affinity: 0.34
+    cnn_pose: 0.18
+    cnn_affinity: 0.18
+    mechanism: 0.18
+    pose_quality: 0.12
+  affinity_floor: 0.0
+
+mechanism:
+  contact_cutoff_A: 4.5
+  hbond_cutoff_A: 3.5
+
+pose_qa:
+  clash_cutoff_A: 2.0
+  box_escape_fraction: 0.9
+
+motion:
+  cluster_rmsd_A: 2.0
+
+redock:
+  enabled: true
+  exhaustiveness: 8
+  num_modes: 3
+
+md:
+  engine: openmm
+  membrane_required: true
+
+filters:
+  membrane_alert_burden_max: 3

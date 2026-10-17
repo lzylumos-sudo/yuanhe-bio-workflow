@@ -1,0 +1,30 @@
+[
+  {
+    "file": "11xy.pdb",
+    "pdb_id": "11XY",
+    "source": "https://www.rcsb.org/structure/11XY",
+    "sha256": "7dd464e2afb4f6a42e5d43c7a630973fa336d43e16ff297229bb1c707d4cc4fd",
+    "note": "Copied from supplied project; not fetched anew in this release."
+  },
+  {
+    "file": "9nu4.pdb",
+    "pdb_id": "9NU4",
+    "source": "https://www.rcsb.org/structure/9NU4",
+    "sha256": "ec509ae9f04236407d515de6f64095fefb44a8432eca8287e9bd8b3f75c78a3a",
+    "note": "Copied from supplied project; not fetched anew in this release."
+  },
+  {
+    "file": "9nu5.pdb",
+    "pdb_id": "9NU5",
+    "source": "https://www.rcsb.org/structure/9NU5",
+    "sha256": "e1d3d42c10c793edec5db6ebbded238c7bb136539e35fe3a87f926d049a3d605",
+    "note": "Copied from supplied project; not fetched anew in this release."
+  },
+  {
+    "file": "9nu8.pdb",
+    "pdb_id": "9NU8",
+    "source": "https://www.rcsb.org/structure/9NU8",
+    "sha256": "d1a8d1ad8949c83cc7a6ae430227bb75136e3dd34b68f09d044cbd6ffcbad1d2",
+    "note": "Copied from supplied project; not fetched anew in this release."
+  }
+]

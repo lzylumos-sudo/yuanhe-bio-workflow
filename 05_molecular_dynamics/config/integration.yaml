@@ -1,0 +1,12 @@
+MD:
+  platform: CPU
+  cpu_threads: 2
+  production: 4ps
+  equilibration: 2ps
+  nvt: 1ps
+  npt: 1ps
+  report_interval: 1ps
+  checkpoint_interval: 2ps
+replicates: 1
+mmgbsa:
+  max_frames: 4

@@ -1,0 +1,25 @@
+{
+  "peptide2mol": {
+    "repo_commit": "2c5af9628aeeab5ed2dff5dc5326ce2463316291",
+    "checkpoint": "vendor/Peptide2Mol/ckpts/PMT_major.ckpt",
+    "checkpoint_sha256": "7dc82c4f895efea83764ce25c2fae5787f9f25b7935590e5119bde7199540129",
+    "mode": "de_novo",
+    "sample_budget": 20,
+    "seeds": [
+      17,
+      29
+    ],
+    "source_url": "https://github.com/BLUE-Flowing/Peptide2Mol",
+    "weights_source": "https://github.com/BLUE-Flowing/Peptide2Mol/releases/tag/v1.0"
+  },
+  "reinvent4": {
+    "repo_commit": "3cf206ea5b385ac955dc44bbae6063b55ee31e0a",
+    "prior": "vendor/REINVENT4/priors/libinvent.prior",
+    "prior_sha256": "03e6cbe8a53e59a4ac3aa6728d041f1957bdd07b5eefdf2cfc5c8591036075af",
+    "sample_budget_per_core": 20,
+    "seed": 41,
+    "device": "cpu",
+    "source_url": "https://github.com/MolecularAI/REINVENT4",
+    "weights_source": "https://doi.org/10.5281/zenodo.20701824"
+  }
+}

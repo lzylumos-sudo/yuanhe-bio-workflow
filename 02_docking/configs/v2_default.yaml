@@ -1,0 +1,18 @@
+# 全部 [P] 类数值为可配置起点，必须用靶点验证集校准（方案 §19）
+schema_version: 2
+ligand_prep:
+  ph_range: [6.4, 8.4]      # 用户必须确认，ph_confirmed 默认 false
+  max_stereo: 8
+  max_states: 8
+  conformers_generate: 20
+  conformers_keep: 3
+  charge_model: gasteiger
+  seed: 20261012
+docking:
+  default_preset: standard
+  box_padding_A: 5.0
+  allow_cpu_fallback: false  # 不得自动关闭 CNN 或换成 Vina 后仍标为原协议
+qc:
+  backbone_drift_A: 0.5
+  pocket_drift_A: 1.0
+  stable_rmsd_A: 2.0

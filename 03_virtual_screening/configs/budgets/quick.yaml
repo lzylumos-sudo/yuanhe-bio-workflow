@@ -1,0 +1,39 @@
+budget_id: quick
+description: "small-sample configuration for testing and demos"
+redock_max_parents: 20
+deep_max_parents: 10
+md_max_parents: 4
+md_primary_slots: 2
+md_exploratory_slots: 1
+poses_per_parent_max: 2
+seeds: [17]
+cluster_rmsd_A: 2.0
+redock_explore_fraction: 0.2
+deep_explore_fraction: 0.2
+fingerprint_radius: 2
+fingerprint_bits: 2048
+scaffold_max_per_group: 2
+similarity_ceiling: 0.7
+membrane_alert_burden_max: 3
+strain_max_kcal: 25.0
+pareto_objectives:
+  - {name: affinity, direction: maximize}
+  - {name: mechanism, direction: maximize}
+  - {name: strain, direction: minimize}
+tier_requirements:
+  A: ["pose_qa_pass", "score_present", "region_contact_positive"]
+  B: ["pose_qa_pass", "score_present"]
+  C: ["pose_qa_flagged_or_region_missing"]
+  D: ["geometry_fail_or_no_contacts"]
+not_run: ["redock"]
+
+# Formal candidate admission. These requirements are *evidence* requirements:
+# a requirement that was never executed can never count as satisfied, and a
+# shortfall leaves the formal primary list empty rather than downgrading the
+# rule (the shortlist of unqualified compounds is reported separately as
+# `preliminary` for human inspection).
+qualification:
+  formal_requirements: [pose_qa, target_region, redock_seeds, strain, membrane]
+  redock_seeds_required: 3
+  supporting_seeds_required: 2
+  display_primary_slots: 2

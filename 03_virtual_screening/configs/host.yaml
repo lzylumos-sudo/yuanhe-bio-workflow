@@ -1,0 +1,40 @@
+﻿defaults:
+  host_profile: local_windows
+
+paths:
+  structures_dir: ""
+  scratch: ""
+
+# GNINA runs in the host WSL2 distro because the build the upstream project
+# pins (1.3.3, sha256 checked) is a Linux CUDA binary.  The command below is the
+# verified entry point on this machine:
+#   * /mnt/c/.../vendor/gnina          - the pinned binary, digest verified
+#   * vendor/cudnn/lib                 - cuDNN 9 runtime it links against
+#   * /usr/lib/wsl/lib                 - the WSL GPU driver libraries
+# Paths are translated from Windows form (C:\...) to WSL form (/mnt/c/...) by
+# zvss.redock.gnina before the adapter builds a command line.
+tools:
+  gnina: ["wsl", "-d", "Ubuntu-22.04", "-u", "root", "env",
+          "LD_LIBRARY_PATH=/usr/lib/wsl/lib:/mnt/c/Users/user/Desktop/元核生物/06_Virtual_Screening_Studio/vendor/cudnn/lib:/mnt/c/Users/user/Desktop/元核生物/06_Virtual_Screening_Studio/vendor/nvidia-cuda-runtime-cu12/lib:/mnt/c/Users/user/Desktop/元核生物/06_Virtual_Screening_Studio/vendor/nvidia-cublas-cu12/lib",
+          "/mnt/c/Users/user/Desktop/元核生物/06_Virtual_Screening_Studio/vendor/gnina"]
+  gnina_settings:
+    exhaustiveness: 8
+    num_modes: 3
+    scoring: "vina"
+    cnn_scoring: "rescore"
+    cpu: 4
+    timeout_seconds: 3600
+  gromacs: ["wsl", "-d", "Ubuntu-22.04", "-u", "root", "gmx_MMPBSA"]
+
+executors:
+  gnina:
+    mode: auto
+    command: ["wsl", "-d", "Ubuntu-22.04", "-u", "root", "env",
+              "LD_LIBRARY_PATH=/usr/lib/wsl/lib:/mnt/c/Users/user/Desktop/元核生物/06_Virtual_Screening_Studio/vendor/cudnn/lib:/mnt/c/Users/user/Desktop/元核生物/06_Virtual_Screening_Studio/vendor/nvidia-cuda-runtime-cu12/lib:/mnt/c/Users/user/Desktop/元核生物/06_Virtual_Screening_Studio/vendor/nvidia-cublas-cu12/lib",
+              "/mnt/c/Users/user/Desktop/元核生物/06_Virtual_Screening_Studio/vendor/gnina"]
+  md_openmm_linux:
+    mode: disabled
+    note: "downstream MD project is Linux-only and has no membrane protocol"
+  zlis:
+    mode: auto
+    command: ["bash", "run.sh"]

@@ -1,0 +1,4 @@
+first_stage: class_full
+second_stage: research_gnina
+top_k: 10
+operation: score_only

@@ -1,0 +1,29 @@
+# New v2 entry point only. Short preliminary run, not a convergence protocol.
+replicates: 1
+MD:
+  platform: CPU
+  cpu_threads: 2
+  temperature: 300
+  pressure: 1
+  pressure_unit: atm
+  timestep: 2fs
+  equilibration: 200ps
+  nvt: 100ps
+  npt: 100ps
+  production: 100ps
+  report_interval: 10ps
+  checkpoint_interval: 100ps
+  protein_forcefield: amber14-all.xml
+  water_forcefield: amber14/tip3p.xml
+  ligand_forcefield: gaff-2.11
+  water_model: tip3p
+  ionic_strength_molar: 0.15
+protein:
+  ph: 7.0
+analysis:
+  groups: {}
+mmgbsa:
+  enabled: true
+  max_frames: 10
+  salt_molar: 0.15
+  entropy: false
