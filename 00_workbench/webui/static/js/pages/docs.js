@@ -13,20 +13,20 @@ export async function mount(root, ctx) {
     return a.name.localeCompare(b.name);
   });
   if (!docs.length) {
-    root.replaceChildren(card(null, div({ class: 'empty-state', text: '没有找到 Markdown 文档。' })));
+    root.replaceChildren(card(null, div({ class: 'empty-state', text: 'Not found: Markdown document.' })));
     return null;
   }
   let current = ctx.params.doc ? docs.find((d) => d.name === ctx.params.doc) || docs[0] : docs[0];
 
   const list = div({ style: { display: 'grid', gap: '2px' } });
-  const content = card(null, loadingPane('正在载入文档…'));
+  const content = card(null, loadingPane('Loading document...'));
   const crumbNote = span({ class: 'tiny muted' });
 
   root.replaceChildren();
   root.appendChild(div({ class: 'page-head' },
     div(null,
-      el('h1', { text: '文档' }),
-      div({ class: 'sub', text: '方法学主文档、下游对接协议、证据链说明与工作日志。全部为仓库内原始 Markdown，不做改写。' }))));
+      el('h1', { text: 'Documentation' }),
+      div({ class: 'sub', text: 'Methods, docking protocol, evidence notes and work logs from repository Markdown, files.' }))));
 
   function paintList() {
     list.replaceChildren();
@@ -34,7 +34,7 @@ export async function mount(root, ctx) {
     for (const doc of docs) {
       if (doc.folder !== lastFolder) {
         lastFolder = doc.folder;
-        list.appendChild(div({ class: 'nav-group', text: doc.folder === '.' ? '根目录' : doc.folder }));
+        list.appendChild(div({ class: 'nav-group', text: doc.folder === '.' ? 'Root directory' : doc.folder }));
       }
       const active = current && doc.name === current.name;
       list.appendChild(el('a', {
@@ -58,7 +58,7 @@ export async function mount(root, ctx) {
   async function show(doc) {
     current = doc;
     paintList();
-    content.replaceChildren(loadingPane(`正在载入 ${doc.name}…`));
+    content.replaceChildren(loadingPane(`Loading ${doc.name}…`));
     try {
       const payload = await api.doc(doc.name);
       content.replaceChildren(
@@ -66,16 +66,16 @@ export async function mount(root, ctx) {
           chip(doc.name, 'mono'),
           span({ class: 'tiny muted', text: `${fmtBytes(doc.size)} · ${fmtDate(doc.mtime)}` }),
           span({ class: 'right' },
-            el('a', { class: 'tiny', href: `/files/${doc.folder === '.' ? '' : `${doc.folder}/`}${doc.name}?download=1`, text: '下载原文 ↘' }))),
+            el('a', { class: 'tiny', href: `/files/${doc.folder === '.' ? '' : `${doc.folder}/`}${doc.name}?download=1`, text: 'Download source ↘' }))),
         markdownNode(payload.markdown || ''));
       history.replaceState(null, '', `#/docs?doc=${encodeURIComponent(doc.name)}`);
     } catch (err) {
-      content.replaceChildren(card(null, div({ class: 'empty-state', text: `载入失败：${err.message}` })));
+      content.replaceChildren(card(null, div({ class: 'empty-state', text: `Load failed:${err.message}` })));
     }
   }
 
   root.appendChild(div({ class: 'grid wide-right', style: { alignItems: 'start' } },
-    card({ class: 'tight', title: '目录' }, list, div({ class: 'hr' }), crumbNote),
+    card({ class: 'tight', title: 'Contents' }, list, div({ class: 'hr' }), crumbNote),
     content));
 
   paintList();

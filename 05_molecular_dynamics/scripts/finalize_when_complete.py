@@ -87,7 +87,7 @@ def main():
         write(status_path, record)
         if args.delivery_dir:
             args.delivery_dir.mkdir(parents=True, exist_ok=True)
-            write(args.delivery_dir / "10ns_后台验收状态.json", record)
+            write(args.delivery_dir / "10ns_Background acceptance status.json", record)
     publish()
     validator = PROJECT_ROOT / "scripts/validate_10ns.py"
     while True:

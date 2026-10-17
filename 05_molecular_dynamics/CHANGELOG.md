@@ -1,16 +1,15 @@
-# 2026-10-16 — v2 通用输入和任务管理
+# 2026-10-16: v2 input and task management
 
-- `run_md.sh`、`scripts/run_workflow.py`：统一输入、决定、准备、建系、OpenMM、分析与验收。旧入口和计算模块保留。
-- `modules/automation/input_resolver.py`：指定输入优先、限制目录发现、任意名称、无人值守选择阻塞。
-- `pdb_inventory.py`：固定列无损原子清单、稳定 ID、组分/连接/缺失/质子化变体识别、逐次规范化与双向映射。
-- `ligand_chemistry.py`：本地模板核验、有超时的 RDKit 推断、原始电荷位点/氢/手性/坐标核验、精确候选确认及缓存。
-- `backend.py`、`forcefields.py`：保留 HIS 质子化证据、显式末端处理、参数与配置验证、原模拟后端适配、真实 checkpoint 与轨迹验收。
-- `analysis_mapping.py`：原始原子/残基至最终拓扑与分析映射，重建氢不冒充原原子。
-- `state.py`、`workflow.py`：指纹、运行锁、科学决定、分阶段日志、完整性检查、恢复和状态。
-- `setup.sh`、`scripts/check_environment.py`：安装不再只检查 Python 存在；验证库/工具/极小 CPU 与 checkpoint。显式包锁补正 `@EXPLICIT` 格式，保留原 338 个包 URL。
-- `scripts/validate_v2_ubuntu.py`：真实 Ubuntu 短分子链路、中断恢复和幂等验收；本轮未执行 native MD。
-- 新增自动化回归测试、原样 R2 夹具、中文操作说明和短测配置。
+- Unified input, decisions, preparation, construction, OpenMM, analysis and acceptance through run_md.sh and scripts/run_workflow.py; legacy entry points retained.
+- Input resolution honors explicit paths, limits discovery and blocks unattended ambiguity.
+- Fixed-column atom inventory preserves stable identity, components, links, missing data and protonation variants, with bidirectional normalization maps.
+- Ligand recovery validates templates, bounds RDKit inference time, preserves original charge sites/hydrogens/stereochemistry/coordinates and requires exact candidate approval.
+- Backend preserves histidine evidence, requires terminal decisions and validates parameter/configuration/checkpoint contracts.
+- Analysis mapping tracks original atoms/residues; rebuilt hydrogens are explicitly new.
+- State management adds fingerprints, locks, decisions, stage logs, integrity and resume guards.
+- Setup checks imports, tools and a minimal CPU/checkpoint exercise rather than Python-file existence alone. The explicit lock header was repaired while preserving 338 package URLs.
+- Ubuntu validation script checks a short actual molecular run, interruption/resume and completed-run idempotence; native MD was not executed in this development round.
 
-已实际复现：R2 空配体字段、重复名称、HIE 超出原输入协议。新版保留 3094 原子，配体 92 原子/98 边/+2 电荷位点，候选需确认；HXT 未决定不改写。还保留四个由现有环氢识别的 HID。包锁旧首行格式错误已修复。相关测试记录见 `V2_VALIDATION.json`。
+The R2 input regression preserves 3,094 atoms and a ligand with 92 atoms, 98 edges and +2 charge sites, with candidate confirmation required. HXT remains undecided rather than being silently renamed; four ring-hydrogen-supported HID residues are retained. See V2_VALIDATION.json.
 
-静态已接通、尚待 Ubuntu 验收：新准备适配器、强制 AmberTools AM1-BCC、建系、完整模拟、实际中断恢复、最终拓扑映射与分析。原 v1 历史 PASS 不自动升级成新版 PASS；Mac 缺少 Linux 运行能力不是目标流程本身失败。
+Preparation, AM1-BCC parameterization, construction, full simulation, actual recovery and final mapping still require target Ubuntu acceptance. Old v1 passes do not become v2 passes, and Mac platform blocking is not a target-runtime scientific failure.

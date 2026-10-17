@@ -1,0 +1,30 @@
+{
+  "input": "/Volumes/Zhiyu Li/Yuanhe Bio/9nu4.pdb",
+  "sha256": "ec509ae9f04236407d515de6f64095fefb44a8432eca8287e9bd8b3f75c78a3a",
+  "chains": {
+    "A": {
+      "atoms": 4598,
+      "residues": 602,
+      "range": [
+        -101,
+        500
+      ],
+      "missing_in_MurJ_3_500": []
+    },
+    "B": {
+      "atoms": 226,
+      "residues": 29,
+      "range": [
+        2,
+        30
+      ],
+      "missing_in_MurJ_3_500": null
+    }
+  },
+  "construct_mutations": {
+    "5": "PHE",
+    "12": "ILE",
+    "13": "ALA"
+  },
+  "warning": "Observed coordinates only. Not proof of full-length WT protein or complete lysis protein."
+}

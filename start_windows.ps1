@@ -1,4 +1,4 @@
-param([string]$Distro = $env:YUANHE_WSL_DISTRO, [string]$Python = 'python3')
+param([string]$Distro = $env:YUANHE_WSL_DISTRO, [string]$Python = '')
 $ErrorActionPreference = 'Stop'
 if (-not (Get-Command wsl.exe -ErrorAction SilentlyContinue)) { throw 'WSL2 is not installed.' }
 if (-not $Distro) {

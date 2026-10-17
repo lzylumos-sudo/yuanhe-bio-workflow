@@ -1,74 +1,14 @@
-元核生物项目：代码审查、工作流集成与清理
-2026-10-17 · 工程集成候选版 0.2
+Historical project audit: 2026-10-17, integration candidate 0.2
 
-结论
-流程主要模块与两个生成模型权重确实在这个文件夹内，但原项目不是一套已经完整连接、可跨机复现的成熟系统。
-本次完成可确认缺陷修复、统一工作台、实际阶段执行适配、回归测试与冗余清理。
-尚未满足“任意 Windows + WSL2 + NVIDIA 电脑插盘后全流程无需配置即可运行”的最终验收条件。
-本次没有运行正式 MurJ/MURG 模型生成、对接、筛选或动力学。
+The external folder contained the main modules and both model weights, but was not then a completely connected, portable, validated system. The audit repaired confirmed defects and added the first unified stage interface. It did not execute formal target inference, docking, screening or dynamics.
 
-正确的主流程
-蛋白–多肽复合物 → 明确受体/多肽链及残基范围 → 完整受体与局部口袋分别保存
-→ Peptide2Mol 生成分子种子 → 审核种子的核心原子与连接点
-→ REINVENT4 / LibInvent 在分子核心上扩展 → 化学去重与构象输入
-→ 使用去多肽、已准备的完整受体进行 GNINA 批量对接
-→ ZVSS 虚拟筛选 → 候选分子 → 已准备膜体系的 GROMACS → 轨迹分析。
-“RUAN4”在现有目录中对应 REINVENT4；“GNN 对接”对应现有 GNINA 工具，不能把模型类别和软件名混用。
-第三步的扩展对象是小分子设计核心，不是蛋白主链骨架。
-目录和结构记录标识的靶点是 MurJ；若 MURG 指另一个靶点，不能直接使用现有 MurJ 区域、编号和筛选配置。
+Correct workflow: complex review -> full receptor plus local pocket -> Peptide2Mol seeds -> reviewed molecular cores -> REINVENT4/LibInvent expansion -> unique chemistry/conformers -> GNINA with the peptide-removed full receptor -> ZVSS -> candidates -> membrane GROMACS -> analysis. The target was subsequently confirmed as MurJ. REINVENT4 expands a molecular core, not a protein backbone; GNINA is the actual docking tool.
 
-模块现状
-1. Peptide2Mol：源码与 PMT_major.ckpt 存在，SHA-256 与记录匹配。未在本次目标 WSL/GPU 做推理。
-2. REINVENT4：源码与 LibInvent prior 存在，SHA-256 匹配。未在本次做真实采样。
-3. GNINA：01_GNINA_SBVS 内的适配器更完整；02_GNINA_SBVS_v2 是较早的独立源码版本，缺少完整 GNINA 批量入口。
-   新工作台使用 01 中的 GNINA 适配器，不以 02 的 Vina 测试代替 GNINA 验收。
-4. 虚拟筛选：06_Virtual_Screening_Studio 存在。新增桥接只传递真实成功对接的原始位姿和日志，避免把汇总分数表误当逐位姿分数。
-5. 动力学：原 04 模块使用 OpenMM。新增 GROMACS 入口可执行已准备的 TPR，但没有补造自动膜体系准备、平衡及全套终点分析。
-6. UI：原先后续阶段是文件占位。现已新增真实阶段控制、独立运行、日志、计数、失败重试归档、设置冻结、产物下载、真实 PDB 旋转视图、分子 2D 与部分阶段 SDF 3D 浏览。
-   筛选后分子可查看表格与报告；GROMACS 轨迹播放/自动分析仍未完成。不能宣称每个阶段的高级可视化已全部验收。
+Repairs covered Hydra Unicode/space quoting and random seeds; reused output contamination and empty-success handling; actual source fingerprints and upstream commit checks; mapped-core identity comparisons; disconnected/stereochemical candidates; cropped-pocket/full-receptor confusion; upstream artifact hashes; cancellation parameters; symlink/path traversal; origin/Host/body checks; log cursors; serialized shared outputs; screening cache content/source validation; and archival isolation of old rule-generated molecules.
 
-本次修复的主要问题
-- Peptide2Mol Hydra 中文/空格路径引用错误；seed 配置缺失以及仅记录种子但未初始化随机数。
-- 模型目录可复用旧输出导致结果污染；空有效分子仍可能被标成成功。
-- 模型来源只写声明 commit：现在记录实际源码指纹，有 Git 元数据时校验 HEAD；本地补丁也纳入指纹。
-- REINVENT4 去除 dummy 标记后原始字符串比较导致正常核心被拒绝；现在按去映射后的化学身份比较，保留真实原始输出。
-- 不连通候选、立体核心保持、局部口袋与完整受体混用、上游成功标记未核对产物哈希等问题。
-- UI 取消任务接口参数不匹配、静态文件符号链接越界、输出绝对路径、跨站写请求、Host 与请求大小检查、截断日志游标等问题。
-- 共享输出任务并发覆盖：新流程串行执行，每次运行和失败尝试分别归档。
-- 虚拟筛选缓存原先仅按目录名字缓存：现在加入输入内容、运行 ID、源码指纹和 summary 校验。
-- 历史 v1 手工枚举入口改为只读归档；其旧 SDF 缺陷不作为新模型输出继续传播。没有把 v1 算法改名为 Peptide2Mol。
+Inventory: 12,781 non-runtime entries, including 7,641 Python files, many third-party; no AST errors. This was not a line-by-line audit of all dependencies. Weights and binary images were not treated as executable source evidence.
+Historical tests: generation 57 passed; docking 17 passed/1 skipped; ZLIS 40 passed with a NumPy compatibility warning; screening 24 passed/3 skipped/3 integration deselected; standalone OpenMM contracts 61 passed; workflow/HTTP guards 15 passed. Adapter doubles were not real inference. Browser checks observed actual structure atoms and configuration behavior without target computation.
 
-测试范围
-原始清点覆盖 12,781 个非运行时文件条目，含 7,641 个 Python 文件（大量为第三方依赖源码），AST 语法错误为 0。
-这不等同于逐行人工审计全部第三方实现。二进制镜像与权重没有当作源码读取或执行。
-生成/化学/适配器：57 passed。
-对接模块独立测试：17 passed、1 skipped。
-相互作用可视化：40 passed（有现有 NumPy 二进制兼容性 warning）。
-虚拟筛选非外部工具测试：24 passed、3 skipped、3 integration deselected。
-OpenMM 工程输入/状态/编号契约：61 passed；不等于动力学实测。
-统一工作流与 HTTP 防护、SDF 浏览：15 passed。
-模型适配器契约测试使用模拟可执行程序，不是真实模型推理。
-浏览器检查：直接从交付目录启动新界面，确认两个权重已找到；保存独立配置未触发计算；显示 4,824 个真实结构原子；模型阶段设置可保存；未完成前置步骤时执行按钮保持禁用。
-未运行：正式目标推理、GNINA 批量计算、膜 MD、Windows PowerShell/WSL 端到端、第二台电脑迁移。
+Cleanup removed 435 cache/duplicate/runtime-export entries, about 13.12 GiB logical or 29.33 GiB allocated on exFAT. Allocated project space decreased from about 53.18 to 23.83 GiB before small new additions. Removed items included an old WSL tar, nonportable old venvs, test copies, obsolete backups, caches and metadata. Active VHDX, weights, source, important results and the OpenMM offline package were retained. No formatting, driver changes or WSL unregistration occurred.
 
-空间清理
-按删除前清单：435 项目录/缓存；逻辑数据约 13.12 GiB，外置盘分配空间约 29.33 GiB。
-清理前磁盘分配约 53.18 GiB，清理后约 23.83 GiB（新增小型源码和报告会产生少量增量）。
-当前盘为 exFAT，大量小文件按较大簇分配，所以“磁盘占用”远大于文件字节总量。
-删除：旧 13 GB WSL tar 导出快照、不可迁移的旧 Windows venv、UI 内旧 QVina 环境、生成的路径测试副本、旧源代码备份、Python/测试缓存和 macOS 元数据。
-保留：在用的 ext4.vhdx、模型权重、当前源码、重要结果/证据、OpenMM 离线环境包（现有动力学环境，不冒充 GROMACS）。
-没有格式化磁盘、删除模型、修改系统驱动或卸载用户 WSL 发行版。
-
-仍需完成的验收
-A. 在目标 WSL2 中安装两个模型的独立 Linux 环境与筛选环境，锁定实际可用依赖；现有规格不等于完成安装。
-B. 用公开小样本真实执行 Peptide2Mol → 核心审核 → REINVENT4 → GNINA → ZVSS，核对分子身份/受体坐标/分数绑定/计数/失败恢复。
-C. WSL 导入、盘符改变、停止后安全拔盘、第二台电脑注册与恢复，必须实测。
-D. 明确目标是否确为 MurJ；受体工程突变、构建体、质子化/互变异构体与对接盒需科研审核。
-E. GROMACS 膜体系构建、配体参数化、平衡、候选与体系对应关系、重复轨迹与分析尚待实现/验收。
-F. 合成路线支持、模型选择的药效团保持与化学状态没有通过本次工程测试得到科学证明。
-
-启动与预装
-阅读 deployment/使用前必读.txt。
-Windows 入口 START_PROJECT.cmd；Linux/WSL 入口 START_LINUX.sh。
-deployment/doctor.py 提供只读环境检查，deployment/runtime.example.json 提供路径配置模板。
-不要把“界面打开”“单元测试通过”“GPU 能识别”混同为科学工作流已验证。
+At that revision GROMACS only accepted an external prepared TPR, with membrane construction and full trajectory analysis still pending. Those functions were added later in 0.3.0-rc1; their target-machine execution remains untested. Outstanding acceptance includes installed target environments, real small-batch inference/docking/screening, second-host migration, scientific input review, membrane parameterization and replica analysis. Engineering checks do not prove synthesis feasibility, pharmacophore preservation or biological activity.

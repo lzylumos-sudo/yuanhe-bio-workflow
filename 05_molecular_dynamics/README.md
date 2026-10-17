@@ -1,18 +1,17 @@
-# Nexus MD v2 — 新入口与使用说明
+# Nexus MD v2
 
-新版本使用 `bash run_md.sh`。它接入无损输入整理、配体化学恢复、科学决定和任务状态管理，复用原有 OpenMM 后端。**目标为 x86-64 Ubuntu / WSL2 Ubuntu；本轮 Mac 测试不等于 Linux 动态验证。**
+Use `bash run_md.sh` for lossless input organization, chemical recovery, explicit scientific decisions and task management with the OpenMM backend. Target: x86-64 Ubuntu / WSL2 Ubuntu. Mac engineering tests do not validate Linux dynamics.
 
-请先阅读 [中文使用说明](V2_USER_GUIDE.md) 和 [改动记录](CHANGELOG.md)。实际测试范围记录在 `V2_VALIDATION.json`。Linux 电脑无需登录 GPT，在终端执行安装和启动命令即可。
+Read [v2 guide](V2_USER_GUIDE.md), [changelog](CHANGELOG.md) and V2_VALIDATION.json. No ChatGPT login is required to run this standalone module.
 
 ```bash
 bash setup.sh
-bash run_md.sh --input "/实际路径/我的复合物 R2.pdb" --inspect-only
-# 环境就绪后验证完整短链路与真实 checkpoint 续跑：
+bash run_md.sh --input "/path/to/my_complex R2.pdb" --inspect-only
 source runtime.sh
 python scripts/validate_v2_ubuntu.py
 ```
 
-v2 新任务在 `runs/`，默认 1 次 100 ps 生产。下方保留的是 **v1 旧入口文档**，其 `run.sh` 默认仍为原来的长任务；两者不要混淆。旧入口、原计算模块及已有 `results/` 均保留；旧版运行证据不能代替新版验收。
+New tasks use runs/ and default to one 100 ps production segment. The legacy run.sh below retains its older long-run defaults; do not confuse the entry points. Historical v1 acceptance does not certify v2.
 
 ---
 
@@ -60,15 +59,15 @@ Production MD is explicitly CPU-limited in this build, and PDBFixer preparation 
 
 Sources: [OpenMM documentation](https://docs.openmm.org/latest/userguide/), [OpenMMForceFields](https://github.com/openmm/openmmforcefields), [ParmEd OpenMM export](https://parmed.github.io/ParmEd/html/openmm.html), [Amber MM/PB(GB)SA tutorial](https://ambermd.org/tutorials/advanced/tutorial3/).
 
-## 独立的 10 ns 完成后验收
+## Independent completed 10 ns audit
 
-主入口完成分析后会自动核验并生成报告。公开 CPU 10 ns 示例还应运行独立后验器：
+After normal analysis, audit the public CPU example independently:
 
 ```bash
 source runtime.sh
 "$NEXUS_ENV_PREFIX/bin/python" scripts/validate_10ns.py --run-id public_1fkj_10ns_v2
 ```
 
-该工具只读取已经完成的运行，在独立 CPU Context 中重载二进制 checkpoint，绝不推进模拟。它检查至少 5,000,000 步 × 2 fs、输入/配置/系统/每段轨迹/分析哈希、有限坐标、全局 CSV 步数与时间、实际 DCD 帧数及时间。每个 DCD 的时间头从本段起计，因此以已独立验证的前段步数累加偏移并逐段对照 CSV，不把本段时间误当整个生产时长。当前后验器只重载 CPU checkpoint；不会自动使用 GPU。
+The auditor only reads a completed run and reloads its binary checkpoint in a separate CPU Context without advancing simulation. It checks at least 5,000,000 steps at 2 fs, input/configuration/system/segment/analysis hashes, finite coordinates, global CSV step/time and actual DCD frame counts/times. Segment-local DCD times are offset using independently verified preceding steps before comparison to the global CSV. It does not automatically use a GPU.
 
-全部通过才写 `installation_evidence/10ns_final_audit.json`、`validation_status.json` 与 `MD_TEST_PASS.md`。未完成或只有 4 ps 会非零退出且不覆盖已存在的成功证据。真实 4 ps 拒绝测试见 `installation_evidence/10ns_validator_rejection_test.json`。此结果仅证明数值流程完成，不证明收敛或结合亲和力。
+Only full success writes installation_evidence/10ns_final_audit.json, validation_status.json and MD_TEST_PASS.md. Incomplete or 4 ps runs exit nonzero without overwriting prior successful evidence; the historical rejection record is installation_evidence/10ns_validator_rejection_test.json. Numerical completion does not establish convergence or affinity.

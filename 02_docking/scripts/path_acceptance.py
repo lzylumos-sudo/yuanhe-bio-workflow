@@ -1,7 +1,7 @@
 import os,json,shutil,subprocess,sys
 from pathlib import Path
 from sbvs.paths import ROOT,write_json
-target=ROOT/'runtime/path tests/中文 项目'
+target=ROOT/'runtime/path tests/English Project'
 target.mkdir(parents=True,exist_ok=True)
 for name in ('src','configs','data','env','scripts'):
  shutil.copytree(ROOT/name,target/name,dirs_exist_ok=True)

@@ -86,18 +86,18 @@ def render_review_svg(rec: dict, parent_smiles: str | None, size=(520, 380)) -> 
     body = d.GetDrawingText()
     body = body[body.index("<rect"):body.rindex("</svg>")] if "<rect" in body else ""
     warn = []
-    if rec.get("truncated"): warn.append("枚举被截断(未穷举)")
-    if rec.get("stereo_note") == "enumerated_unknown_centers": warn.append("立体未指定,已枚举:需人工确认")
-    if rec.get("conformer_status") != "OK": warn.append(f"构象: {rec.get('conformer_status')}")
+    if rec.get("truncated"): warn.append("Enumeration truncated(Not exhaustive)")
+    if rec.get("stereo_note") == "enumerated_unknown_centers": warn.append("Unspecified stereochemistry,Enumerated:Manual confirmation required")
+    if rec.get("conformer_status") != "OK": warn.append(f"conformation: {rec.get('conformer_status')}")
     if rec.get("status") == "BLOCKED": warn.append(f"BLOCKED: {rec.get('block_reason')}")
     chk = (rec.get("charges") or {}).get("check") or {}
-    if chk and not chk.get("pass"): warn.append("电荷检查未通过")
-    if not rec.get("ph_confirmed"): warn.append("pH 未经用户确认")
+    if chk and not chk.get("pass"): warn.append("Charge check failed")
+    if not rec.get("ph_confirmed"): warn.append("pH Not confirmed by user")
     lines = [f'state {rec["state_id"]}  formal charge {rec["formal_charge"]:+d}  parent {rec["parent_id"]}',
              f'method {rec.get("method")}  pH {rec.get("ph_range")}  charges {(rec.get("charges") or {}).get("method")} (sum check {chk.get("abs_diff")})',
              f'why: {rec.get("evidence", "")}   stereo: {rec.get("stereo_note", "specified")}',
-             "黄色高亮 = 相对母体电荷/H数改变;原子旁数字 = Gasteiger 部分电荷(含所连H)",
-             "警告: " + ("; ".join(warn) if warn else "无")]
+             "Yellow highlighting = Charge relative to parent/H count changed;Numbers beside atoms = Gasteiger Partial charge(including attached H)",
+             "warnings: " + ("; ".join(warn) if warn else "None")]
     y0 = size[1] - panel_h + 16
     txt = "".join(f'<text x="8" y="{y0 + 17*i}" font-family="monospace" font-size="11" fill="{"#a00" if (i==4 and warn) else "#222"}">{_escape(t)}</text>' for i, t in enumerate(lines))
     return (f'<svg xmlns="http://www.w3.org/2000/svg" width="{size[0]}" height="{size[1]}" viewBox="0 0 {size[0]} {size[1]}">'

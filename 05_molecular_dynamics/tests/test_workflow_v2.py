@@ -19,7 +19,7 @@ from modules.automation.state import write,read,verify,digest,job_lock,LockBusy
 
 class WorkflowTests(unittest.TestCase):
     def setUp(self):
-        self.tmp=tempfile.TemporaryDirectory(prefix='Nexus 路径 (test).')
+        self.tmp=tempfile.TemporaryDirectory(prefix='Nexus Path (test).')
         self.root=Path(self.tmp.name).resolve()
         shutil.copytree(ROOT/'config',self.root/'config')
         self.override=patch.object(w,'ROOT',self.root);self.override.start()
@@ -29,13 +29,13 @@ class WorkflowTests(unittest.TestCase):
         with contextlib.redirect_stdout(io.StringIO()),contextlib.redirect_stderr(io.StringIO()):
             return w.main([*args,'--non-interactive'])
     def fixture(self,name='1fkj'):
-        dst=self.root/'我的复合物 (输入)';shutil.copytree(ROOT/'examples'/name,dst)
-        source=dst/'complex.pdb';dest=dst/'多点.结构 1.PDB';source.rename(dest)
+        dst=self.root/'my_complex (Input)';shutil.copytree(ROOT/'examples'/name,dst)
+        source=dst/'complex.pdb';dest=dst/'multiple_points.Structure 1.PDB';source.rename(dest)
         return dest
     def decisions(self,**values):
         file=self.root/'my-decisions.json';write(file,values);return str(file)
     def test_discovery_explicit_case_unicode_and_no_history(self):
-        d=self.root/'inputs';d.mkdir();a=d/'复合物 (A).v2.PDB';a.write_text('END\n')
+        d=self.root/'inputs';d.mkdir();a=d/'Complex (A).v2.PDB';a.write_text('END\n')
         (d/'runs').mkdir();(d/'runs/history.pdb').write_text('END\n')
         self.assertEqual(resolve_input(None,d),a)
         b=d/'second.pdb';b.write_text('END\n')

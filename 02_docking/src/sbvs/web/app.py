@@ -63,7 +63,7 @@ def make_app():
    source=inbox/('library'+suffix);upload.save(source)
   else:
    text=request.form.get('smiles','').strip()
-   if not text:raise ValueError('配体输入不能为空')
+   if not text:raise ValueError('Ligand input cannot be empty')
    source=inbox/'library.smi';source.write_text(text,encoding='utf-8')
   out=create(source,cfg);rid=q.add(out);return jsonify(id=rid)
  @app.get('/api/jobs/<rid>')
@@ -160,7 +160,7 @@ def make_app():
   return jsonify(pdb=(folder/'receptor_prepared.pdb').read_text(),reference=(folder/'reference.sdf').read_text() if (folder/'reference.sdf').exists() else None,box=read_json(folder/'box.json'),box_hash=sha(folder/'box.json'))
  @app.get('/api/receptors')
  def receptor_list():
-  values=[{'id':'demo_1drf','name':'已审核课堂 1DRF'}]
+  values=[{'id':'demo_1drf','name':'Reviewed classroom 1DRF'}]
   for p in (ROOT/'data/receptors').glob('*/review.json'):
    if read_json(p).get('confirmed'):values.append({'id':p.parent.name,'name':p.parent.name})
   return jsonify(values)

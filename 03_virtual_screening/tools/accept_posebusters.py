@@ -104,31 +104,31 @@ def main() -> int:
         json.dump(payload, handle, indent=1)
 
     lines = [
-        "# PoseBusters 真实执行记录",
+        "# PoseBusters Actual execution record",
         "",
-        f"- PoseBusters 版本: `{payload['posebusters_version']}`",
-        f"- ASCII 运行时临时目录: `{payload['scratch_root']}`",
-        f"- 真实位姿来源: `{LIGAND}`",
-        f"- 受体: `{RECEPTOR}`",
+        f"- PoseBusters Version: `{payload['posebusters_version']}`",
+        f"- ASCII Runtime temporary directory: `{payload['scratch_root']}`",
+        f"- Actual pose source: `{LIGAND}`",
+        f"- Receptor: `{RECEPTOR}`",
         "",
-        "| 用例 | 原子数 | 检查项 | 通过 | 失败项 |",
+        "| Case | Atom count | Checks | Passed | Failures |",
         "| --- | --- | --- | --- | --- |",
     ]
     for name, record in results.items():
         lines.append(
             f"| {name} | {record['atoms']} | {record['checks']} | {record['passed']} | "
-            f"{', '.join(record['failed']) or '无'} |"
+            f"{', '.join(record['failed']) or 'None'} |"
         )
     lines += [
         "",
-        "## 判定",
+        "## Decision",
         "",
-        f"- 真实位姿失败项数: {len(results['real_pose']['failed'])}（应为 0）",
-        f"- 平移进蛋白位姿失败项: {', '.join(results['translated_8A_into_protein']['failed'])}",
-        f"- 拉长键位姿失败项: {', '.join(results['stretched_bond_2.2A']['failed'])}",
-        f"- 原子重叠位姿失败项: {', '.join(results['all_atoms_overlapped']['failed'])}",
+        f"- Number of failed checks for actual pose: {len(results['real_pose']['failed'])}(should be 0)",
+        f"- Failures for pose translated into protein: {', '.join(results['translated_8A_into_protein']['failed'])}",
+        f"- Failures for stretched-bond pose: {', '.join(results['stretched_bond_2.2A']['failed'])}",
+        f"- Failures for overlapping atoms: {', '.join(results['all_atoms_overlapped']['failed'])}",
         "",
-        "失败项逐条来自 PoseBusters 的布尔检查列，未经任何后处理或裁剪。",
+        "Failures come directly from PoseBusters boolean check columns without postprocessing or clipping.",
         "",
     ]
     with open(os.path.join(OUT_DIR, "POSEBUSTERS_RUN.md"), "w", encoding="utf-8") as handle:

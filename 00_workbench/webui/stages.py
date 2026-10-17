@@ -29,32 +29,32 @@ from . import data
 ELEMENT = data.ELEMENT_COLORS
 
 STAGES = [
-    dict(n=1, key='complex', title='靶点复合物', short='导入',
-         subtitle='MurJ 与三条噬菌体裂解肽的复合物结构',
-         unit='复合物', mode='builtin'),
-    dict(n=2, key='scaffold', title='骨架设计', short='骨架',
-         subtitle='由关键残基药效团组装并过滤骨架',
-         unit='骨架', mode='builtin'),
-    dict(n=3, key='generated', title='批量生成', short='生成',
-         subtitle='以骨架为条件的生成模型批量出分子',
-         unit='分子', mode='slot',
-         funnel=['目标生成数', '合法且去重', '性质 QC 通过', '进入对接']),
-    dict(n=4, key='docking', title='分子对接', short='对接',
-         subtitle='三个复合物构象的系综对接与打分',
-         unit='分子', mode='slot',
-         funnel=['输入分子', '对接成功', '评分达阈值', '三构象一致']),
-    dict(n=5, key='screening', title='虚拟筛选', short='筛选',
-         subtitle='结合模式、成药性与多样性筛选',
-         unit='分子', mode='slot',
-         funnel=['输入分子', '关键盐桥保留', '成药性 / PAINS', '多样性聚类']),
-    dict(n=6, key='md', title='分子动力学', short='MD',
-         subtitle='复合物稳定性与结合自由能',
-         unit='分子', mode='slot',
-         funnel=['进入 MD', '轨迹完成', '配体 RMSD 稳定', '盐桥保持']),
-    dict(n=7, key='final_hits', title='结果总览', short='结果',
-         subtitle='候选分子与全流程漏斗',
-         unit='分子', mode='slot',
-         funnel=['最终候选']),
+    dict(n=1, key='complex', title='Target complex', short='Import',
+         subtitle='MurJ complexes with three phage lysis peptides',
+         unit='Complex', mode='builtin'),
+    dict(n=2, key='scaffold', title='Scaffold design', short='Scaffold',
+         subtitle='Assemble and filter scaffolds using key-residue pharmacophores',
+         unit='Scaffold', mode='builtin'),
+    dict(n=3, key='generated', title='Batch generation', short='Generate',
+         subtitle='Scaffold-conditioned molecular generation',
+         unit='Molecule', mode='slot',
+         funnel=['Requested molecules', 'Valid and deduplicated', 'Properties QC Passed', 'Sent to docking']),
+    dict(n=4, key='docking', title='Molecular docking', short='Docking',
+         subtitle='Ensemble docking and scoring across three complex conformations',
+         unit='Molecule', mode='slot',
+         funnel=['Input molecules', 'Docking succeeded', 'Score threshold passed', 'Three-conformation agreement']),
+    dict(n=5, key='screening', title='Virtual screening', short='Screening',
+         subtitle='Binding mode, drug-likeness and diversity screening',
+         unit='Molecule', mode='slot',
+         funnel=['Input molecules', 'Key salt bridges retained', 'Drug-likeness / PAINS', 'Diversity clustering']),
+    dict(n=6, key='md', title='Molecular dynamics', short='MD',
+         subtitle='Complex stability and binding free energy',
+         unit='Molecule', mode='slot',
+         funnel=['Entered MD', 'Trajectory complete', 'Ligand RMSD Stable', 'Salt bridge retained']),
+    dict(n=7, key='final_hits', title='Results overview', short='Result',
+         subtitle='Candidates and workflow funnel',
+         unit='Molecule', mode='slot',
+         funnel=['Final candidates']),
 ]
 BY_KEY = {s['key']: s for s in STAGES}
 
@@ -62,23 +62,23 @@ CONTRACT = {
     'generated': dict(
         csv='results/generated.csv', summary='results/generated_summary.json',
         poses='results/generated_poses.sdf',
-        desc='生成模型输出：id, smiles, parent_scaffold, …'),
+        desc='Generative model output:id, smiles, parent_scaffold, …'),
     'docking': dict(
         csv='results/docking.csv', summary='results/docking_summary.json',
         poses='results/docking_poses.sdf',
-        desc='对接结果：id, smiles, vina_score, cnn_score, keep, …'),
+        desc='Docking results:id, smiles, vina_score, cnn_score, keep, …'),
     'screening': dict(
         csv='results/screening.csv', summary='results/screening_summary.json',
         poses='results/screening_poses.sdf',
-        desc='筛选结果：id, smiles, keep, reason, …'),
+        desc='Screening results:id, smiles, keep, reason, …'),
     'md': dict(
         csv='results/md.csv', summary='results/md_summary.json',
         poses='results/md_poses.sdf',
-        desc='MD 汇总：id, smiles, ns, rmsd_lig, saltbridge_frac, dG, keep, …'),
+        desc='MD Summary:id, smiles, ns, rmsd_lig, saltbridge_frac, dG, keep, …'),
     'final_hits': dict(
         csv='results/final_hits.csv', summary='results/final_hits_summary.json',
         poses='results/final_hits_poses.sdf',
-        desc='最终候选：id, smiles, rank, …'),
+        desc='Final candidates:id, smiles, rank, …'),
 }
 
 
@@ -150,11 +150,11 @@ def _funnel_complex():
     pk = data.pocket() or {}
     common = sum(1 for r in hot if float(r.get('convergence') or 0) >= 1.0)
     return [
-        _f('界面残基', len(hot), '三个复合物的肽接触界面'),
-        _f('三结构收敛热点', common, 'convergence ≥ 1.0'),
-        _f('药效团特征', len(ph.get('features', [])), '锚点 / 芳香 / 疏水 / 供体'),
-        _f('可用药效团轴', len(data.axes()), '特征两两成轴'),
-        _f('口袋亚区', len(pk.get('subpockets', [])), 'S1–S4'),
+        _f('Interface residues', len(hot), 'Peptide contact interfaces across three complexes'),
+        _f('Convergent hotspots across three structures', common, 'convergence ≥ 1.0'),
+        _f('Pharmacophore features', len(ph.get('features', [])), 'Anchor / Aromatic / Hydrophobic / Donor'),
+        _f('Available pharmacophore axes', len(data.axes()), 'Pairwise feature axes'),
+        _f('Pocket subregions', len(pk.get('subpockets', [])), 'S1–S4'),
     ]
 
 
@@ -163,10 +163,10 @@ def _funnel_scaffold():
     f = s.get('funnel', {})
     fs = data.filter_summary() or {}
     return [
-        _f('枚举骨架', f.get('enumerated'), '头 / 环 / 连接 / 尾组合'),
-        _f('性质通过', f.get('property_pass'), 'MW、cLogP、TPSA 等'),
-        _f('类药三重通过', f.get('drug_like'), '无冲突 + 模拟肽 + 性质'),
-        _f('结构过滤存活', fs.get('survivors'), '盐桥 / 斥力 / 桥接 / 系综'),
+        _f('Enumerated scaffolds', f.get('enumerated'), 'Head / Ring / Linker / Tail combinations'),
+        _f('Property checks passed', f.get('property_pass'), 'MW, cLogP, TPSA etc.'),
+        _f('Three drug-likeness checks passed', f.get('drug_like'), 'No clashes + Peptide mimicry + Properties'),
+        _f('Structure filters passed', fs.get('survivors'), 'Salt bridge / Repulsion / Bridging / Ensemble'),
     ]
 
 
@@ -176,11 +176,11 @@ def _extras_scaffold():
     fs = data.filter_summary() or {}
     return dict(
         independent=[
-            dict(label='无冲突', count=f.get('no_clash')),
-            dict(label='模拟肽重叠', count=f.get('peptide_mimic')),
-            dict(label='锚点盐桥', count=(fs.get('by_stage') or {}).get('anchor')),
-            dict(label='亚区桥接', count=(fs.get('by_stage') or {}).get('bridge')),
-            dict(label='系综一致', count=(fs.get('by_stage') or {}).get('ensemble')),
+            dict(label='No clashes', count=f.get('no_clash')),
+            dict(label='Peptide overlap', count=f.get('peptide_mimic')),
+            dict(label='Anchor salt bridge', count=(fs.get('by_stage') or {}).get('anchor')),
+            dict(label='Subregion bridging', count=(fs.get('by_stage') or {}).get('bridge')),
+            dict(label='Ensemble consistency', count=(fs.get('by_stage') or {}).get('ensemble')),
         ])
 
 
@@ -225,16 +225,16 @@ def stage_state(key, demo=False):
                     funnel=_funnel_scaffold() if key == 'scaffold' else _funnel_complex(),
                     files=[])
     c = CONTRACT[key]
-    files = [dict(path=c['csv'], role='分子表', exists=data.exists(c['csv'])),
-             dict(path=c['summary'], role='漏斗计数', exists=data.exists(c['summary'])),
-             dict(path=c['poses'], role='3D 位姿（可选）', exists=data.exists(c['poses']))]
+    files = [dict(path=c['csv'], role='Molecule table', exists=data.exists(c['csv'])),
+             dict(path=c['summary'], role='Funnel counts', exists=data.exists(c['summary'])),
+             dict(path=c['poses'], role='3D Poses (optional)', exists=data.exists(c['poses']))]
     real = _slot_rows(key) if data.exists(c['csv']) else []
     summ = _slot_summary(key)
     if real or summ:
         if summ and summ.get('funnel'):
             funnel = [_f(x.get('label'), x.get('count'), x.get('note')) for x in summ['funnel']]
         else:
-            funnel = [_f('分子数', len(real))]
+            funnel = [_f('Molecule count', len(real))]
         return dict(status='ready', rows=real, funnel=funnel, files=files)
     if demo:
         return dict(status='demo', rows=_demo_rows(key), funnel=_demo_funnel(key), files=files)
@@ -267,8 +267,8 @@ def molecules(key, demo=False):
     rows = state['rows']
     if key in ('scaffold',) or state['status'] == 'demo':
         rows = [{k: r.get(k) for k in _PUBLIC} for r in rows]
-        cols = [('id', 'ID'), ('smiles', 'SMILES'), ('axis', '药效团轴'),
-                ('score', '位姿得分'), ('spread', '系综离散 Å'), ('keep', '通过')]
+        cols = [('id', 'ID'), ('smiles', 'SMILES'), ('axis', 'Pharmacophore axis'),
+                ('score', 'Pose score'), ('spread', 'Ensemble dispersion Å'), ('keep', 'Passed')]
     else:
         cols = []
         if rows:
@@ -289,19 +289,19 @@ def pose(key, mol_id, demo=False):
     state = stage_state(key, demo)
     row = next((r for r in state['rows'] if str(r.get('id')) == str(mol_id)), None)
     if row is None:
-        return dict(ligand=None, reason='未找到该分子')
+        return dict(ligand=None, reason='Molecule not found')
     if key == 'scaffold' or state['status'] == 'demo':
         s2 = next((r for r in _stage2_rows() if r['id'] == mol_id), None)
         p = _drug_like_poses().get(s2['_key']) if s2 else None
         if not p:
-            return dict(ligand=None, reason='无 3D 位姿')
+            return dict(ligand=None, reason='None 3D Pose')
         atoms = [dict(e=e, p=xyz, rgb=ELEMENT.get(e.upper(), '#8fa3bf'))
                  for e, xyz in zip(p['el'], p['xyz'])]
         return dict(ligand=_lig(atoms, p['bonds'], p['smiles'], f"{mol_id} · {p['axis']}"))
     for m in _slot_poses(key):
         if m['smiles'] in (str(mol_id), str(row.get('smiles'))):
             return dict(ligand=m)
-    return dict(ligand=None, reason='该分子尚无 3D 位姿（见文件约定）')
+    return dict(ligand=None, reason='This molecule has no 3D pose yet (see file contract)')
 
 
 def mol2d(smiles):
@@ -309,10 +309,10 @@ def mol2d(smiles):
         from rdkit import Chem
         from rdkit.Chem.Draw import rdMolDraw2D
     except Exception:                                       # noqa: BLE001
-        return dict(svg=None, reason='未安装 RDKit，无法绘制 2D 结构')
+        return dict(svg=None, reason='Not installed RDKit, Cannot draw 2D Structure')
     m = Chem.MolFromSmiles(smiles or '')
     if m is None:
-        return dict(svg=None, reason='SMILES 无法解析')
+        return dict(svg=None, reason='SMILES could not be parsed')
     d = rdMolDraw2D.MolDraw2DSVG(360, 240)
     d.drawOptions().clearBackground = False
     d.drawOptions().bondLineWidth = 2

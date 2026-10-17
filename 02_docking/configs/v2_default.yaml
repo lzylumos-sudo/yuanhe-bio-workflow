@@ -1,7 +1,7 @@
-# 全部 [P] 类数值为可配置起点，必须用靶点验证集校准（方案 §19）
+# All [P] values are configurable starting points and must be calibrated using target validation data (plan §19)
 schema_version: 2
 ligand_prep:
-  ph_range: [6.4, 8.4]      # 用户必须确认，ph_confirmed 默认 false
+  ph_range: [6.4, 8.4]      # User confirmation required;ph_confirmed Default false
   max_stereo: 8
   max_states: 8
   conformers_generate: 20
@@ -11,7 +11,7 @@ ligand_prep:
 docking:
   default_preset: standard
   box_padding_A: 5.0
-  allow_cpu_fallback: false  # 不得自动关闭 CNN 或换成 Vina 后仍标为原协议
+  allow_cpu_fallback: false  # do not automatically disable CNN or replace it with Vina while retaining the original protocol label
 qc:
   backbone_drift_A: 0.5
   pocket_drift_A: 1.0

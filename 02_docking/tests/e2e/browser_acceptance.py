@@ -13,7 +13,7 @@ with sync_playwright() as p:
  for i in range(3):
   page.goto('http://127.0.0.1:5902/');expect(page.locator('#results')).to_be_hidden();expect(page.locator('#ranking tr')).to_have_count(0)
   if i==0:page.screenshot(path=str(evidence/'initial.png'),full_page=True)
-  page.get_by_label('配体 SMILES',exact=True).fill('CCO');start=time.monotonic();page.get_by_role('button',name='开始筛选',exact=True).click()
+  page.get_by_label('Ligand SMILES',exact=True).fill('CCO');start=time.monotonic();page.get_by_role('button',name='Start screening',exact=True).click()
   expect(page.locator('#ranking tr')).to_have_count(1,timeout=180000);elapsed=time.monotonic()-start
   rid=page.locator('#jobid').inner_text().split(': ',1)[1];rundir=ROOT/'runs'/rid;rows=read_rows(rundir/'ranking.csv');score=float(rows[0]['vina_affinity_kcal_mol']);assert math.isfinite(score)
   assert page.locator('#ranking tr td').nth(2).inner_text()==rows[0]['vina_affinity_kcal_mol']

@@ -27,17 +27,17 @@ PAGE = """<!doctype html><html lang="zh"><head><meta charset="utf-8"><title>ZLIS
 fieldset{margin:12px 0}label{display:block;margin:6px 0}pre{background:#f4f4f4;padding:8px;overflow:auto}
 button{padding:6px 14px}.ok{color:#176f2c}.bad{color:#b00020}</style></head><body>
 <h2>Zhiyu Ligand Interaction Studio</h2>
-<p>本地服务，仅监听 127.0.0.1，访问需带随机令牌，无账号体系，请勿对外网开放。</p>
+<p>Local service, listening only on 127.0.0.1, Access requires a random token; there is no account system. Do not expose publicly.</p>
 <form id="f" method="post" action="/run?token=__TOKEN__" enctype="multipart/form-data">
-<fieldset><legend>输入</legend>
-<label>复合物 PDB 文件 <input type="file" name="pdb" accept=".pdb,.ent" required></label>
-<label>配体 (如 A:BEN1 或 BEN，留空则分析全部候选) <input name="ligand"></label>
-<label>配体模板 SDF/SMILES 文件 (可选，只用于化学，不改坐标) <input type="file" name="template"></label>
-<label>净电荷 (无模板时可选) <input name="charge" size="4"></label>
-<label><input type="checkbox" name="offline" value="1"> 离线 (不访问 RCSB)</label>
-<label><input type="checkbox" name="nopng" value="1"> 跳过 PyMOL 光追 PNG (更快)</label>
-</fieldset><button>运行分析</button></form>
-<h3>已有结果</h3><ul>__LIST__</ul>
+<fieldset><legend>Input</legend>
+<label>Complex PDB file <input type="file" name="pdb" accept=".pdb,.ent" required></label>
+<label>Ligand (e.g. A:BEN1 or BEN, Leave empty to analyze all candidates) <input name="ligand"></label>
+<label>Ligand template SDF/SMILES file (Optional; chemistry only, coordinates unchanged) <input type="file" name="template"></label>
+<label>Net charge (Optional without a template) <input name="charge" size="4"></label>
+<label><input type="checkbox" name="offline" value="1"> Offline (Do not access RCSB)</label>
+<label><input type="checkbox" name="nopng" value="1"> Skip PyMOL Ray tracing PNG (Faster)</label>
+</fieldset><button>Run analysis</button></form>
+<h3>Existing results</h3><ul>__LIST__</ul>
 </body></html>"""
 
 
@@ -110,11 +110,11 @@ class Handler(BaseHTTPRequestHandler):
                 res = run_all(str(pdb), str(RESULTS), ligand=(form.getvalue("ligand") or "").strip() or None,
                               template=str(tpl) if tpl else None, charge=int(charge) if charge else None,
                               offline=bool(form.getvalue("offline")), no_png=bool(form.getvalue("nopng")))
-            body = "<p class='ok'>完成</p><pre>" + json.dumps(res, indent=1, ensure_ascii=False) + "</pre>"
-            body += f'<p><a href="/?token={TOKEN}">返回</a></p>'
+            body = "<p class='ok'>Completed</p><pre>" + json.dumps(res, indent=1, ensure_ascii=False) + "</pre>"
+            body += f'<p><a href="/?token={TOKEN}">Back</a></p>'
             self._ok("text/html; charset=utf-8", ("<meta charset=utf-8>" + body).encode())
         except Exception as ex:
-            msg = "<p class='bad'>失败</p><pre>" + "".join(traceback.format_exception_only(type(ex), ex)) + "</pre>"
+            msg = "<p class='bad'>Failed</p><pre>" + "".join(traceback.format_exception_only(type(ex), ex)) + "</pre>"
             self._ok("text/html; charset=utf-8", ("<meta charset=utf-8>" + msg).encode(), 500)
 
 

@@ -1,4 +1,4 @@
-﻿"""Validate MD hand-off packages against the specification, item by item.
+"""Validate MD hand-off packages against the specification, item by item.
 
 The question this answers is narrow and important: *is the text/coordinate pair
 handed to the MD project equivalent to what the screening stage decided?*  It is
@@ -199,27 +199,27 @@ def main(run_id: str) -> int:
         json.dump(payload, handle, indent=1)
 
     lines = [
-        f"# MD 任务包等价性校验（{run_id}）",
+        f"# MD Task bundle equivalence validation ({run_id})",
         "",
-        "校验对象是交接包与规格信息是否等价，**不是**膜环境引擎预检。",
+        "Checks bundle/specification equivalence,**are not**membrane engine preflight.",
         "",
-        f"- 任务包数量: {len(results)} | 全项通过: {payload['validated']} | 存在失败项: {payload['failed']}",
+        f"- Task bundle count: {len(results)} | All checks passed: {payload['validated']} | Failures present: {payload['failed']}",
         "",
-        "| 任务包 | 化合物 | 检查项 | 失败项 | adapter04 | adapter05 |",
+        "| Task bundles | Compounds | Checks | Failures | adapter04 | adapter05 |",
         "| --- | --- | --- | --- | --- | --- |",
     ]
     for item in results:
         lines.append(
             f"| {item['package']} | {item['compound_id']} | {len(item['checks'])} | "
-            f"{', '.join(item['failed']) or '无'} | {item['adapter04']} | {item['adapter05']} |"
+            f"{', '.join(item['failed']) or 'None'} | {item['adapter04']} | {item['adapter05']} |"
         )
     detail_names = [item["check"] for item in results[0]["checks"]] if results else []
     if detail_names:
-        lines += ["", "## 逐项结果（每个任务包）", ""]
+        lines += ["", "## Per-bundle results", ""]
         for item in results:
             lines.append(f"### {item['package']}")
             lines.append("")
-            lines.append("| 检查 | 结果 | 观察值 | 期望值 |")
+            lines.append("| Check | Result | Observed value | Expected value |")
             lines.append("| --- | --- | --- | --- |")
             for entry in item["checks"]:
                 observed = json.dumps(entry["observed"], ensure_ascii=False, default=str)
@@ -229,11 +229,11 @@ def main(run_id: str) -> int:
                 )
             lines.append("")
     lines += [
-        "## 结论",
+        "## Conclusion",
         "",
-        "- 坐标/映射/单位/来源信息与筛选阶段一致（见逐项结果）。",
-        "- 容器与膜体系仍未构建：`04` 的 OpenMM 运行器没有膜方案，且只在 Linux 下运行；",
-        "  这些任务包因此保持 `blocked`，不会被表述为“已进入生产 MD”。",
+        "- Coordinates/Mapping/units/Provenance matches screening-stage records; see itemized results.",
+        "- Container and membrane system remain unbuilt:`04` associated OpenMM runner lacks a membrane protocol and runs only under Linux ;",
+        "  these bundles therefore remain `blocked`, and are not described as having entered production MD”. ",
         "",
     ]
     with open(os.path.join(out_dir, "MD_HANDOFF_VALIDATION.md"), "w", encoding="utf-8") as handle:

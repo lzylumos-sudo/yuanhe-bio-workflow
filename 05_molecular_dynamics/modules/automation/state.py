@@ -52,14 +52,14 @@ def verify(root, files):
     for name,expected in files.items():
         p=(root/name).resolve()
         if not p.is_relative_to(root) or not p.is_file() or digest(p)!=expected:
-            raise ValueError('已提交产物损坏或变化，拒绝复用：'+name)
+            raise ValueError('Committed artifacts corrupted or changed; reuse refused:'+name)
 
 @contextmanager
 def job_lock(job):
     lock=Path(job)/'.running'
     try: lock.mkdir()
     except FileExistsError:
-        raise LockBusy('任务存在运行锁。先核对 owner.json 的主机和进程；不能直接删除检查点。')
+        raise LockBusy('Task is locked. Check the host and process recorded in owner.json ; do not delete checkpoints directly.')
     write(lock/'owner.json', {'pid':os.getpid(),'hostname':socket.gethostname(),'platform':platform.platform(),'started':now()})
     try: yield
     finally:

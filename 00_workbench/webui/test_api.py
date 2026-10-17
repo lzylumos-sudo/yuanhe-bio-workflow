@@ -72,201 +72,201 @@ def run(do_job=False):
     print(f'[api] {BASE}')
 
     # ---- health / meta
-    print('\n· 基础')
+    print('\n· Basic')
     meta = jget('/api/meta')
-    check('meta 有工作目录与结构定义', meta.get('root') and len(meta.get('structures', {})) == 3)
-    check('meta 报告 results 与 evidence 可用',
+    check('meta Working directory and structure definitions present', meta.get('root') and len(meta.get('structures', {})) == 3)
+    check('meta Report results and evidence Available',
           meta['available']['results'] and meta['available']['evidence'])
-    check('meta 列出 figures', len(meta.get('figures', [])) >= 4)
+    check('meta Listed figures', len(meta.get('figures', [])) >= 4)
 
     status, raw, ctype = fetch('/')
-    check('首页是 HTML', status == 200 and 'text/html' in ctype and b'<div id="app"' in raw)
+    check('Home page is HTML', status == 200 and 'text/html' in ctype and b'<div id="app"' in raw)
     status, raw, ctype = fetch('/js/app.js')
-    check('前端模块以 JS MIME 提供', status == 200 and 'javascript' in ctype)
+    check('Frontend modules served as JS MIME provided', status == 200 and 'javascript' in ctype)
 
     # ---- overview
-    print('\n· 概览')
+    print('\n· Overview')
     ov = jget('/api/overview')
     fun = ov['funnel']
-    check('漏斗数字与 README 一致',
+    check('Funnel counts match README consistent',
           fun['enumerated'] == 20307 and fun['drug_like'] == 538,
           f'(enumerated={fun.get("enumerated")}, drug_like={fun.get("drug_like")})')
-    check('最佳骨架是联苯羧酸骨架',
+    check('Best scaffold is a biphenyl carboxylate scaffold',
           ov['best'][0]['smiles'].startswith('OC(=O)c1ccc'), ov['best'][0]['smiles'])
-    check('证据状态 24 条、PASS 22', ov['evidence']['n'] == 24
+    check('Evidence status 24 entries,PASS 22', ov['evidence']['n'] == 24
           and ov['evidence']['by_status'].get('PASS') == 22, str(ov['evidence']))
-    check('结构过滤 538 -> 32', ov['filters']['n_input'] == 538
+    check('Structure filters 538 -> 32', ov['filters']['n_input'] == 538
           and ov['filters']['survivors'] == 32)
 
     # ---- design data
-    print('\n· 设计与结果')
+    print('\n· Design and results')
     hot = jget('/api/hotspots')
-    check('界面热点 52 个、三种肽共同接触 14 个',
+    check('Interface hotspots 52 items, contacted by all three peptides 14 items',
           hot['n'] == 52 and hot['n_common'] == 14, f"(n={hot['n']}, common={hot['n_common']})")
     scores = [r['score'] for r in hot['rows']]
-    check('热点已按 score 降序', scores == sorted(scores, reverse=True))
+    check('Hotspots sorted by score descending', scores == sorted(scores, reverse=True))
 
     ph = jget('/api/pharmacophore')
-    check('12 个共识药效团特征', len(ph['features']) == 12, str(len(ph['features'])))
-    check('每个特征都有 3D 坐标与类型',
+    check('12 consensus pharmacophore features', len(ph['features']) == 12, str(len(ph['features'])))
+    check('Each feature has 3D coordinates and type',
           all(len(f['pos']) == 3 and f['type'] for f in ph['features']))
-    check('特征对带距离', all(p['distance'] > 3 for p in ph['pairs']))
+    check('Feature pairs include distances', all(p['distance'] > 3 for p in ph['pairs']))
 
     axes = jget('/api/axes')['axes']
     # A7-H12 has no surviving enumeration (its distance/weight combination is
     # outside the linker budget) -- it must still be listed, with candidates = 0.
-    check('设计轴带枚举统计（A7-H12 无候选也保留）',
+    check('Design axes include enumeration statistics (A7-H12 axes without candidates retained)',
           len(axes) == 15
           and sum(1 for a in axes if a['candidates'] > 0) == 14
           and any(a['candidates'] == 0 for a in axes), str(len(axes)))
 
     pocket = jget('/api/pocket')['pocket']
-    check('腔体 5,440 Å³、4 个亚口袋',
+    check('Cavity 5,440 Å³, 4 subpockets',
           round(pocket['total_volume_A3']) == 5440 and len(pocket['subpockets']) == 4,
           f"{pocket['total_volume_A3']}, {len(pocket['subpockets'])}")
 
     sc = jget('/api/scaffolds')
-    check('200 个排名骨架', len(sc['rows']) == 200, str(len(sc['rows'])))
+    check('200 ranked scaffolds', len(sc['rows']) == 200, str(len(sc['rows'])))
     row = sc['rows'][0]
-    check('骨架行含 SMILES/性质/打分/接触残基',
+    check('Scaffold rows include SMILES/Properties/scores/Contact residues',
           row['smiles'] and row['MW'] and 'total' in row and row['murj_contacts'])
-    check('骨架行与结构过滤按 SMILES 连接',
+    check('Scaffold rows and structure filters joined by SMILES Linker',
           any('f_keep' in r for r in sc['rows']))
-    check('过滤判定是布尔值而不是字符串',
+    check('Filter decisions are booleans, not strings',
           all(isinstance(r['f_keep'], bool) for r in sc['rows'] if 'f_keep' in r)
           and sum(1 for r in sc['rows'] if r.get('f_keep') is True) == 14)
-    check('排名第一的骨架并未通过结构过滤（诚实的负结果）',
+    check('Top-ranked scaffold failed structure filters; negative result retained',
           row['f_keep'] is False and row['f_bridge'] is True,
           f"keep={row['f_keep']!r} bridge={row['f_bridge']!r}")
 
     filt = jget('/api/filters')
-    check('结构过滤 538 行、存活 32', len(filt['rows']) == 538
+    check('Structure filters 538 rows, retained 32', len(filt['rows']) == 538
           and filt['summary']['survivors'] == 32)
-    check('全部过滤行 keep 为布尔且 32 个为真',
+    check('All filter rows keep are boolean and 32 are true',
           sum(1 for r in filt['rows'] if r['keep'] is True) == 32
           and sum(1 for r in filt['rows'] if r['bridge'] is True) == 462)
 
     poses = jget('/api/poses')
-    check('25 个 Top 位姿且原子/键齐全',
+    check('25 items Top pose with atoms and/complete bonds',
           len(poses['top']) == 25 and poses['top'][0]['atoms']
           and poses['top'][0]['bonds'])
-    check('位姿坐标在 9NU8 坐标系内（Z > 140）',
+    check('Pose coordinates lie in the 9NU8 coordinate frame (Z > 140)',
           all(a['p'][2] > 140 for a in poses['top'][0]['atoms']))
 
     # ---- evidence
-    print('\n· 证据链')
+    print('\n· Evidence chain')
     rep = jget('/api/evidence/report')
-    check('报告含 24 条先验核对章节',
-          '先验' in rep['markdown'] and '## 5' in rep['markdown'])
+    check('Report contains 24 prior-check sections',
+          'Priors' in rep['markdown'] and '## 5' in rep['markdown'])
     pri = jget('/api/evidence/priors')
-    check('先验 24 条、PASS 22 / FLAG 1 / WEAK 1',
+    check('Priors 24 entries,PASS 22 / FLAG 1 / WEAK 1',
           len(pri['rows']) == 24 and pri['status']['by_status'] ==
           {'PASS': 22, 'FLAG': 1, 'WEAK': 1}, str(pri['status']['by_status']))
-    check('先验行带原文引用与出处',
+    check('Prior rows include quotations and sources',
           pri['rows'][0]['claim'] and pri['rows'][0]['locator'])
     cen = jget('/api/evidence/census')
-    check('普查：MurJ 496 残基（构建体已剔除）',
+    check('Inventory:MurJ 496 residues, construct excluded',
           all(c['murj_residues'] == 496 for c in cen['atom_budget']['census']))
-    check('原子预算：肽接触 121 vs 骨架中位 24',
+    check('Atom budget: peptide contacts 121 vs median scaffold 24',
           cen['atom_budget']['budget']['small_molecule']['heavy_atoms_median'] == 24)
     iface = jget('/api/evidence/interface')
-    check('界面测量有双边数据', len(iface['murj']) > 50 and len(iface['peptide']) > 50)
-    check('锚点表非空', len(iface['anchors']) >= 12)
+    check('Interface measurements include both sides', len(iface['murj']) > 50 and len(iface['peptide']) > 50)
+    check('Anchor table is nonempty', len(iface['anchors']) >= 12)
 
     # ---- 3D scene
-    print('\n· 3D 结构')
+    print('\n· 3D Structure')
     scene = jget('/api/scene?ref=SglCJ3&ligand=0')
-    check('受体重原子轨迹 496 个 Cα', len(scene['receptor']['ca']) == 496)
-    check('三肽都在同一坐标系内', len(scene['peptides']) == 3
+    check('Receptor heavy-atom trace 496 items Cα', len(scene['receptor']['ca']) == 496)
+    check('All three peptides share a coordinate frame', len(scene['peptides']) == 3
           and all(len(p['ca']) > 20 for p in scene['peptides']))
-    check('配体位姿 24 个重原子', len(scene['ligand']['atoms']) == 24)
-    check('药效团与热点随场景下发',
+    check('Ligand pose 24 heavy atoms', len(scene['ligand']['atoms']) == 24)
+    check('Scene includes pharmacophores and hotspots',
           len(scene['features']) == 12 and len(scene['hotspots']) >= 20)
-    check('亚口袋配色可用于轨迹着色',
+    check('Subpocket colors are available for trace coloring',
           len(scene.get('subpockets', [])) == 4
           and any(r.get('sub') for r in scene['receptor']['residues']))
-    check('叠合后 SglM 肽落在 SglCJ3 口袋附近',
+    check('After alignment, SglM peptide lies near the SglCJ3 pocket',
           _dist(scene['peptides'][0]['ca'][0], scene['center']) < 60)
 
     scene_m = jget('/api/scene?ref=SglM')
-    check('换参考结构可用', len(scene_m['receptor']['ca']) == 496
+    check('Alternative reference structure works', len(scene_m['receptor']['ca']) == 496
           and scene_m['ref'] == 'SglM')
 
     pts = jget('/api/pocket/points')
     if pts['status'] == 'ready':
-        check('腔体点云 10k+ 体素、体积 5,440 Å³',
+        check('Cavity point cloud 10k+ voxels, volume 5,440 Å³',
               pts['n_voxels'] > 9000 and round(pts['volume']) == 5440)
-        check('点云按化学分类', len(pts['chem']) == pts['n_voxels'])
+        check('Point cloud classified by chemistry', len(pts['chem']) == pts['n_voxels'])
     else:
-        check('腔体点云正在计算（首次约 15 s）', pts['status'] == 'computing')
+        check('Computing cavity points (first run approximately 15 s)', pts['status'] == 'computing')
 
     # ---- docs & jobs
-    print('\n· 文档与任务')
+    print('\n· Documentation and jobs')
     docs = jget('/api/docs')['docs']
-    check('列出 5 篇以上文档', len(docs) >= 5, str(len(docs)))
-    check('文档有标题', all(d['title'] for d in docs))
-    doc = jget('/api/docs/' + urllib.parse.quote('01_分子骨架设计算法.md'))
-    check('中文文件名文档可读取', len(doc['markdown']) > 5000)
+    check('Listed 5 or more documents', len(docs) >= 5, str(len(docs)))
+    check('Documents have titles', all(d['title'] for d in docs))
+    doc = jget('/api/docs/' + urllib.parse.quote('01_Molecular scaffold design algorithm.md'))
+    check('English document filename is readable', len(doc['markdown']) > 5000)
 
     jobs = jget('/api/jobs')
-    check('任务接口返回四类可运行脚本', len(jobs['kinds']) == 4)
-    check('运行历史结构完整', isinstance(jobs['jobs'], list))
+    check('Job endpoint returns four script types', len(jobs['kinds']) == 4)
+    check('Run history schema complete', isinstance(jobs['jobs'], list))
 
     status, raw, _ = fetch('/api/jobs', 'POST', {'kind': 'nope'})
-    check('未知任务类型被拒绝', status == 400)
+    check('Unknown job type rejected', status == 400)
 
     status, raw, _ = fetch('/api/jobs', 'POST',
                            {'kind': 'pipeline', 'params': {'out': '../escape'}})
-    check('非法输出目录被拒绝', status == 400)
+    check('Invalid output directory rejected', status == 400)
 
     status, raw, _ = fetch('/api/jobs', 'POST',
                            {'kind': 'filters', 'params': {'targets': -5}})
-    check('越界参数被拒绝', status == 400)
+    check('Out-of-range arguments rejected', status == 400)
 
     # ---- file serving / traversal
-    print('\n· 静态文件')
+    print('\n· Static files')
     status, raw, ctype = fetch('/files/figures/fig4_funnel.png')
-    check('图片可下载', status == 200 and 'image/png' in ctype)
+    check('Images downloadable', status == 200 and 'image/png' in ctype)
     status, raw, _ = fetch('/files/priors/murj_priors.json')
-    check('先验文件可读取', status == 200 and b'structures' in raw)
+    check('Prior file readable', status == 200 and b'structures' in raw)
     status, raw, _ = fetch('/files/webui/data.py')
-    check('webui 目录不可越权读取', status == 403, str(status))
+    check('webui Directory access cannot exceed scope', status == 403, str(status))
     status, raw, _ = fetch('/files/../webui/data.py')
-    check('路径穿越被拒绝', status in (403, 404), str(status))
+    check('Path traversal rejected', status in (403, 404), str(status))
     status, raw, ctype = fetch('/nonexistent-page')
-    check('未知路径回落到 SPA 首页', status == 200 and 'text/html' in ctype)
+    check('Unknown route falls back to SPA home page', status == 200 and 'text/html' in ctype)
     status, raw, _ = fetch('/js/missing-file.js')
-    check('缺失的前端资源返回 404 而不是 HTML', status == 404, str(status))
+    check('Missing frontend resource returns 404 rather than HTML', status == 404, str(status))
 
     # ---- 7-step workflow UI
-    print('\n· 工作流（7 步）')
+    print('\n· Workflow (7 steps)')
     wf = jget('/api/workflow')
     st = wf['stages']
-    check('工作流共 7 步', [s['n'] for s in st] == list(range(1, 8)))
-    check('第 1/2 步已接入且数字来自文件',
+    check('Workflow has 7 step', [s['n'] for s in st] == list(range(1, 8)))
+    check('Number 1/2 connected steps with file-derived counts',
           st[0]['status'] == 'ready' and st[1]['status'] == 'ready'
           and st[1]['funnel'][0]['count'] == 20307 and st[1]['out'] == 32)
-    check('第 3-7 步无数据时为 pending 且计数为空',
+    check('Number 3-7 steps without data use pending and empty counts',
           all(s['status'] == 'pending' and all(f['count'] is None for f in s['funnel']) for s in st[2:]))
     wd = jget('/api/workflow?demo=1')
-    check('布局预览模式标记为 demo', all(s['status'] == 'demo' for s in wd['stages'][2:]))
+    check('Layout preview is labeled demo', all(s['status'] == 'demo' for s in wd['stages'][2:]))
     mols = jget('/api/stage/scaffold/molecules')
-    check('第 2 步分子列表 538 条、32 条通过',
+    check('Number 2 step molecule list 538 entries,32 entries passed',
           mols['n'] == 538 and sum(1 for r in mols['rows'] if r['keep']) == 32)
     pose = jget('/api/stage/scaffold/pose?id=' + mols['rows'][0]['id'])
-    check('第 2 步分子有 3D 位姿', pose['ligand'] and len(pose['ligand']['atoms']) > 5
+    check('Number 2 step molecules include 3D Pose', pose['ligand'] and len(pose['ligand']['atoms']) > 5
           and len(pose['ligand']['bonds']) > 5)
-    check('未接入阶段分子列表为空', jget('/api/stage/docking/molecules')['n'] == 0)
+    check('Unconnected stages have empty molecule lists', jget('/api/stage/docking/molecules')['n'] == 0)
     status, raw, _ = fetch('/api/stage/nope/molecules')
-    check('未知阶段返回 404', status == 404, str(status))
+    check('Unknown stage returns 404', status == 404, str(status))
     m2 = jget('/api/mol2d?smiles=' + 'OC(%3DO)c1ccccc1')
-    check('2D 结构图可生成', bool(m2.get('svg')) or 'RDKit' in (m2.get('reason') or ''))
+    check('2D Structure image generated', bool(m2.get('svg')) or 'RDKit' in (m2.get('reason') or ''))
 
     # ---- live job (opt-in: runs the repo's own smoke test through the API)
     if do_job:
-        print('\n· 实时任务（冒烟测试）')
+        print('\n· Live job smoke test')
         status, raw, _ = fetch('/api/jobs', 'POST', {'kind': 'tests'})
-        check('任务已受理', status == 201, f'{status}: {raw[:120]}')
+        check('Job accepted', status == 201, f'{status}: {raw[:120]}')
         job_id = json.loads(raw.decode('utf-8'))['id']
         seen_running = False
         deadline = time.time() + 900
@@ -280,12 +280,12 @@ def run(do_job=False):
             if current['status'] in ('done', 'failed', 'cancelled'):
                 final = current
                 break
-        check('任务列表在运行期间可读（不返回进程对象）',
+        check('Job list readable during execution, without process objects',
               seen_running and all('proc' not in j for j in listing))
-        check('任务执行完成且退出码 0',
+        check('Job completed with exit code 0',
               final is not None and final['status'] == 'done' and final['exit'] == 0,
               str(final and (final['status'], final['exit'])))
-        check('日志已流式回传', final is not None and final['total_lines'] > 5,
+        check('Logs streamed successfully', final is not None and final['total_lines'] > 5,
               str(final and final['total_lines']))
 
     httpd.shutdown()
@@ -298,9 +298,9 @@ def _dist(a, b):
 if __name__ == '__main__':
     import argparse
 
-    ap = argparse.ArgumentParser(description='WEDGE-Design 控制台 API 测试')
+    ap = argparse.ArgumentParser(description='WEDGE-Design Console API Test')
     ap.add_argument('--job', action='store_true',
-                    help='额外跑一次实时任务（tests/test_smoke.py，约 1 分钟）')
+                    help='Run an additional live job (tests/test_smoke.py, approximately 1 minutes)')
     args = ap.parse_args()
     try:
         run(do_job=args.job)

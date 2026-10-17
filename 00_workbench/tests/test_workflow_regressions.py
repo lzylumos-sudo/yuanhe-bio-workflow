@@ -31,11 +31,11 @@ def test_upstream_hash_tampering(sandbox):
  workflow.atomic(d/'prepare/stage.json',{'status':'completed','config_sha256':workflow.digest(d/'config.json'),'artifacts':{'prepare/x':workflow.digest(p)}})
  assert workflow.require(d,'prepare')['status']=='completed'
  p.write_text('changed')
- with pytest.raises(RuntimeError,match='修改'):workflow.require(d,'prepare')
+ with pytest.raises(RuntimeError,match='modified'):workflow.require(d,'prepare')
 
 def test_block_out_of_order(sandbox):
  rid=workflow.create({'structure':'input.pdb'})['id']
- with pytest.raises(RuntimeError,match='上游'):workflow.start(rid,'docking')
+ with pytest.raises(RuntimeError,match='(?i)upstream'):workflow.start(rid,'docking')
  assert not (workflow.run_dir(rid)/'docking').exists()
 
 def test_interrupted_is_not_success(sandbox):

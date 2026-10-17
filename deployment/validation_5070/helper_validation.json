@@ -1,0 +1,22 @@
+{
+  "date": "2026-10-17",
+  "checks_passed": [
+    "Bash syntax: install_envs.sh and build_gromacs_gpu.sh",
+    "Python AST: three helper scripts",
+    "Input structure inspected on actual local 9nu4.pdb",
+    "Candidate box derived from actual local coordinates",
+    "RDKit synthetic SDF to one-based numbered SVG",
+    "Synthetic formal/preliminary counts and compound deduplication",
+    "Existing output overwrite refused"
+  ],
+  "not_executed": [
+    "Windows WSL registration",
+    "Linux package installation",
+    "RTX 5070 CUDA/PyG checks",
+    "PDBFixer receptor preparation",
+    "Target model inference",
+    "Target docking/screening",
+    "GROMACS compilation, regression tests and membrane simulation"
+  ],
+  "scope": "Installation candidate and validation protocol; helper tests are not scientific validation."
+}

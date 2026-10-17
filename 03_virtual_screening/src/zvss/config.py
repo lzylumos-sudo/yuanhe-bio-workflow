@@ -88,7 +88,7 @@ class HostConfig:
         return self.executors.get(name, ExecutorConfig(name=name, mode="disabled"))
 
     def digest(self) -> str:
-        return _digest({"paths": self.paths, "executors": {k: v.settings for k, v in self.executors.items()}})
+        return _digest({"raw": self.raw, "paths": self.paths, "executors": {k: v.settings for k, v in self.executors.items()}})
 
 
 def load_host_config(path: str | None = None) -> HostConfig:

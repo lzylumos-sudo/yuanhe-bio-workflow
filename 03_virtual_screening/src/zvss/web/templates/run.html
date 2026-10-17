@@ -16,26 +16,26 @@
   </style>
 </head>
 <body>
-<p><a href="/">← 全部运行</a></p>
+<p><a href="/">← All runs</a></p>
 <h1>{{ run_id }} <span class="muted">{{ run.status }}</span></h1>
 <p class="muted">
-  靶点 <code>{{ run.target_id }}</code> · 预算 <code>{{ run.budget }}</code> ·
-  配置摘要 <code>{{ run.config_hash }}</code> · 选择版本 <code>{{ selection_version or '—' }}</code> ·
-  <a href="/report/{{ run_id }}">原始报告</a>
+  Target <code>{{ run.target_id }}</code> · Budget <code>{{ run.budget }}</code> ·
+  Configuration digest <code>{{ run.config_hash }}</code> · Selection version <code>{{ selection_version or '—' }}</code> ·
+  <a href="/report/{{ run_id }}">Raw report</a>
 </p>
 
-<h2>阶段状态</h2>
+<h2>Stage status</h2>
 <table>
-  <tr><th>阶段</th><th>状态</th><th>要点</th></tr>
+  <tr><th>Stage</th><th>Status</th><th>Key points</th></tr>
   {% for name, s in stages.items() %}
   <tr>
     <td>{{ name }}</td>
     <td><span class="tag {{ 'ok' if s.status == 'done' else 'err' }}">{{ s.status }}</span></td>
     <td class="muted">
       {% if s.status == 'error' %}{{ (s.detail or {}).get('error', '')[:160] }}
-      {% elif name == 'import' %}位姿导入 {{ (s.detail or {}).get('poses_imported') }} / 失败 {{ (s.detail or {}).get('poses_failed') }}
-      {% elif name == 'selection' %}主要 {{ ((s.detail or {}).get('primary') or [])|length }} · 探索 {{ ((s.detail or {}).get('exploratory') or [])|length }} · 排除 {{ (s.detail or {}).get('excluded') }}
-      {% elif name == 'md' %}任务包 {{ (s.detail or {}).get('count') }} · 就绪 {{ (s.detail or {}).get('ready') }} · 阻塞 {{ (s.detail or {}).get('blocked') }}
+      {% elif name == 'import' %}Pose import {{ (s.detail or {}).get('poses_imported') }} / Failed {{ (s.detail or {}).get('poses_failed') }}
+      {% elif name == 'selection' %}Primary {{ ((s.detail or {}).get('primary') or [])|length }} · Exploratory {{ ((s.detail or {}).get('exploratory') or [])|length }} · Excluded {{ (s.detail or {}).get('excluded') }}
+      {% elif name == 'md' %}Task bundles {{ (s.detail or {}).get('count') }} · Ready {{ (s.detail or {}).get('ready') }} · Blocked {{ (s.detail or {}).get('blocked') }}
       {% elif name == 'redock' %}{{ (s.detail or {}).get('status') }} {{ (s.detail or {}).get('reason_code', '') }}
       {% else %}—{% endif %}
     </td>
@@ -43,10 +43,10 @@
   {% endfor %}
 </table>
 
-<h2>候选</h2>
+<h2>Candidate</h2>
 {% if primary or exploratory %}
 <table>
-  <tr><th>角色</th><th>序号</th><th>化合物</th><th>化学状态</th><th>位姿</th><th>层</th><th>综合分</th></tr>
+  <tr><th>Role</th><th>Index</th><th>Compounds</th><th>Chemical states</th><th>Pose</th><th>Tier</th><th>Composite score</th></tr>
   {% for e in primary + exploratory %}
   <tr>
     <td>{{ e.selection_role }}</td><td>{{ e.selection_order }}</td>
@@ -55,12 +55,12 @@
   </tr>
   {% endfor %}
 </table>
-{% else %}<p class="muted">本轮未产生候选（见报告中排除理由）。</p>{% endif %}
+{% else %}<p class="muted">No candidates produced; see exclusion reasons in the report.</p>{% endif %}
 
-<h2>排名（前 40）</h2>
+<h2>Ranking (top 40)</h2>
 {% if ranking %}
 <table>
-  <tr><th>#</th><th>化合物</th><th>层</th><th>综合分</th><th>缺失证据</th></tr>
+  <tr><th>#</th><th>Compounds</th><th>Tier</th><th>Composite score</th><th>Missing evidence</th></tr>
   {% for e in ranking %}
   <tr>
     <td>{{ e.rank }}</td><td><code>{{ e.compound_id }}</code></td><td>{{ e.tier }}</td>
@@ -69,12 +69,12 @@
   </tr>
   {% endfor %}
 </table>
-{% else %}<p class="muted">尚无排名。</p>{% endif %}
+{% else %}<p class="muted">No ranking yet.</p>{% endif %}
 
 {% if exclusions %}
-<h2>排除（前 20）</h2>
+<h2>Exclusions (top 20)</h2>
 <table>
-  <tr><th>化合物</th><th>理由码</th><th>说明</th></tr>
+  <tr><th>Compounds</th><th>Reason code</th><th>Description</th></tr>
   {% for e in exclusions[:20] %}
   <tr><td><code>{{ e.compound_id }}</code></td><td>{{ e.reason_code }}</td><td class="muted">{{ e.detail }}</td></tr>
   {% endfor %}

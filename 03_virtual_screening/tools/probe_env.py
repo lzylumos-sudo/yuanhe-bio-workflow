@@ -7,7 +7,7 @@ import sqlite3
 import subprocess
 import sys
 
-PROJECT = r"C:\Users\user\Desktop\元核生物\06_Virtual_Screening_Studio"
+PROJECT = r"C:\Users\user\Desktop\Yuanhe Bio\06_Virtual_Screening_Studio"
 
 
 def db_probe(compound: str) -> None:

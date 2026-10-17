@@ -32,6 +32,21 @@ STAGE_ORDER = [
 ]
 
 
+def live_counts(rows, selection=None, qa_finished=False):
+    total={r.get('compound_id') for r in rows if r.get('compound_id')}
+    counts={'imported':len(total)}
+    if qa_finished:
+        usable={r['compound_id'] for r in rows if r.get('compound_id') and r.get('assess_status') in {'pass','flag'}}
+        pending={r['compound_id'] for r in rows if r.get('compound_id') and r.get('assess_status') not in {'pass','flag','fail'}}-usable
+        counts.update(qa_usable=len(usable),qa_pending=len(pending),qa_failed=len(total-usable-pending))
+    if selection is not None:
+        formal={r['compound_id'] for r in selection.get('primary',[])}
+        prelim={r['compound_id'] for k in ('preliminary','exploratory') for r in selection.get(k,[])}-formal
+        counts.update(remaining=len(formal|prelim),formal=len(formal),preliminary=len(prelim))
+    return counts
+
+
+
 # --------------------------------------------------------------------------- #
 # target preparation
 # --------------------------------------------------------------------------- #
@@ -456,6 +471,8 @@ def run_all(
                 progress(stage, {"status": "cached"})
             continue
 
+        prior_progress=read_json(os.path.join(ctx.run_dir,"live_progress.json"),{}) or {}
+        atomic_write_json(os.path.join(ctx.run_dir,"live_progress.json"),{**prior_progress,"current_stage":stage,"status":"running"})
         ctx.log(f"stage {stage} started", run_id=ctx.run_id, stage=stage)
         try:
             if stage == "target":
@@ -489,6 +506,8 @@ def run_all(
                 payload = stage_report(ctx, state)
             else:  # pragma: no cover
                 raise ValueError(stage)
+            from . import data
+            atomic_write_json(os.path.join(ctx.run_dir,"live_progress.json"),{"current_stage":stage,"status":"completed","counts":live_counts(data.pose_rows(ctx),selection,STAGE_ORDER.index(stage)>=STAGE_ORDER.index('pose_qa'))})
             payload["cached"] = False
             state["stages"][stage] = payload
             atomic_write_json(summary_path, payload)

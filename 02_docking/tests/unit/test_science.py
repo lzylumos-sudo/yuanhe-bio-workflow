@@ -19,7 +19,7 @@ def test_bad_box(size):
 def test_no_path_escape():
  with pytest.raises(ValueError):rootpath('../outside')
 def test_names_and_failures(tmp_path):
- p=tmp_path/'input.smi';p.write_text('CCO 名字 空格\nCCC 名字 空格\nINVALID bad\n[Fe] metal\n',encoding='utf-8');items=list(inputs(p));assert len(items)==4 and items[0]['name']=='名字 空格'
+ p=tmp_path/'input.smi';p.write_text('CCO Name Space\nCCC Name Space\nINVALID bad\n[Fe] metal\n',encoding='utf-8');items=list(inputs(p));assert len(items)==4 and items[0]['name']=='Name Space'
  assert prepare(items[0],tmp_path/'a')['formal_charge']==0
  with pytest.raises(ValueError,match='INVALID'):prepare(items[2],tmp_path/'bad')
  with pytest.raises(ValueError,match='UNSUPPORTED'):prepare(items[3],tmp_path/'metal')
@@ -28,8 +28,10 @@ def test_chirality_charge_preserved(tmp_path):
   m=Chem.MolFromSmiles(s);r=prepare({'mol':m,'name':'test','smiles':s,'source':'smiles'},tmp_path/str(i));out=next(iter(Chem.SDMolSupplier(str(tmp_path/str(i)/'input.sdf'),removeHs=False)));assert identity(out)==identity(m)
 def test_missing_receptor():
  from sbvs.config import load,validate
- c=load('class_quick');c['receptor']='data/nonexistent_receptor.pdbqt'
+ import yaml
+ c=yaml.safe_load((ROOT/'configs/class_quick.yaml').read_text());c['cpu_per_job']=1;c['receptor']='data/nonexistent_receptor.pdbqt'
  with pytest.raises(ValueError,match='Missing receptor'):validate(c)
-def test_external_pdbqt_provenance():
+def test_external_pdbqt_provenance(tmp_path):
  from sbvs.preparation.receptor import plan
- p=plan(ROOT/'data/prepared/demo_1drf/receptor.pdbqt');assert p['external'] and p['protonation']=='external/unknown' and not p['confirmed']
+ source=tmp_path/'external.pdbqt';source.write_text('REMARK external receptor fixture\n')
+ p=plan(source);assert p['external'] and p['protonation']=='external/unknown' and not p['confirmed']

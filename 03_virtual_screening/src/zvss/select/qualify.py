@@ -99,7 +99,7 @@ def _pose_qa(ctx, entry) -> dict[str, Any]:
         observed=status,
         detail=detail,
         source="pose.assess_status",
-        reason_code=pose.get("reason_code") if mapped != PASS else None,
+        reason_code=fallback.get("reason_code") if mapped != PASS else None,
     )
 
 

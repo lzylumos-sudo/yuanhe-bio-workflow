@@ -1,396 +1,396 @@
 {
- "run_id": "t6",
- "handoff_dir": "C:\\Users\\user\\Desktop\\\u5143\u6838\u751f\u7269\\06_Virtual_Screening_Studio\\runs\\t6\\md_handoff",
- "packages": [
-  {
-   "package": "exploratory_01_CMP75C7A4B0B41E4390",
-   "compound_id": "CMP75C7A4B0B41E4390",
-   "pose_id": "POS5185363E532F15B4",
-   "checks": [
+  "run_id": "t6",
+  "handoff_dir": "C:\\Users\\user\\Desktop\\Yuanhe Bio\\06_Virtual_Screening_Studio\\runs\\t6\\md_handoff",
+  "packages": [
     {
-     "check": "package_files_present",
-     "status": "pass",
-     "observed": {
-      "manifest.json": true,
-      "task.json": true,
-      "complex.pdb": true,
-      "ligand.sdf": true,
-      "checksums.sha256": true
-     },
-     "expected": {
-      "manifest.json": true,
-      "task.json": true,
-      "complex.pdb": true,
-      "ligand.sdf": true,
-      "checksums.sha256": true
-     },
-     "detail": ""
-    },
-    {
-     "check": "checksums_match_files",
-     "status": "pass",
-     "observed": {
-      "complex.pdb": "b522761feebd8141043e0f0459605a3e5b704b73aee2cf2540a2917d6cb9e849",
-      "ligand.sdf": "8e35bb89b2b03386e19265bdec365855f9f8ad427f109ee0d99b310a46d0786e"
-     },
-     "expected": {
-      "complex.pdb": "b522761feebd8141043e0f0459605a3e5b704b73aee2cf2540a2917d6cb9e849",
-      "ligand.sdf": "8e35bb89b2b03386e19265bdec365855f9f8ad427f109ee0d99b310a46d0786e"
-     },
-     "detail": ""
-    },
-    {
-     "check": "ligand_atom_mapping_complete",
-     "status": "pass",
-     "observed": {
-      "mapping_entries": 6,
-      "declared_atoms": 6,
-      "sdf_atoms": 6
-     },
-     "expected": "mapping entries == declared atoms == SDF atoms",
-     "detail": ""
-    },
-    {
-     "check": "complex_atom_count_consistent",
-     "status": "pass",
-     "observed": {
-      "total": 1503,
-      "protein": 1497,
-      "hetatm": 6,
-      "ligand_atoms": 6
-     },
-     "expected": {
-      "total": "protein+hetatm",
-      "ligand_atoms": 6
-     },
-     "detail": ""
-    },
-    {
-     "check": "coordinates_identical_to_ligand_sdf",
-     "status": "pass",
-     "observed": {
-      "max_abs_deviation_A": 0.0005
-     },
-     "expected": "< 0.001 A",
-     "detail": "the pose handed to MD must be the pose that was scored"
-    },
-    {
-     "check": "provenance_linked_to_selection",
-     "status": "pass",
-     "observed": {
-      "selection_version": "SEL6830370C0C42E694",
-      "evidence_score": 0.6725,
-      "tier": "B",
-      "components_used": [
-       "affinity",
-       "cnn_pose",
-       "cnn_affinity",
-       "mechanism",
-       "pose_quality"
+      "package": "exploratory_01_CMP75C7A4B0B41E4390",
+      "compound_id": "CMP75C7A4B0B41E4390",
+      "pose_id": "POS5185363E532F15B4",
+      "checks": [
+        {
+          "check": "package_files_present",
+          "status": "pass",
+          "observed": {
+            "manifest.json": true,
+            "task.json": true,
+            "complex.pdb": true,
+            "ligand.sdf": true,
+            "checksums.sha256": true
+          },
+          "expected": {
+            "manifest.json": true,
+            "task.json": true,
+            "complex.pdb": true,
+            "ligand.sdf": true,
+            "checksums.sha256": true
+          },
+          "detail": ""
+        },
+        {
+          "check": "checksums_match_files",
+          "status": "pass",
+          "observed": {
+            "complex.pdb": "b522761feebd8141043e0f0459605a3e5b704b73aee2cf2540a2917d6cb9e849",
+            "ligand.sdf": "8e35bb89b2b03386e19265bdec365855f9f8ad427f109ee0d99b310a46d0786e"
+          },
+          "expected": {
+            "complex.pdb": "b522761feebd8141043e0f0459605a3e5b704b73aee2cf2540a2917d6cb9e849",
+            "ligand.sdf": "8e35bb89b2b03386e19265bdec365855f9f8ad427f109ee0d99b310a46d0786e"
+          },
+          "detail": ""
+        },
+        {
+          "check": "ligand_atom_mapping_complete",
+          "status": "pass",
+          "observed": {
+            "mapping_entries": 6,
+            "declared_atoms": 6,
+            "sdf_atoms": 6
+          },
+          "expected": "mapping entries == declared atoms == SDF atoms",
+          "detail": ""
+        },
+        {
+          "check": "complex_atom_count_consistent",
+          "status": "pass",
+          "observed": {
+            "total": 1503,
+            "protein": 1497,
+            "hetatm": 6,
+            "ligand_atoms": 6
+          },
+          "expected": {
+            "total": "protein+hetatm",
+            "ligand_atoms": 6
+          },
+          "detail": ""
+        },
+        {
+          "check": "coordinates_identical_to_ligand_sdf",
+          "status": "pass",
+          "observed": {
+            "max_abs_deviation_A": 0.0005
+          },
+          "expected": "< 0.001 A",
+          "detail": "the pose handed to MD must be the pose that was scored"
+        },
+        {
+          "check": "provenance_linked_to_selection",
+          "status": "pass",
+          "observed": {
+            "selection_version": "SEL6830370C0C42E694",
+            "evidence_score": 0.6725,
+            "tier": "B",
+            "components_used": [
+              "affinity",
+              "cnn_pose",
+              "cnn_affinity",
+              "mechanism",
+              "pose_quality"
+            ],
+            "components_missing": []
+          },
+          "expected": "selection_version + tier present",
+          "detail": ""
+        },
+        {
+          "check": "protocol_and_units_declared",
+          "status": "fail",
+          "observed": {
+            "protocol_keys": [],
+            "units": {},
+            "engine": "openmm"
+          },
+          "expected": "protocol + units + engine declared",
+          "detail": ""
+        },
+        {
+          "check": "blocked_capabilities_explicit",
+          "status": "pass",
+          "observed": {
+            "status": "blocked",
+            "blockers": [
+              "blocked_missing_membrane_capability",
+              "blocked_platform_linux_required"
+            ]
+          },
+          "expected": {
+            "status": "blocked",
+            "blockers": [
+              "blocked_missing_membrane_capability",
+              "blocked_platform_linux_required"
+            ]
+          },
+          "detail": ""
+        }
       ],
-      "components_missing": []
-     },
-     "expected": "selection_version + tier present",
-     "detail": ""
-    },
-    {
-     "check": "protocol_and_units_declared",
-     "status": "fail",
-     "observed": {
-      "protocol_keys": [],
-      "units": {},
-      "engine": "openmm"
-     },
-     "expected": "protocol + units + engine declared",
-     "detail": ""
-    },
-    {
-     "check": "blocked_capabilities_explicit",
-     "status": "pass",
-     "observed": {
-      "status": "blocked",
-      "blockers": [
-       "blocked_missing_membrane_capability",
-       "blocked_platform_linux_required"
-      ]
-     },
-     "expected": {
-      "status": "blocked",
-      "blockers": [
-       "blocked_missing_membrane_capability",
-       "blocked_platform_linux_required"
-      ]
-     },
-     "detail": ""
-    }
-   ],
-   "failed": [
-    "protocol_and_units_declared"
-   ],
-   "validated": false,
-   "adapter04": null,
-   "adapter05": null
-  },
-  {
-   "package": "primary_01_CMP7047E1960DBD3C23",
-   "compound_id": "CMP7047E1960DBD3C23",
-   "pose_id": "POS4E6BD3773256FBEA",
-   "checks": [
-    {
-     "check": "package_files_present",
-     "status": "pass",
-     "observed": {
-      "manifest.json": true,
-      "task.json": true,
-      "complex.pdb": true,
-      "ligand.sdf": true,
-      "checksums.sha256": true
-     },
-     "expected": {
-      "manifest.json": true,
-      "task.json": true,
-      "complex.pdb": true,
-      "ligand.sdf": true,
-      "checksums.sha256": true
-     },
-     "detail": ""
-    },
-    {
-     "check": "checksums_match_files",
-     "status": "pass",
-     "observed": {
-      "complex.pdb": "884ee5d22c0c3d29b376075f3a8b6d3f2cb3c611bb8eca15ca04c65b71c6c7b1",
-      "ligand.sdf": "b9354c2b850a5e08f1f02196fb8a43883cc2924e6d3bfd8a84eb77efe4986db5"
-     },
-     "expected": {
-      "complex.pdb": "884ee5d22c0c3d29b376075f3a8b6d3f2cb3c611bb8eca15ca04c65b71c6c7b1",
-      "ligand.sdf": "b9354c2b850a5e08f1f02196fb8a43883cc2924e6d3bfd8a84eb77efe4986db5"
-     },
-     "detail": ""
-    },
-    {
-     "check": "ligand_atom_mapping_complete",
-     "status": "pass",
-     "observed": {
-      "mapping_entries": 9,
-      "declared_atoms": 9,
-      "sdf_atoms": 9
-     },
-     "expected": "mapping entries == declared atoms == SDF atoms",
-     "detail": ""
-    },
-    {
-     "check": "complex_atom_count_consistent",
-     "status": "pass",
-     "observed": {
-      "total": 1506,
-      "protein": 1497,
-      "hetatm": 9,
-      "ligand_atoms": 9
-     },
-     "expected": {
-      "total": "protein+hetatm",
-      "ligand_atoms": 9
-     },
-     "detail": ""
-    },
-    {
-     "check": "coordinates_identical_to_ligand_sdf",
-     "status": "pass",
-     "observed": {
-      "max_abs_deviation_A": 0.0005
-     },
-     "expected": "< 0.001 A",
-     "detail": "the pose handed to MD must be the pose that was scored"
-    },
-    {
-     "check": "provenance_linked_to_selection",
-     "status": "pass",
-     "observed": {
-      "selection_version": "SEL6830370C0C42E694",
-      "evidence_score": 0.7555,
-      "tier": "B",
-      "components_used": [
-       "affinity",
-       "cnn_pose",
-       "cnn_affinity",
-       "mechanism",
-       "pose_quality"
+      "failed": [
+        "protocol_and_units_declared"
       ],
-      "components_missing": []
-     },
-     "expected": "selection_version + tier present",
-     "detail": ""
+      "validated": false,
+      "adapter04": null,
+      "adapter05": null
     },
     {
-     "check": "protocol_and_units_declared",
-     "status": "fail",
-     "observed": {
-      "protocol_keys": [],
-      "units": {},
-      "engine": "openmm"
-     },
-     "expected": "protocol + units + engine declared",
-     "detail": ""
-    },
-    {
-     "check": "blocked_capabilities_explicit",
-     "status": "pass",
-     "observed": {
-      "status": "blocked",
-      "blockers": [
-       "blocked_missing_membrane_capability",
-       "blocked_platform_linux_required"
-      ]
-     },
-     "expected": {
-      "status": "blocked",
-      "blockers": [
-       "blocked_missing_membrane_capability",
-       "blocked_platform_linux_required"
-      ]
-     },
-     "detail": ""
-    }
-   ],
-   "failed": [
-    "protocol_and_units_declared"
-   ],
-   "validated": false,
-   "adapter04": null,
-   "adapter05": null
-  },
-  {
-   "package": "primary_02_CMPCBBA17C44FCCD2B3",
-   "compound_id": "CMPCBBA17C44FCCD2B3",
-   "pose_id": "POS03C598097ED4C789",
-   "checks": [
-    {
-     "check": "package_files_present",
-     "status": "pass",
-     "observed": {
-      "manifest.json": true,
-      "task.json": true,
-      "complex.pdb": true,
-      "ligand.sdf": true,
-      "checksums.sha256": true
-     },
-     "expected": {
-      "manifest.json": true,
-      "task.json": true,
-      "complex.pdb": true,
-      "ligand.sdf": true,
-      "checksums.sha256": true
-     },
-     "detail": ""
-    },
-    {
-     "check": "checksums_match_files",
-     "status": "pass",
-     "observed": {
-      "complex.pdb": "14b0e36833f672f2f1fa5101816664a89bfacea993a832feb0710c4d3f073676",
-      "ligand.sdf": "83db4de4ffa54af6b45f820d47f936cf1178dd11ec48fd27bda534a611c2efa0"
-     },
-     "expected": {
-      "complex.pdb": "14b0e36833f672f2f1fa5101816664a89bfacea993a832feb0710c4d3f073676",
-      "ligand.sdf": "83db4de4ffa54af6b45f820d47f936cf1178dd11ec48fd27bda534a611c2efa0"
-     },
-     "detail": ""
-    },
-    {
-     "check": "ligand_atom_mapping_complete",
-     "status": "pass",
-     "observed": {
-      "mapping_entries": 6,
-      "declared_atoms": 6,
-      "sdf_atoms": 6
-     },
-     "expected": "mapping entries == declared atoms == SDF atoms",
-     "detail": ""
-    },
-    {
-     "check": "complex_atom_count_consistent",
-     "status": "pass",
-     "observed": {
-      "total": 1503,
-      "protein": 1497,
-      "hetatm": 6,
-      "ligand_atoms": 6
-     },
-     "expected": {
-      "total": "protein+hetatm",
-      "ligand_atoms": 6
-     },
-     "detail": ""
-    },
-    {
-     "check": "coordinates_identical_to_ligand_sdf",
-     "status": "pass",
-     "observed": {
-      "max_abs_deviation_A": 0.0005
-     },
-     "expected": "< 0.001 A",
-     "detail": "the pose handed to MD must be the pose that was scored"
-    },
-    {
-     "check": "provenance_linked_to_selection",
-     "status": "pass",
-     "observed": {
-      "selection_version": "SEL6830370C0C42E694",
-      "evidence_score": 0.5695,
-      "tier": "B",
-      "components_used": [
-       "affinity",
-       "cnn_pose",
-       "cnn_affinity",
-       "mechanism",
-       "pose_quality"
+      "package": "primary_01_CMP7047E1960DBD3C23",
+      "compound_id": "CMP7047E1960DBD3C23",
+      "pose_id": "POS4E6BD3773256FBEA",
+      "checks": [
+        {
+          "check": "package_files_present",
+          "status": "pass",
+          "observed": {
+            "manifest.json": true,
+            "task.json": true,
+            "complex.pdb": true,
+            "ligand.sdf": true,
+            "checksums.sha256": true
+          },
+          "expected": {
+            "manifest.json": true,
+            "task.json": true,
+            "complex.pdb": true,
+            "ligand.sdf": true,
+            "checksums.sha256": true
+          },
+          "detail": ""
+        },
+        {
+          "check": "checksums_match_files",
+          "status": "pass",
+          "observed": {
+            "complex.pdb": "884ee5d22c0c3d29b376075f3a8b6d3f2cb3c611bb8eca15ca04c65b71c6c7b1",
+            "ligand.sdf": "b9354c2b850a5e08f1f02196fb8a43883cc2924e6d3bfd8a84eb77efe4986db5"
+          },
+          "expected": {
+            "complex.pdb": "884ee5d22c0c3d29b376075f3a8b6d3f2cb3c611bb8eca15ca04c65b71c6c7b1",
+            "ligand.sdf": "b9354c2b850a5e08f1f02196fb8a43883cc2924e6d3bfd8a84eb77efe4986db5"
+          },
+          "detail": ""
+        },
+        {
+          "check": "ligand_atom_mapping_complete",
+          "status": "pass",
+          "observed": {
+            "mapping_entries": 9,
+            "declared_atoms": 9,
+            "sdf_atoms": 9
+          },
+          "expected": "mapping entries == declared atoms == SDF atoms",
+          "detail": ""
+        },
+        {
+          "check": "complex_atom_count_consistent",
+          "status": "pass",
+          "observed": {
+            "total": 1506,
+            "protein": 1497,
+            "hetatm": 9,
+            "ligand_atoms": 9
+          },
+          "expected": {
+            "total": "protein+hetatm",
+            "ligand_atoms": 9
+          },
+          "detail": ""
+        },
+        {
+          "check": "coordinates_identical_to_ligand_sdf",
+          "status": "pass",
+          "observed": {
+            "max_abs_deviation_A": 0.0005
+          },
+          "expected": "< 0.001 A",
+          "detail": "the pose handed to MD must be the pose that was scored"
+        },
+        {
+          "check": "provenance_linked_to_selection",
+          "status": "pass",
+          "observed": {
+            "selection_version": "SEL6830370C0C42E694",
+            "evidence_score": 0.7555,
+            "tier": "B",
+            "components_used": [
+              "affinity",
+              "cnn_pose",
+              "cnn_affinity",
+              "mechanism",
+              "pose_quality"
+            ],
+            "components_missing": []
+          },
+          "expected": "selection_version + tier present",
+          "detail": ""
+        },
+        {
+          "check": "protocol_and_units_declared",
+          "status": "fail",
+          "observed": {
+            "protocol_keys": [],
+            "units": {},
+            "engine": "openmm"
+          },
+          "expected": "protocol + units + engine declared",
+          "detail": ""
+        },
+        {
+          "check": "blocked_capabilities_explicit",
+          "status": "pass",
+          "observed": {
+            "status": "blocked",
+            "blockers": [
+              "blocked_missing_membrane_capability",
+              "blocked_platform_linux_required"
+            ]
+          },
+          "expected": {
+            "status": "blocked",
+            "blockers": [
+              "blocked_missing_membrane_capability",
+              "blocked_platform_linux_required"
+            ]
+          },
+          "detail": ""
+        }
       ],
-      "components_missing": []
-     },
-     "expected": "selection_version + tier present",
-     "detail": ""
+      "failed": [
+        "protocol_and_units_declared"
+      ],
+      "validated": false,
+      "adapter04": null,
+      "adapter05": null
     },
     {
-     "check": "protocol_and_units_declared",
-     "status": "fail",
-     "observed": {
-      "protocol_keys": [],
-      "units": {},
-      "engine": "openmm"
-     },
-     "expected": "protocol + units + engine declared",
-     "detail": ""
-    },
-    {
-     "check": "blocked_capabilities_explicit",
-     "status": "pass",
-     "observed": {
-      "status": "blocked",
-      "blockers": [
-       "blocked_missing_membrane_capability",
-       "blocked_platform_linux_required"
-      ]
-     },
-     "expected": {
-      "status": "blocked",
-      "blockers": [
-       "blocked_missing_membrane_capability",
-       "blocked_platform_linux_required"
-      ]
-     },
-     "detail": ""
+      "package": "primary_02_CMPCBBA17C44FCCD2B3",
+      "compound_id": "CMPCBBA17C44FCCD2B3",
+      "pose_id": "POS03C598097ED4C789",
+      "checks": [
+        {
+          "check": "package_files_present",
+          "status": "pass",
+          "observed": {
+            "manifest.json": true,
+            "task.json": true,
+            "complex.pdb": true,
+            "ligand.sdf": true,
+            "checksums.sha256": true
+          },
+          "expected": {
+            "manifest.json": true,
+            "task.json": true,
+            "complex.pdb": true,
+            "ligand.sdf": true,
+            "checksums.sha256": true
+          },
+          "detail": ""
+        },
+        {
+          "check": "checksums_match_files",
+          "status": "pass",
+          "observed": {
+            "complex.pdb": "14b0e36833f672f2f1fa5101816664a89bfacea993a832feb0710c4d3f073676",
+            "ligand.sdf": "83db4de4ffa54af6b45f820d47f936cf1178dd11ec48fd27bda534a611c2efa0"
+          },
+          "expected": {
+            "complex.pdb": "14b0e36833f672f2f1fa5101816664a89bfacea993a832feb0710c4d3f073676",
+            "ligand.sdf": "83db4de4ffa54af6b45f820d47f936cf1178dd11ec48fd27bda534a611c2efa0"
+          },
+          "detail": ""
+        },
+        {
+          "check": "ligand_atom_mapping_complete",
+          "status": "pass",
+          "observed": {
+            "mapping_entries": 6,
+            "declared_atoms": 6,
+            "sdf_atoms": 6
+          },
+          "expected": "mapping entries == declared atoms == SDF atoms",
+          "detail": ""
+        },
+        {
+          "check": "complex_atom_count_consistent",
+          "status": "pass",
+          "observed": {
+            "total": 1503,
+            "protein": 1497,
+            "hetatm": 6,
+            "ligand_atoms": 6
+          },
+          "expected": {
+            "total": "protein+hetatm",
+            "ligand_atoms": 6
+          },
+          "detail": ""
+        },
+        {
+          "check": "coordinates_identical_to_ligand_sdf",
+          "status": "pass",
+          "observed": {
+            "max_abs_deviation_A": 0.0005
+          },
+          "expected": "< 0.001 A",
+          "detail": "the pose handed to MD must be the pose that was scored"
+        },
+        {
+          "check": "provenance_linked_to_selection",
+          "status": "pass",
+          "observed": {
+            "selection_version": "SEL6830370C0C42E694",
+            "evidence_score": 0.5695,
+            "tier": "B",
+            "components_used": [
+              "affinity",
+              "cnn_pose",
+              "cnn_affinity",
+              "mechanism",
+              "pose_quality"
+            ],
+            "components_missing": []
+          },
+          "expected": "selection_version + tier present",
+          "detail": ""
+        },
+        {
+          "check": "protocol_and_units_declared",
+          "status": "fail",
+          "observed": {
+            "protocol_keys": [],
+            "units": {},
+            "engine": "openmm"
+          },
+          "expected": "protocol + units + engine declared",
+          "detail": ""
+        },
+        {
+          "check": "blocked_capabilities_explicit",
+          "status": "pass",
+          "observed": {
+            "status": "blocked",
+            "blockers": [
+              "blocked_missing_membrane_capability",
+              "blocked_platform_linux_required"
+            ]
+          },
+          "expected": {
+            "status": "blocked",
+            "blockers": [
+              "blocked_missing_membrane_capability",
+              "blocked_platform_linux_required"
+            ]
+          },
+          "detail": ""
+        }
+      ],
+      "failed": [
+        "protocol_and_units_declared"
+      ],
+      "validated": false,
+      "adapter04": null,
+      "adapter05": null
     }
-   ],
-   "failed": [
-    "protocol_and_units_declared"
-   ],
-   "validated": false,
-   "adapter04": null,
-   "adapter05": null
-  }
- ],
- "validated": 0,
- "failed": 3,
- "scope": "hand-off package validation only; not a membrane-engine preflight"
+  ],
+  "validated": 0,
+  "failed": 3,
+  "scope": "hand-off package validation only; not a membrane-engine preflight"
 }

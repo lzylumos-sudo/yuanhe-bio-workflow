@@ -1,0 +1,181 @@
+MurJ / 9NU4 with RTX 5070: installation and experimental validation
+Release: 0.3.0-rc1 English integration candidate, 2026-10-18
+
+1. Acceptance levels
+
+Record four separate outcomes:
+L1: compatible dependencies, verified weights, real CUDA/PyG operations and actual GNINA CNN execution.
+L2: a small MurJ batch passes through stages with correct identity, coordinates, scores, counts, failure reporting and recovery.
+L3: traceable computational candidates under predeclared rules, with repeat docking, pose inspection and controls.
+L4: biological activity, MurJ engagement/function and selectivity supported by appropriate experiments.
+Engineering tests and docking scores do not establish L4. The competition milestone is real generation, docking and traceable preliminary screening; unfinished MD must remain labeled unfinished.
+
+2. Host prerequisites and external disk
+
+Install Windows NVIDIA drivers, WSL2 and a compatible x86-64 Ubuntu distribution. Check in PowerShell:
+
+  wsl --version
+  wsl --list --verbose
+  nvidia-smi
+
+Record driver version, GPU name and actual VRAM; do not assume desktop and laptop RTX 5070 variants have identical memory. Keep Linux environments in the WSL filesystem under /opt/yuanhe. The project directory may reside on the external disk. Allow approximately 60-100 GB of working space for dependency installation, builds and initial results; this is planning guidance, not a universal minimum.
+
+GitHub does not contain the historical 13 GB WSL image or installed environments. A separately retained project VHDX may be registered using its matching original registration script; verify its UUID and distribution name. Do not assume the GitHub checkout contains that runtime. Each new host needs initial registration/configuration, and GPU/driver compatibility must be checked again. Stop the specific distribution and safely eject the disk before moving it; never copy a VHDX while it is being written.
+
+3. Initial Linux installation
+
+The following example assumes a repository at /mnt/f/yuanhe-bio-workflow. Replace it with the actual path and keep quotes around paths containing spaces.
+
+  cd '/mnt/f/yuanhe-bio-workflow'
+  export PROJECT_ROOT="$PWD"
+  cat /etc/os-release
+  uname -m
+  nvidia-smi --query-gpu=name,driver_version,memory.total --format=csv
+  df -h . /opt
+  free -h
+
+Restore pinned model source and weights first, following the root setup guide. No new trained model is required beyond the Peptide2Mol checkpoint and LibInvent prior already identified in deployment/model_dependencies.json. GNINA must successfully load its configured CNN model.
+
+Run and inspect each installation step before proceeding:
+
+  bash deployment/validation_5070/install_envs.sh base
+  bash deployment/validation_5070/install_envs.sh chem
+  bash deployment/validation_5070/install_envs.sh peptide
+  bash deployment/validation_5070/install_envs.sh reinvent
+  bash deployment/validation_5070/install_envs.sh prep
+  bash deployment/validation_5070/install_envs.sh gnina
+  bash deployment/validation_5070/install_envs.sh gromacs-cpu
+  bash deployment/validation_5070/install_envs.sh membrane
+  bash deployment/validation_5070/install_envs.sh configure
+  bash deployment/validation_5070/install_envs.sh check
+
+base: tools and pinned uv in /opt/yuanhe, without upgrading a separate /opt/sbvs environment.
+chem: Python 3.11 and actual chemistry/screening dependencies, including RDKit, ProLIF and PoseBusters.
+peptide: Python 3.10, PyTorch 2.7.0/cu128 and matching PyG extensions, followed by real GPU scatter, neighbor-graph and sparse operations. NumPy 1.26.4 resolves the historical NumPy/pandas conflict. GPU detection alone is insufficient.
+reinvent: use the upstream uv.lock. The bridge currently runs LibInvent on CPU; a cu126 package is not evidence of RTX 5070 GPU acceptance.
+prep: isolated PDBFixer/OpenMM for receptor preparation.
+gnina: verify the retained executable at /opt/sbvs/vendor/gnina. This step does not silently download or overwrite it. If absent, install a compatible official build separately and configure its actual path.
+gromacs-cpu: Ubuntu package for executable/input checks. CPU-only installation must not be labeled GPU acceptance.
+membrane: isolated OpenMM/AmberTools/OpenFF/ParmEd/MDAnalysis environment. After initial setup this installer is also available in the UI. The first solve is not yet target-tested; successful installation exports exact package URLs and versions.
+configure: write runtime.json while backing up an existing configuration and preserving configured paths.
+check: write environment evidence. It does not run target inference.
+
+Logs and installed-version records are under /opt/yuanhe/evidence. Freeze a successfully validated environment before competition. If a dependency solve or GPU kernel fails, retain the log; do not force-install incompatible packages or label CPU fallback as GPU success. If MD installation is deferred, explicitly record partial screening readiness rather than deleting a failed GROMACS check.
+
+4. Optional CUDA GROMACS build
+
+For a later membrane simulation, install the NVIDIA WSL-Ubuntu CUDA toolkit, not a Linux GPU driver. The planned toolkit is CUDA 12.8. Use the official package cuda-toolkit-12-8, not driver metapackages.
+
+  cd /opt/yuanhe
+  curl -fL -o cuda-keyring_1.1-1_all.deb https://developer.download.nvidia.com/compute/cuda/repos/wsl-ubuntu/x86_64/cuda-keyring_1.1-1_all.deb
+  sudo dpkg -i cuda-keyring_1.1-1_all.deb
+  sudo apt-get update
+  sudo apt-get install -y cuda-toolkit-12-8
+  /usr/local/cuda-12.8/bin/nvcc --version
+  cd "$PROJECT_ROOT"
+  bash deployment/validation_5070/build_gromacs_gpu.sh
+
+The script pins GROMACS 2026.4, checks the official archive, uses GCC 12 and a separate prefix, and runs regression tests. SSE2 improves CPU portability but does not guarantee GPU compatibility. Save build and regression logs, gmx --version and actual mdrun GPU-use evidence. Configure /opt/yuanhe/gromacs-2026.4/bin/gmx in the UI before creating a new run.
+
+5. Structure review
+
+Target: MurJ, not MurG. Input: data/structures/9nu4.pdb.
+SHA-256: ec509ae9f04236407d515de6f64095fefb44a8432eca8287e9bd8b3f75c78a3a
+
+The inspected source has chain A with 4,598 atoms and 602 coordinate-bearing residues, author numbering -101..500; residues 3..500 have coordinates. Chain B has 226 atoms and 29 modeled residues, 2..30. The declared complete lysis protein is 66 residues, so the visible fragment is not full length.
+
+The first engineering run retains construct mutations K5F, S12I and M13A and uses receptor range 3..500. This excludes the fusion region while retaining 498 coordinate-bearing residues. A full docking receptor means the selected uncropped construct, not a reconstructed wild-type 511-residue protein. A WT study requires a separately versioned input and new validation.
+
+Optional read-only inspection:
+
+  mkdir -p validation/evidence
+  python3 deployment/validation_5070/inspect_case.py structure data/structures/9nu4.pdb --out validation/evidence/input_structure.json
+
+Inspection refuses to overwrite existing evidence; choose a new filename for another attempt.
+
+6. Daily UI workflow
+
+Double-click start_windows.cmd and select the configured distribution. Alternatively, initial launch can specify it explicitly:
+
+  powershell -NoProfile -ExecutionPolicy Bypass -File .\start_windows.ps1 -Distro YOUR_DISTRO -Python /opt/yuanhe/envs/chem/bin/python
+
+Open the displayed local address, normally http://localhost:8777. Keep the launcher running. Use Environment and diagnostics to set paths; save before creating a run. Select 9nu4.pdb, receptor A, peptide B, range 3..500, pocket radius 6 A, budget 20, seed 17 and target ecmurj. A smaller two-sample probe can test invocation but zero valid molecules from two samples is not sufficient to declare a model defective.
+
+All preparation, review, execution, cancellation, trajectory inspection and export steps below are available in the interface. Optional command-line helpers are diagnostic alternatives, not required daily actions. Never edit frozen config.json or completed stage artifacts; copy settings to a new run instead.
+
+7. Stage-by-stage acceptance
+
+Complex preparation:
+Run the stage. Inspect receptor_full.pdb, receptor_prepared.pdb, peptide_reference.pdb, preparation.json and residue_map.csv. Full receptor must contain only the selected A-chain range; peptide reference only B. The local pocket contains complete residues within the selected radius without changing the coordinate frame. Chain selection is not protonation or missing-loop reconstruction.
+
+Peptide2Mol:
+Choose the independent interpreter. Require actual model exit 0, matching weight hash, generated SDF files, finite coordinates and at least one valid unique molecule. Inspect manifests, process log, candidate list and rejection reasons. Requested samples need not equal retained molecules. This adapter uses pocket-conditioned de novo generation: the peptide locates the pocket; explicit preservation of peptide pharmacophores is not claimed.
+
+Core review and REINVENT4:
+Open the core selector. Atom numbers are one-based after hydrogen removal, not PDB serials. Select a chemically justified core and record the rationale; do not copy example atom indices. Start with one core. Budget is per core: five cores at 200 samples imply up to 1,000 requested expansions. Inspect cores.json, per-core manifests, candidates, unique IDs, conformer failures and SDF chemistry. Current candidates retain as_input_not_pH_enumerated and route_status=not_evaluated limitations. Valid generation is not synthesis or activity evidence.
+
+Receptor and docking box:
+Use receptor preparation, choose the pH hypothesis (e.g. 7.4) and inspect the report. Missing loops or nonstandard residues block automatic preparation. Explicitly allow side-chain completion only after review. Original heavy-atom coordinates and construct mutations are retained; this is not receptor energy minimization. Review termini and ionizable residues.
+
+The default local box hypothesis uses residues 50,51,53,54,237,240,241,244, padding 5 A per side and minimum side length 14 A. For the unchanged source coordinates the candidate center is [159.115,153.366,136.322] and size [24.324,21.754,22.565], in A. Recompute and visually review using the actual prepared receptor; transformed coordinates invalidate these values. A bounding box is not a validated binding site.
+
+GNINA:
+Review receptor and box, select the actual executable/device and run. The current protocol uses exhaustiveness 16, num_modes 9, the run seed, cnn_scoring=rescore and crossdock_default2018_1_3. Preserve job_record.json, poses.sdf and logs for each molecule. Verify requested GPU really executes; retain errors without silent fallback. Scores must be finite and attached to the corresponding pose and chemical identity. Count unique molecules separately from poses: 20 compounds with nine modes are not 180 compounds. Inspect steric plausibility and coordinates. CNNscore is not an activity probability; CNNaffinity is not measured pKd, and no universal activity cutoff is calibrated here.
+
+Virtual screening:
+Select Quick screening, Redocking trial or Full screening in the UI. Quick screening skips redocking; the other budgets retain their declared seeds/limits and the selected GNINA model/device. Inspect report, candidates.csv, qualification.csv, exclusions.csv, run_state.json and stage summaries. Missing checks remain missing, never PASS. The screening membrane orientation remains a geometric proxy, so formal qualification may remain unmet even with preliminary candidates. Report preliminary, exploratory and qualified counts separately.
+
+The competition milestone is reached only when real inference, real docking and traceable screening have succeeded with source inputs and logs, not merely when the UI shows completed stages.
+
+8. Reproducibility and research design
+
+Round 1: budget 20, seed 17, one reviewed core, through quick screening.
+Round 2: a separate run with identical inputs/settings; compare canonical identities, counts, manifests and scores without reusing outputs. Record GPU nondeterminism rather than promising byte identity.
+Round 3: after timing the pilot, consider budget 200 and 3-5 distinct reviewed cores (600-1,000 expansion requests). This is an adjustable budget, not a guarantee of retained compounds.
+
+Freeze receptor/pH, site hypothesis, box, engine/CNN versions, thresholds, core rationale and exclusions before inspecting final outcomes. Compare seeds and expanded molecules under the same protocol. Use relevant sourced actives/inactives only if available; unrelated antibiotics are not established MurJ controls. Property-matched decoys are computational controls, not experimentally inactive molecules.
+
+Redock a fixed candidate set at seeds 17/41/97 with unchanged receptor, ligand identity, box and CNN model. Use symmetry-aware heavy-atom RMSD in the same receptor frame; do not independently fit ligands. A preregistered 2 A clustering threshold and a rule such as three successful runs with two in one cluster can be engineering criteria, not universal pose correctness. Retain failures. Chain B of 9NU4 is a peptide fragment, not a small-molecule co-crystal redocking reference. Other MurJ structures require new coordinate/residue mapping and box preparation.
+
+9. Membrane MD and analysis
+
+Use the membrane wizard to select a traceable screening pose. Supply the membrane normal, center and source/rationale; preview and review them. The default direction is not experimentally established. Pure POPC or POPE is an idealized single-lipid membrane, not a complete bacterial membrane. Unqualified candidates require explicit exploratory mode.
+
+Construction uses Amber14/Lipid17/TIP3P with GAFF2.11/AM1-BCC ligand parameters through OpenMM/OpenFF/AmberTools and ParmEd export. Do not mix these parameters with a separately prepared CHARMM/CGenFF system. Undefined stereochemistry or failed parameterization must block construction. Review receptor, ligand mapping, atoms, ions, topology and force-field assumptions.
+
+Select the built system for stage six or use Run and resume. The built-in path executes minimization, NVT, two restrained NPT stages, production and analysis. It checks minimization convergence, planned step counts, input/TPR hashes and checkpoint compatibility. A cancelled run resumes only from a matching checkpoint; partial outputs without a checkpoint require a new system rather than overwrite.
+
+The default short production segment is an engineering probe, not convergence evidence. First verify the entire chain and inspect energies, temperature, pressure, density, membrane geometry, ligand pose and warnings such as LINCS/NaN. Then plan independent replicas and sufficient sampling based on convergence and measured performance; a proposed 3 x 100 ns budget is not universally sufficient.
+
+The viewer provides sampled trajectory frames, protein/ligand RMSD after protein alignment, residue RMSF, distance-contact occupancy, membrane thickness proxy and thermodynamic traces. Distance contacts are not hydrogen-bond occupancy, and a thickness proxy is not complete membrane stability validation. Compare replicas separately. Small RMSD does not demonstrate activity or affinity.
+
+External reviewed TPR execution remains available but lacks the integrated construction/mapping guarantees. Preserve its independent topology, force-field and candidate provenance. Export inputs, TOP/ITP, MDP, TPR, initial/final structures, logs, EDR, trajectory, checkpoints and analysis records. A review archive may omit large files; its manifest lists them. Even a full archive excludes installed environments and weights.
+
+10. Recovery and migration checks
+
+Use a separate small validation run for cancellation and tamper tests. Confirm both UI state and actual process exit, with GPU memory released. The Linux process identity guard checks PID/start identity after reopening the UI, avoiding duplicate starts and PID reuse. Stop requests allow checkpoint writing before escalation. Do not unplug during stopping.
+
+Failed stage attempts are archived. Changed code, settings or upstream artifacts require a new run rather than bypassing hashes. Test tamper rejection only on copied disposable data. Before migration stop calculations and the UI, then terminate only the relevant WSL distribution:
+
+  wsl --terminate YOUR_DISTRO
+
+Wait for disk release, then safely eject. Do not unregister the distribution or globally stop unrelated workloads. On the next host rerun environment and fixed small-batch checks. Changed drive letters can invalidate old absolute paths; use new validation runs instead of rewriting frozen evidence.
+
+11. Competition evidence package
+
+Retain a workflow diagram, stage counts with explicit units, environment/driver/model table, repeatability table, candidate identities/poses/QA/contacts/limitations and source-linked images. Generation expansion can increase molecule counts, so the entire workflow is not necessarily a monotonically decreasing funnel. Formal and preliminary candidates remain distinct.
+
+Fill acceptance_record.csv only after actual execution. Record failures and missing evidence. GitHub engineering results do not substitute for the RTX 5070 experiment.
+
+Primary reference links:
+https://www.rcsb.org/structure/9NU4
+https://pytorch.org/blog/pytorch-2-7/
+https://data.pyg.org/whl/torch-2.7.0+cu128.html
+https://docs.nvidia.com/cuda/wsl-user-guide/index.html
+https://docs.astral.sh/uv/getting-started/installation/
+https://manual.gromacs.org/current/install-guide/index.html
+https://github.com/openmm/pdbfixer
+
+These are planned protocols and acceptance criteria, not claims that the upstream authors validated this MurJ workflow.
+
+Fresh dedicated WSL installation: use YUANHE_ALLOW_NEW_HOST=1 for the base step only. This records the project UUID in /opt/yuanhe/project_uuid. Conflicting project registrations are rejected. Existing registered project distributions do not need this flag.

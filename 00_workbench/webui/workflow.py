@@ -5,7 +5,7 @@ from pathlib import Path
 UI=Path(__file__).resolve().parents[1]
 ROOT=UI.parent
 RUNS=UI/'workflow_runs'
-STAGES=[('prepare','复合物准备','蛋白与多肽分离，保留完整受体和局部口袋'),('peptide2mol','Peptide2Mol','真实模型采样与化学检查'),('reinvent4','REINVENT4','审核核心后扩展候选小分子'),('docking','GNINA 批量对接','完整受体 · 独立分子 · 原始 CNN 分数'),('screening','虚拟筛选','质检、结合模式与多样性筛选'),('gromacs','GROMACS','已准备体系的动力学执行与轨迹文件')]
+STAGES=[('prepare','Complex preparation','Separate protein and peptide; retain full receptor and local pocket'),('peptide2mol','Peptide2Mol','Real model sampling and chemistry checks'),('reinvent4','REINVENT4','Expand candidate molecules after core review'),('docking','GNINA Batch docking','Full receptor · Unique molecules · Raw CNN Scores'),('screening','Virtual screening','Quality control, binding-mode and diversity screening'),('gromacs','GROMACS','Membrane minimization, equilibration, production and trajectory analysis')]
 _lock=threading.RLock(); _active={}
 
 def digest(path):
@@ -20,58 +20,95 @@ def atomic(path,value):
  tmp.write_text(json.dumps(value,ensure_ascii=False,indent=2,allow_nan=False),encoding='utf-8');tmp.replace(path)
 
 def run_dir(rid):
- if not re.fullmatch(r'[a-zA-Z0-9][a-zA-Z0-9_-]{0,79}',rid):raise ValueError('无效运行 ID')
+ if not re.fullmatch(r'[a-zA-Z0-9][a-zA-Z0-9_-]{0,79}',rid):raise ValueError('Invalid run ID')
  return RUNS/rid
 
 def read(path,default=None):
  return json.loads(Path(path).read_text(encoding='utf-8')) if Path(path).is_file() else default
 
 def defaults():
- cfg = {'structure':'data/structures/9nu4.pdb','receptor_chain':'A','peptide_chain':'B','receptor_range':[5,500],
+ cfg = {'structure':'data/structures/9nu4.pdb','receptor_chain':'A','peptide_chain':'B','receptor_range':[3,500],
  'budget':20,'seed':17,'pocket_radius':6.0,'peptide_python':'','reinvent_executable':'','chem_python':sys.executable,
- 'screen_python':'','gnina':'','gnina_device':'gpu','gmx':'','target_profile':'ecmurj',
+ 'prep_python':'/opt/yuanhe/envs/prep/bin/python','md_python':'/opt/yuanhe/envs/membrane/bin/python','screening_budget':'quick','receptor_review':{},'md_system_ids':[], 'screen_python':'','gnina':'','gnina_device':'gpu','gmx':'','target_profile':'ecmurj',
  'core_selections':[], 'docking_receptor':'','docking_box':None,'gromacs_tpr':'',
  'gromacs_system_reviewed':False,'timeout_seconds':86400}
  cfg.update({k:v for k,v in read(ROOT/'deployment/runtime.json',{}).items() if k in cfg})
  return cfg
 
+def source_snapshot():
+ roots=['00_workbench/scientific','00_workbench/webui','01_molecule_generation/src','02_docking/src','03_virtual_screening/src']
+ files=[ROOT/'00_workbench'/n for n in ['pipeline_bridge.py','studio_worker.py','md_stage.py']]
+ for root in roots:files.extend((ROOT/root).rglob('*.py'))
+ return {str(p.relative_to(ROOT)):digest(p) for p in sorted(set(files)) if p.is_file()}
+
+def verify_source(d):
+ frozen=read(d/'source_snapshot.json')
+ if frozen is not None and frozen!=source_snapshot():raise ValueError('Code differs from the run creation version. Preserve results and create a new run with copied settings')
+
+
 def create(config):
  allowed=set(defaults());unknown=set(config)-allowed
- if unknown:raise ValueError('未知配置字段: '+','.join(sorted(unknown)))
+ if unknown:raise ValueError('Unknown configuration field: '+','.join(sorted(unknown)))
  cfg={**defaults(),**config};source=(ROOT/cfg['structure']).resolve()
- if not source.is_relative_to(ROOT.resolve()) or not source.is_file() or source.suffix.lower()!='.pdb':raise ValueError('结构必须是项目文件夹内的 PDB')
- if cfg['receptor_chain']==cfg['peptide_chain']:raise ValueError('受体链和多肽链不能相同')
+ if not source.is_relative_to(ROOT.resolve()) or not source.is_file() or source.suffix.lower()!='.pdb':raise ValueError('Structure must be a project-local PDB')
+ if cfg['receptor_chain']==cfg['peptide_chain']:raise ValueError('Receptor and peptide chains must differ')
  for k in ('receptor_chain','peptide_chain'):
-  if not isinstance(cfg[k],str) or len(cfg[k])!=1:raise ValueError('PDB 链编号必须为一个字符')
+  if not isinstance(cfg[k],str) or len(cfg[k])!=1:raise ValueError('PDB Chain identifiers must contain one character')
  for k,low,high in [('budget',1,10000),('seed',0,2147483647),('timeout_seconds',60,604800)]:
-  if isinstance(cfg[k],bool) or not isinstance(cfg[k],int) or not low<=cfg[k]<=high:raise ValueError(k+' 超出范围')
+  if isinstance(cfg[k],bool) or not isinstance(cfg[k],int) or not low<=cfg[k]<=high:raise ValueError(k+' Out of range')
  rr=cfg['receptor_range']
- if not isinstance(rr,list) or len(rr)!=2 or not all(isinstance(x,int) for x in rr) or rr[0]>rr[1]:raise ValueError('受体残基范围无效')
- if cfg['gnina_device'] not in ('cpu','gpu'):raise ValueError('GNINA 设备无效')
- if cfg['target_profile'] not in ('ecmurj','generic'):raise ValueError('靶点配置无效')
+ if not isinstance(rr,list) or len(rr)!=2 or not all(isinstance(x,int) for x in rr) or rr[0]>rr[1]:raise ValueError('Invalid receptor residue range')
+ if cfg['gnina_device'] not in ('cpu','gpu'):raise ValueError('GNINA Invalid device')
+ if cfg['target_profile'] not in ('ecmurj','generic'):raise ValueError('Invalid target configuration')
  rid=time.strftime('%Y%m%d_%H%M%S')+'_'+uuid.uuid4().hex[:8];d=run_dir(rid);d.mkdir(parents=True)
  shutil.copyfile(source,d/'input.pdb');cfg['input_sha256']=digest(d/'input.pdb')
  # External executables are configured locally, never inferred from old machine paths.
+ atomic(d/'source_snapshot.json',source_snapshot())
  atomic(d/'config.json',cfg);atomic(d/'run.json',{'id':rid,'created':time.time(),'config_sha256':digest(d/'config.json'),'status':'created'})
  return {'id':rid}
 
 def require(d,stage):
  rec=read(d/stage/'stage.json',{})
- if rec.get('status')!='completed':raise RuntimeError('上游阶段未完成: '+stage)
- if rec.get('config_sha256')!=digest(d/'config.json'):raise RuntimeError('配置已改变，请新建运行')
+ if rec.get('status')!='completed':raise RuntimeError('Upstream stage incomplete: '+stage)
+ if rec.get('config_sha256')!=digest(d/'config.json'):raise RuntimeError('Configuration changed; create a new run')
  for p,sha in rec.get('artifacts',{}).items():
   path=(d/p).resolve()
-  if not path.is_relative_to(d.resolve()) or not path.is_file() or digest(path)!=sha:raise RuntimeError('上游产物缺失或被修改: '+p)
+  if not path.is_relative_to(d.resolve()) or not path.is_file() or digest(path)!=sha:raise RuntimeError('Upstream artifacts missing or modified: '+p)
  return rec
+
+def process_identity(pid):
+ try:
+  # Linux /proc starttime prevents a recycled PID from becoming a cancel target.
+  text=Path(f'/proc/{pid}/stat').read_text();start=text[text.rfind(')')+2:].split()[19]
+  cmd=Path(f'/proc/{pid}/cmdline').read_bytes().split(b'\0')
+  return {'pid':pid,'process_start':start,'argv':[x.decode('utf-8','replace') for x in cmd if x]}
+ except (OSError,IndexError):return {'pid':pid}
+
+def live_record(rec,rid):
+ pid=rec.get('pid')
+ if not isinstance(pid,int) or pid<=1 or not rec.get('process_start'):return False
+ actual=process_identity(pid)
+ if actual.get('process_start')!=rec['process_start']:return False
+ argv=actual.get('argv',[])
+ if not any(str(UI/x) in argv for x in ('pipeline_bridge.py','studio_worker.py')):return False
+ try:return argv[argv.index('--run-id')+1]==rid and os.getpgid(pid)==pid
+ except (ValueError,IndexError,ProcessLookupError):return False
+
 
 def status(rid):
  d=run_dir(rid);cfg=read(d/'config.json')
- if cfg is None:raise FileNotFoundError('运行不存在')
+ if cfg is None:raise FileNotFoundError('Run not found')
  stages=[]
  for key,label,desc in STAGES:
   rec=read(d/key/'stage.json',{})
-  if rec.get('status')=='running' and rid not in _active:
-   rec={**rec,'status':'interrupted','error':'服务已重启；旧进程状态未知。请确认旧进程停止后新建运行，不覆盖原产物。'}
+  if rec.get('status')=='running' and rid not in _active and not live_record(rec,rid):
+   rec={**rec,'status':'interrupted','error':'Original process not found after restart. Stop the task to archive its interrupted state, then retry; membrane simulations retain separate checkpoints.'}
+  if rec.get('status')=='running' and key=='docking':
+   prog=read(d/key/'progress.json',{})
+   if prog:rec={**rec,'counts':{'input':prog['input'],'processed':prog['processed'],'remaining':prog['successful'],'failed':prog['failed']}}
+  if rec.get('status')=='running' and key=='screening':
+   prog=read(d/key/'workspace/runs/screen/live_progress.json',{})
+   if prog:rec={**rec,'counts':prog.get('counts',{}),'substage':prog.get('current_stage')}
   stages.append({'key':key,'label':label,'description':desc,**rec,'status':rec.get('status','pending')})
  return {'id':rid,'config':cfg,'stages':stages,'reviews':{k:read(d/'reviews'/f'{k}.json',{}) for k,_,_ in STAGES}}
 
@@ -82,67 +119,87 @@ def inventory():
  'Virtual screening':'03_virtual_screening/src/zvss/stages.py',
  'OpenMM':'05_molecular_dynamics/modules/md/openmm_engine.py'}
  modules=[{'name':n,'present':(ROOT/p).is_file(),'path':p} for n,p in paths.items()]
- return {'modules':modules,'structures':[p.relative_to(ROOT).as_posix() for p in sorted((ROOT/'data/structures').glob('*.pdb'))],
+ return {'modules':modules,'structures':[str(p.relative_to(ROOT)) for p in sorted(list((ROOT/'data/structures').glob('*.pdb'))+list((ROOT/'inputs').glob('*.pdb')))],
  'runs':[p.name for p in sorted(RUNS.glob('*'),reverse=True) if (p/'run.json').is_file()],
  'defaults':defaults(),'platform':sys.platform,'target_platform':'Windows + WSL2 + NVIDIA',
- 'notice':'代码与模型存在不等于已通过真实计算验收；本界面不把历史骨架计作模型结果。'}
+ 'notice':'Code and model availability do not establish real computational acceptance. Historical scaffolds are not counted as model outputs.'}
+
+def acquire_compute():
+ import tempfile,fcntl
+ key=hashlib.sha256(str(ROOT.resolve()).encode()).hexdigest()[:24]
+ fh=open(Path(tempfile.gettempdir())/('yuanhe-compute-'+key+'.lock'),'a+')
+ try:fcntl.flock(fh,fcntl.LOCK_EX|fcntl.LOCK_NB)
+ except BlockingIOError:
+  fh.close();raise RuntimeError('A background process is active, possibly from another interface. Stop it first')
+ return fh
+
 
 def start(rid,stage):
- if stage not in dict((k,l) for k,l,_ in STAGES):raise ValueError('未知阶段')
+ if stage not in dict((k,l) for k,l,_ in STAGES):raise ValueError('Unknown stage')
  d=run_dir(rid)
  with _lock:
-  if _active:raise RuntimeError('当前已有计算任务；为避免 GPU/输出冲突，执行队列串行运行')
+  if _active:raise RuntimeError('A computation is active; to avoid GPU/output conflicts, jobs execute serially')
+  verify_source(d)
   cfg=read(d/'config.json');meta=read(d/'run.json')
-  if cfg is None or meta is None:raise ValueError('运行不存在')
-  if digest(d/'config.json')!=meta['config_sha256']:raise ValueError('配置已改变；请复制参数新建运行')
+  if cfg is None or meta is None:raise ValueError('Run not found')
+  if digest(d/'config.json')!=meta['config_sha256']:raise ValueError('Configuration changed; copy settings into a new run')
   target=d/stage
   if target.exists():
    previous_record=read(target/'stage.json',{})
    if previous_record.get('status') not in {'failed','blocked','cancelled'}:
-    raise RuntimeError('该阶段已有完成或中断记录，不能覆盖')
+    raise RuntimeError('This stage has completed or interrupted records and cannot be overwritten')
   previous=[k for k,_,_ in STAGES];idx=previous.index(stage)
   if idx:require(d,previous[idx-1])
+  lease=acquire_compute()
   if target.exists():
    archive=d/'attempts'/f'{stage}_{time.time_ns()}';archive.parent.mkdir(exist_ok=True);target.rename(archive)
   target.mkdir();atomic(target/'review.json',read(d/'reviews'/f'{stage}.json',{}));atomic(target/'stage.json',{'status':'running','started':time.time(),'counts':{},'config_sha256':digest(d/'config.json')})
   py=cfg.get('chem_python') or sys.executable
   logfile=(target/'process.log').open('w',encoding='utf-8')
-  try:proc=subprocess.Popen([py,str(UI/'pipeline_bridge.py'),'--run-id',rid,'--stage',stage],stdout=logfile,stderr=subprocess.STDOUT,cwd=UI,start_new_session=(os.name!='nt'))
+  try:proc=subprocess.Popen([py,str(UI/'pipeline_bridge.py'),'--run-id',rid,'--stage',stage],stdout=logfile,stderr=subprocess.STDOUT,cwd=UI,start_new_session=True,pass_fds=(lease.fileno(),),env={**os.environ,'YUANHE_COMPUTE_FD':str(lease.fileno())})
   except Exception as e:
-   logfile.close();atomic(target/'stage.json',{'status':'failed','error':str(e)});raise
+   logfile.close();lease.close();atomic(target/'stage.json',{'status':'failed','error':str(e)});raise
   _active[rid]=proc
+  atomic(target/'stage.json',{**read(target/'stage.json'),**process_identity(proc.pid)})
   def wait():
-   code=proc.wait();logfile.close()
+   code=proc.wait();logfile.close();lease.close()
    with _lock:
     _active.pop(rid,None)
     rec=read(target/'stage.json',{})
-    if rec.get('status')=='running':atomic(target/'stage.json',{**rec,'status':'failed','error':f'进程退出 {code}，无完整结果','ended':time.time()})
+    if rec.get('status')=='running':atomic(target/'stage.json',{**rec,'status':'failed','error':f'Process exited {code}, without complete results','ended':time.time()})
   threading.Thread(target=wait,daemon=True).start()
  return {'id':rid,'stage':stage,'pid':proc.pid}
 
 def cancel(rid):
  import signal
  with _lock:
-  proc=_active.get(rid)
-  if not proc:return {'cancelled':False}
-  if os.name=='nt':proc.terminate()
-  else:os.killpg(proc.pid,signal.SIGTERM)
-  def kill_later():
-   try:proc.wait(timeout=5)
-   except subprocess.TimeoutExpired:
-    if os.name=='nt':proc.kill()
+  d=run_dir(rid);paths=[d/key/'stage.json' for key,_,_ in STAGES]+list((d/'operations').glob('*/operation.json'))
+  proc=_active.get(rid);records=[(p,read(p,{})) for p in paths]
+  pid=proc.pid if proc else next((r['pid'] for _,r in records if r.get('status')=='running' and live_record(r,rid)),None)
+  if pid:
+   try:os.killpg(pid,signal.SIGTERM)
+   except ProcessLookupError:pass
+   identity=process_identity(pid)
+   def kill_later():
+    if proc:
+     try:proc.wait(timeout=30);return
+     except subprocess.TimeoutExpired:pass
     else:
-     try:os.killpg(proc.pid,signal.SIGKILL)
-     except ProcessLookupError:pass
-  threading.Thread(target=kill_later,daemon=True).start()
-  d=run_dir(rid)
-  for key,_,_ in STAGES:
-   p=d/key/'stage.json';rec=read(p,{})
-   if rec.get('status')=='running':atomic(p,{**rec,'status':'cancelled','ended':time.time()})
- return {'cancelled':True}
+     # Preserve checkpoint flush time after SIGTERM; identity is rechecked.
+     time.sleep(30)
+     if not live_record(identity,rid):return
+    try:os.killpg(pid,signal.SIGKILL)
+    except ProcessLookupError:pass
+   threading.Thread(target=kill_later,daemon=True).start()
+  else:
+   lease=acquire_compute();lease.close()
+  changed=False
+  for path,record in records:
+   if record.get('status')=='running':atomic(path,{**record,'status':'cancelled','ended':time.time()});changed=True
+ return {'cancelled':bool(pid) or changed}
 
 def log(rid,stage):
- if stage not in [x[0] for x in STAGES]:raise ValueError('未知阶段')
+ if stage not in [x[0] for x in STAGES]:raise ValueError('Unknown stage')
  p=run_dir(rid)/stage/'process.log'
  if not p.exists():return {'text':''}
  with p.open('rb') as f:
@@ -152,16 +209,36 @@ REVIEW_FIELDS={
  'prepare':[],
  'peptide2mol':['peptide_python'],
  'reinvent4':['reinvent_executable','core_selections'],
- 'docking':['gnina','gnina_device','docking_receptor','docking_box'],
- 'screening':['screen_python'],
- 'gromacs':['gmx','gromacs_tpr','gromacs_system_reviewed'],
+ 'docking':['gnina','gnina_device','docking_receptor','docking_box','receptor_review'],
+ 'screening':['screen_python','screening_budget'],
+ 'gromacs':['gmx','gromacs_tpr','gromacs_system_reviewed','md_system_ids'],
 }
 def review(rid,stage,payload):
  d=run_dir(rid)
- if stage not in REVIEW_FIELDS or set(payload)-set(REVIEW_FIELDS[stage]):raise ValueError('无效阶段参数')
- if not (d/'run.json').is_file():raise ValueError('运行不存在')
+ if 'screening_budget' in payload and payload['screening_budget'] not in {'quick','redock_trial','full'}:raise ValueError('Invalid screening budget')
+ if 'docking_box' in payload and payload['docking_box'] is not None:
+  import math
+  b=payload['docking_box']
+  if not isinstance(b,dict) or any(not isinstance(b.get(k),list) or len(b[k])!=3 or any(type(v) not in (int,float) or not math.isfinite(v) for v in b[k]) for k in ('center','size')):raise ValueError('Box values must be finite')
+  if any(not 4<=x<=50 for x in b['size']):raise ValueError('Docking box side lengths must lie within 4–50 Å')
+ if stage not in REVIEW_FIELDS or set(payload)-set(REVIEW_FIELDS[stage]):raise ValueError('Invalid stage parameters')
+ if not (d/'run.json').is_file():raise ValueError('Run not found')
  with _lock:
-  if rid in _active:raise RuntimeError('进程尚未结束')
-  if (d/stage).exists() and read(d/stage/'stage.json',{}).get('status') not in {'failed','blocked','cancelled'}:raise RuntimeError('阶段已开始或完成，参数不可修改')
-  atomic(d/'reviews'/f'{stage}.json',payload)
+  if rid in _active:raise RuntimeError('Process has not exited')
+  if (d/stage).exists() and read(d/stage/'stage.json',{}).get('status') not in {'failed','blocked','cancelled'}:raise RuntimeError('Stage started or completed; settings are immutable')
+  atomic(d/'reviews'/f'{stage}.json',{**read(d/'reviews'/f'{stage}.json',{}),**payload})
  return {'saved':True}
+
+
+def lease_fds():
+ try:
+  fd=int(os.environ.get('YUANHE_COMPUTE_FD','-1'));os.fstat(fd);return (fd,)
+ except (ValueError,OSError):return ()
+
+
+def gnina_environment():
+ # Legacy GNINA libraries are scoped to GNINA, never injected into PyTorch/OpenMM.
+ paths=sorted(Path('/opt/sbvs/env/lib/python3.11/site-packages/nvidia').glob('*/lib'))
+ paths += [p for p in [Path('/opt/sbvs/env/lib'),Path('/usr/lib/wsl/lib')] if p.is_dir()]
+ old=os.environ.get('LD_LIBRARY_PATH','')
+ return {'LD_LIBRARY_PATH':os.pathsep.join([str(p) for p in paths]+([old] if old else []))} if paths else {}

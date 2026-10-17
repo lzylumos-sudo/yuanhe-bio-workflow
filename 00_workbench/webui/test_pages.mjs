@@ -314,10 +314,10 @@ const expectText = (root, pattern, what) => {
 };
 
 await runPage('overview', 'overview.js', {}, async (root) => {
-  expectText(root, /20,307/, '枚举总数 20,307');
-  expectText(root, /538/, '三重达标 538');
-  expectText(root, /13\.0/, '最佳骨架分 13.0');
-  expectText(root, /5,440|5440/, '腔体体积');
+  expectText(root, /20,307/, 'Total enumeration count 20,307');
+  expectText(root, /538/, 'Three checks passed 538');
+  expectText(root, /13\.0/, 'Best scaffold score 13.0');
+  expectText(root, /5,440|5440/, 'Cavity volume');
 });
 await runPage('hotspots', 'hotspots.js', {}, async (root) => {
   const trs = root.querySelectorAll('tr');
@@ -327,18 +327,18 @@ await runPage('hotspots', 'hotspots.js', {}, async (root) => {
   th.click();                          // re-sort by another column
   const first = root.querySelectorAll('tbody tr')[0];
   first.click();                       // open the residue detail panel
-  expectText(root, /接触肽残基数|收敛度/, '逐残基详情');
-  expectText(root, /dSASA/, 'dSASA 列');
+  expectText(root, /Contacting peptide residues|Convergence/, 'Per-residue details');
+  expectText(root, /dSASA/, 'dSASA columns');
 });
 await runPage('pharmacophore', 'pharmacophore.js', {}, async (root) => {
   if (!root.querySelectorAll('svg').length) throw new Error('scatter svg missing');
-  expectText(root, /A1-H3|A1-R2/, '设计轴编号');
-  expectText(root, /99\.0|9.*18/, '设计窗口');
+  expectText(root, /A1-H3|A1-R2/, 'Design axis identifier');
+  expectText(root, /99\.0|9.*18/, 'Design window');
 });
 await runPage('pocket', 'pocket.js', {}, async (root) => {
   if (root.querySelectorAll('table').length < 1) throw new Error('pocket table missing');
-  expectText(root, /S1_basic_bowl/, '亚口袋名');
-  expectText(root, /0\.94|0\.73/, '埋藏度');
+  expectText(root, /S1_basic_bowl/, 'Subpocket name');
+  expectText(root, /0\.94|0\.73/, 'Burial');
 });
 await runPage('scaffolds', 'scaffolds.js', {}, async (root) => {
   const rows = root.querySelectorAll('tbody tr');
@@ -346,7 +346,7 @@ await runPage('scaffolds', 'scaffolds.js', {}, async (root) => {
   expectText(root, /OC\(=O\)c1ccc/, 'SMILES');
   expectText(root, /318/, 'MW 318');
   rows[0].click();                     // opens the drawer
-  expectText(root, /位阻|盐桥|氢键/, '打分分解');
+  expectText(root, /Steric clash|Salt bridge|Hydrogen bond/, 'Score breakdown');
   const search = root.querySelectorAll('input').find((i) => i.attrs && i.attrs.type === 'search');
   if (!search) throw new Error('search input missing');
   search.value = 'K368';
@@ -355,7 +355,7 @@ await runPage('scaffolds', 'scaffolds.js', {}, async (root) => {
   if (filtered >= 200) throw new Error(`search did not filter (${filtered} rows)`);
   search.value = 'ZZZZ';
   search.dispatch('input');
-  expectText(root, /没有满足|没有匹配|无匹配|没有数据/, '空结果提示');
+  expectText(root, /No scaffolds match|No matching|No match|No matches|No data/, 'Empty-result message');
   search.value = '';
   search.dispatch('input');
   console.log(`      filter "K368" -> ${filtered} rows, empty state ok`);
@@ -363,35 +363,35 @@ await runPage('scaffolds', 'scaffolds.js', {}, async (root) => {
 await runPage('evidence', 'evidence.js', {}, async (root) => {
   const tabs = root.querySelectorAll('.tab');
   if (tabs.length < 5) throw new Error(`expected 5 tabs, got ${tabs.length}`);
-  expectText(root, /界面规模|先验/, '报告正文');
+  expectText(root, /Interface size|Literature prior/, 'Report body');
   tabs[1].click(); flushRaf();
-  expectText(root, /PASS/, '先验核对状态');
-  expectText(root, /SglM:Asp18/, 'FLAG 条目');
+  expectText(root, /PASS/, 'Prior check status');
+  expectText(root, /SglM:Asp18/, 'FLAG Entry');
   tabs[2].click(); flushRaf();
-  expectText(root, /496/, 'MurJ 496 残基');
+  expectText(root, /496/, 'MurJ 496 Residue');
   tabs[3].click(); flushRaf();
-  expectText(root, /dSASA/, '界面测量 dSASA');
+  expectText(root, /dSASA/, 'Interface measurements dSASA');
   tabs[4].click(); flushRaf();
-  expectText(root, /K46|R53|K368/, '锚点残基');
+  expectText(root, /K46|R53|K368/, 'Anchor residues');
 });
 await runPage('docs', 'docs.js', {}, async (root) => {
   const md = root.querySelectorAll('.md');
   if (!md.length) throw new Error('markdown body missing');
-  expectText(root, /WEDGE-Design/, '文档正文');
+  expectText(root, /WEDGE-Design/, 'Document body');
 });
 await runPage('run', 'run.js', {}, async (root) => {
   const cards = root.querySelectorAll('.card');
   if (cards.length < 5) throw new Error(`launcher cards missing (${cards.length})`);
-  expectText(root, /证据链|设计管线/, '任务卡片');
-  expectText(root, /运行历史|控制台/, '日志面板');
+  expectText(root, /Evidence chain|Design pipeline/, 'Job cards');
+  expectText(root, /Run history|Console/, 'Log panel');
 });
 await runPage('structure', 'structure.js', { ligand: '0' }, async (root) => {
   const canvas = root.querySelectorAll('canvas');
   if (!canvas.length) throw new Error('viewer canvas missing');
   const checkboxes = root.querySelectorAll('input');
   if (checkboxes.length < 6) throw new Error('viewer controls missing');
-  expectText(root, /9NU8/, '参考结构标签');
-  expectText(root, /OC\(=O\)/, '配体 SMILES');
+  expectText(root, /9NU8/, 'Reference structure label');
+  expectText(root, /OC\(=O\)/, 'Ligand SMILES');
   for (const box of checkboxes.slice(0, 3)) {
     box.checked = !box.checked;
     box.dispatch('change');
@@ -406,8 +406,8 @@ async function unit(name, fn) {
 
 await unit('ui.markdown (tables, lists, code, inline)', async () => {
   const { markdown } = await import('./static/js/ui.js');
-  const html = markdown('# 标题\n\n- a\n- b\n\n| x | y |\n|---|---|\n| 1 | 2 |\n\n`code` **bold** [l](http://e)\n\n> quote\n');
-  for (const needle of ['<h1>标题</h1>', '<li>a</li>', '<table>', '<td style="text-align:left">1</td>', '<code>code</code>', '<strong>bold</strong>', '<blockquote>quote</blockquote>']) {
+  const html = markdown('# Title\n\n- a\n- b\n\n| x | y |\n|---|---|\n| 1 | 2 |\n\n`code` **bold** [l](http://e)\n\n> quote\n');
+  for (const needle of ['<h1>Title</h1>', '<li>a</li>', '<table>', '<td style="text-align:left">1</td>', '<code>code</code>', '<strong>bold</strong>', '<blockquote>quote</blockquote>']) {
     if (!html.includes(needle)) throw new Error(`missing ${needle} in markdown output`);
   }
 });
@@ -418,7 +418,7 @@ await unit('ui.toCSV escaping', async () => {
   if (!csv.includes('"x,y"') || !csv.includes('"q""z"')) throw new Error(`bad csv: ${csv}`);
 });
 
-await unit('markdown: 真实报告（8 张表、表格列数一致）', async () => {
+await unit('markdown: Actual report (8 tables with consistent column counts)', async () => {
   const { markdown } = await import('./static/js/ui.js');
   const report = JSON.parse(readFileSync(join(TESTDATA, 'evidence_report.json'), 'utf8')).markdown;
   const html = markdown(report);
@@ -438,7 +438,7 @@ await unit('markdown: 真实报告（8 张表、表格列数一致）', async ()
   }
 });
 
-await unit('markdown: 方法学文档（代码块、列表、行内代码）', async () => {
+await unit('markdown: Methods document: code blocks, lists and inline code', async () => {
   const { markdown } = await import('./static/js/ui.js');
   const doc = JSON.parse(readFileSync(join(TESTDATA, 'docs_01.json'), 'utf8')).markdown;
   const html = markdown(doc);
@@ -489,21 +489,21 @@ await unit('shell: boot, nav, routing, theme', async () => {
   if (items.length !== 9) throw new Error(`expected 9 nav items, got ${items.length}`);
   if (!items.some((i) => i.classList.contains('active'))) throw new Error('no active nav item');
   if (view.children.length === 0) throw new Error('view is empty after boot');
-  if (!crumb.textContent.includes('概览')) throw new Error(`crumb not set: ${crumb.textContent}`);
+  if (!crumb.textContent.includes('Overview')) throw new Error(`crumb not set: ${crumb.textContent}`);
 
   globalThis.location.hash = '#/pocket';
   fireHashChange();
   await settle();
-  if (!crumb.textContent.includes('口袋')) throw new Error(`routing failed: ${crumb.textContent}`);
+  if (!crumb.textContent.includes('Pocket')) throw new Error(`routing failed: ${crumb.textContent}`);
   if (!nav.querySelectorAll('.nav-item').some((i) => i.dataset.id === 'pocket' && i.classList.contains('active'))) {
-    throw new Error('nav highlight did not move to 口袋');
+    throw new Error('nav highlight did not move to Pocket');
   }
 
   globalThis.location.hash = '#/structure?ligand=3&pocket=1';
   fireHashChange();
   await settle();
   if (!view.querySelectorAll('canvas').length) throw new Error('structure route did not mount the viewer');
-  if (!crumb.textContent.includes('3D 结构')) throw new Error(`params route failed: ${crumb.textContent}`);
+  if (!crumb.textContent.includes('3D Structure')) throw new Error(`params route failed: ${crumb.textContent}`);
 
   const themeBtn = documentShim.getElementById('btn-theme');
   const before = documentShim.documentElement.dataset.theme;

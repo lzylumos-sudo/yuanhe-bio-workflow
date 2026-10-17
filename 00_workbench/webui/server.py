@@ -27,12 +27,12 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from webui import data, jobs, stages, workflow                                   # noqa: E402
+from webui import data, jobs, stages, workflow, studio                                   # noqa: E402
 
 STATIC = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'static')
 ROOT = data.ROOT
 FILE_DIRS = ('results', 'evidence', 'figures', 'docs', 'priors')
-VERSION = '1.0.0'
+VERSION = '0.3.0-rc1'
 
 MIME = {
     '.html': 'text/html; charset=utf-8', '.css': 'text/css; charset=utf-8',
@@ -176,7 +176,7 @@ def api_docs(q):
 def api_doc(q, name):
     text = data.doc(name)
     if not text:
-        raise HttpError(f'文档不存在: {name}', 404)
+        raise HttpError(f'Document not found: {name}', 404)
     return _json(dict(name=name, markdown=text))
 
 
@@ -192,7 +192,7 @@ def api_job_one(q, job_id):
     since = int(q.get('since', ['0'])[0] or 0)
     job = jobs.get_job(job_id, since=since)
     if job is None:
-        raise HttpError(f'任务不存在: {job_id}', 404)
+        raise HttpError(f'Job not found: {job_id}', 404)
     return _json(job)
 
 
@@ -212,7 +212,7 @@ def api_job_cancel(q, body, job_id):
     try:
         ok = jobs.cancel(job_id)
     except KeyError as exc:
-        raise HttpError(f'任务不存在: {job_id}', 404) from exc
+        raise HttpError(f'Job not found: {job_id}', 404) from exc
     return _json(dict(cancelled=ok, id=job_id))
 
 
@@ -226,7 +226,7 @@ def api_workflow(q):
 
 def _stage_key(key):
     if key not in stages.BY_KEY:
-        raise HttpError(f'未知阶段: {key}', 404)
+        raise HttpError(f'Unknown stage: {key}', 404)
     return key
 
 
@@ -270,7 +270,7 @@ def api_project_log(q, rid, key):
 def api_project_rows(q, rid, key):
     import csv
     if key not in [x[0] for x in workflow.STAGES]:
-        raise HttpError('未知阶段',404)
+        raise HttpError('Unknown stage',404)
     path=workflow.run_dir(rid)/key/'molecules.csv'
     if not path.exists():return _json({'rows':[],'total':0})
     with path.open(encoding='utf-8-sig',newline='') as f:rows=list(csv.DictReader(f))
@@ -282,7 +282,7 @@ def api_project_rows(q, rid, key):
 def api_project_pose(q, rid, key):
     from rdkit import Chem
     d=workflow.run_dir(rid);ident=q.get('id',[''])[0]
-    path=None;caption='分子坐标；未进行蛋白坐标系叠合'
+    path=None;caption='Molecular coordinates; not aligned to the protein coordinate frame'
     if key=='peptide2mol':
         rows=workflow.read(d/key/'seeds.json',[])
         row=next((x for x in rows if x['id']==ident),None)
@@ -291,13 +291,18 @@ def api_project_pose(q, rid, key):
         rows=workflow.read(d/'reinvent4/candidates.json',[])
         row=next((x for x in rows if x['id']==ident),None)
         if row:path=d/row['sdf'] if key=='reinvent4' else d/'docking/jobs'/ident/'poses.sdf'
+    elif key=='screening':
+        rows=workflow.read(d/'screening/candidates.json',[])
+        row=next((x for x in rows if x.get('pose_id')==ident or x.get('compound_id')==ident),None)
+        if row and row.get('sdf'):path=d/row['sdf']
     if path is None or not path.resolve().is_relative_to(d.resolve()) or not path.is_file():
-        return _json({'atoms':[],'caption':'当前记录没有可读取的三维产物'})
+        return _json({'atoms':[],'caption':'No readable 3D artifact for this record'})
     mol=next((m for m in Chem.SDMolSupplier(str(path),removeHs=True) if m is not None),None)
-    if mol is None or not mol.GetNumConformers():return _json({'atoms':[],'caption':'SDF 坐标不可读'})
+    if mol is None or not mol.GetNumConformers():return _json({'atoms':[],'caption':'SDF Unreadable coordinates'})
     atoms=[{'p':list(mol.GetConformer().GetAtomPosition(a.GetIdx())),'chain':'LIG','name':'CA','element':a.GetSymbol()} for a in mol.GetAtoms()]
-    if key=='docking':
-        caption='GNINA 原始第一位姿与实际对接受体；并非自动选定的最佳位姿'
+    if key in ('docking','screening'):
+        caption='GNINA Original first pose and actual docking receptor; not automatically the best pose'
+        if key=='screening':caption='Screening-selected pose and actual docking receptor; see candidate table for qualification'
         receptor=d/'docking/receptor.pdb'
         for line in receptor.read_text().splitlines():
             if line.startswith('ATOM  '):
@@ -316,7 +321,36 @@ def api_project_structure(q, rid):
                 except ValueError:pass
     return _json({'atoms':atoms})
 
+def api_studio(q,body,action):
+    if action=='upload':return _json(studio.upload(body),201)
+    if action=='environment':return _json(studio.environment_save(body))
+    raise ValueError('Unknown operation')
+
+def api_studio_run(q,body,rid,action):
+    if action=='export':return _json(studio.export_run(rid,body))
+    if action=='core':return _json(studio.save_core(rid,body))
+    if action=='box':return _json(studio.box(rid,body))
+    if action=='membrane-preview':return _json(studio.membrane_preview(rid,body))
+    if action=='receptor-apply':return _json(studio.apply_receptor(rid,body))
+    return _json(studio.launch(rid,action,body),202)
+
+def api_studio_get(q,rid,action):
+    if action=='operations':return _json({'operations':studio.operations(rid)})
+    if action=='seeds':return _json({'rows':workflow.read(workflow.run_dir(rid)/'peptide2mol/seeds.json',[])})
+    if action=='core':return _json(studio.core(rid,q.get('id',[''])[0]))
+    if action=='md':return _json({'systems':studio.md_list(rid)})
+    if action=='trajectory':return _json(studio.md_data(rid,q.get('id',[''])[0]))
+    if action=='candidates':
+        import csv
+        path=workflow.run_dir(rid)/'screening/molecules.csv'
+        if not path.exists():return _json({'rows':[]})
+        with path.open() as f:return _json({'rows':list(csv.DictReader(f))})
+    raise ValueError('Unknown read operation')
+
 ROUTES = [
+    ('POST', r'^/api/studio/(?P<action>upload|environment)$', api_studio),
+    ('POST', r'^/api/studio/run/(?P<rid>[A-Za-z0-9_-]+)/(?P<action>[a-z_-]+)$', api_studio_run),
+    ('GET', r'^/api/studio/run/(?P<rid>[A-Za-z0-9_-]+)/(?P<action>[a-z_-]+)$', api_studio_get),
     ('GET', r'^/api/project$', api_project),
     ('POST', r'^/api/project/runs$', api_project_create),
     ('GET', r'^/api/project/run/(?P<rid>[A-Za-z0-9_-]+)$', api_project_run),
@@ -376,12 +410,12 @@ def dispatch(method, path, query, body):
         except (ValueError, KeyError) as exc:
             return _error(f'{type(exc).__name__}: {exc}', 400)
         except OSError as exc:
-            return _error(f'文件读取失败: {exc}', 500)
+            return _error(f'File read failed: {exc}', 500)
         except Exception as exc:                            # noqa: BLE001
             import traceback
             traceback.print_exc()
             return _error(f'{type(exc).__name__}: {exc}', 500)
-    raise HttpError(f'未知接口: {method} {path}', 404)
+    raise HttpError(f'Unknown endpoint: {method} {path}', 404)
 
 
 # ---------------------------------------------------------------------------
@@ -393,7 +427,7 @@ def _safe_join(base, rel_url):
     norm = posixpath.normpath('/' + rel_url).lstrip('/')
     full = os.path.realpath(os.path.join(base, norm))
     if os.path.commonpath([full, os.path.realpath(base)]) != os.path.realpath(base):
-        raise HttpError('非法路径', 403)
+        raise HttpError('Invalid path', 403)
     return full
 
 
@@ -434,7 +468,7 @@ class Handler(BaseHTTPRequestHandler):
 
     def do_GET(self):                                        # noqa: N802
         if not self._valid_host():
-            self._send(*_error('Host 不匹配', 403)); return
+            self._send(*_error('Host mismatch', 403)); return
         parsed = urllib.parse.urlsplit(self.path)
         path = urllib.parse.unquote(parsed.path)
         query = urllib.parse.parse_qs(parsed.query)
@@ -445,7 +479,7 @@ class Handler(BaseHTTPRequestHandler):
                 return
             if path.startswith('/artifacts/'):
                 full = _safe_join(str(workflow.RUNS), path[len('/artifacts/'):])
-                if not os.path.isfile(full): raise HttpError('产物不存在',404)
+                if not os.path.isfile(full): raise HttpError('Artifact not found',404)
                 self._send_file(full, {'Content-Disposition': 'attachment', 'X-Content-Type-Options': 'nosniff'})
                 return
             if path.startswith('/files/'):
@@ -464,31 +498,31 @@ class Handler(BaseHTTPRequestHandler):
     def do_POST(self):                                       # noqa: N802
         if not self._valid_host():
             self.close_connection = True
-            self._send(*_error('Host 不匹配', 403)); return
+            self._send(*_error('Host mismatch', 403)); return
         parsed = urllib.parse.urlsplit(self.path)
         query = urllib.parse.parse_qs(parsed.query)
         origin = self.headers.get('Origin')
         host = self.headers.get('Host', '')
         if origin and origin != 'http://' + host:
             self.close_connection = True
-            self._send(*_error('跨站写请求被拒绝', 403)); return
+            self._send(*_error('Cross-site write request denied', 403)); return
         if self.headers.get('Sec-Fetch-Site') == 'cross-site':
             self.close_connection = True
-            self._send(*_error('跨站写请求被拒绝', 403)); return
+            self._send(*_error('Cross-site write request denied', 403)); return
         try:
             length = int(self.headers.get('Content-Length') or 0)
-            if not 0 <= length <= 1024 * 1024:
+            if not 0 <= length <= ((12 if parsed.path == '/api/studio/upload' else 1) * 1024 * 1024):
                 raise ValueError()
         except ValueError:
             self.close_connection = True
-            self._send(*_error('请求体长度无效或超过 1 MB', 413)); return
+            self._send(*_error('Invalid request body length or limit exceeded: 12 MB', 413)); return
         raw = self.rfile.read(length) if length else b'{}'
         try:
             body = json.loads(raw.decode('utf-8') or '{}')
             if not isinstance(body, dict):
                 raise ValueError('JSON body must be an object')
         except ValueError:
-            self._send(*_error('请求体不是合法 JSON', 400))
+            self._send(*_error('Request body is not valid JSON', 400))
             return
         try:
             status, ctype, payload = dispatch('POST', parsed.path, query, body)
@@ -510,20 +544,20 @@ class Handler(BaseHTTPRequestHandler):
             # "Unexpected token '<'" in the browser); only extension-less paths
             # fall back to the SPA shell.
             if os.path.splitext(path)[1]:
-                raise HttpError(f'前端资源不存在: {path}', 404)
+                raise HttpError(f'Frontend resource missing: {path}', 404)
             full = os.path.join(STATIC, 'index.html')
             if not os.path.isfile(full):
-                raise HttpError('运行时缺少前端文件 webui/static/index.html', 500)
+                raise HttpError('Frontend runtime files missing webui/static/index.html', 500)
         self._send_file(full)
 
     def _serve_data_file(self, rel_path, query):
         rel_path = urllib.parse.unquote(rel_path)
         top = rel_path.split('/')[0]
         if top not in FILE_DIRS:
-            raise HttpError(f'只允许下载 {"/".join(FILE_DIRS)} 下的文件', 403)
+            raise HttpError(f'Downloads are restricted to files under {"/".join(FILE_DIRS)} this directory', 403)
         full = _safe_join(os.path.join(ROOT, top), rel_path[len(top) + 1:])
         if not os.path.isfile(full):
-            raise HttpError(f'文件不存在: {rel_path}', 404)
+            raise HttpError(f'File not found: {rel_path}', 404)
         name = os.path.basename(full)
         extra = {}
         if query.get('download'):
@@ -561,8 +595,8 @@ class Server(ThreadingHTTPServer):
     allow_reuse_address = True
 
     def handle_error(self, request, client_address):
-        # 浏览器刷新/关闭标签页、预连接探测都会直接 RST 连接；这类中断不是错误，
-        # 不打印 traceback（否则控制台会被 WinError 10054 刷屏）。
+        # Browser refresh,/tab closure and preconnection probes can terminate the RST connection; these interruptions are not errors;
+        # do not print traceback(to avoid flooding the console with WinError 10054 messages).
         exc = sys.exc_info()[1]
         if isinstance(exc, (ConnectionResetError, ConnectionAbortedError, BrokenPipeError)):
             return
@@ -579,30 +613,30 @@ def _pick_port(host, port, tries=20):
             except OSError:
                 continue
         return candidate
-    raise OSError(f'{host}:{port}-{port + tries} 全部被占用')
+    raise OSError(f'{host}:{port}-{port + tries} all occupied')
 
 
 def serve(host='127.0.0.1', port=8777, open_browser=True, quiet=False):
     if not os.path.isdir(STATIC):
-        print(f'[webui] 前端目录不存在: {STATIC}', file=sys.stderr)
+        print(f'[webui] Frontend directory missing: {STATIC}', file=sys.stderr)
         return 2
     port = _pick_port(host, port)
     httpd = Server((host, port), Handler)
     url = f'http://{host}:{port}/'
     if not quiet:
         print('=' * 62)
-        print('  WEDGE-Design 控制台  (WEDGE-Design web console)')
+        print('  Yuanhe Bio Research Studio · 0.3.0-rc1')
         print(f'  {url}')
-        print(f'  工作目录 {ROOT}')
-        print(f'  Python {sys.version.split()[0]}   仅依赖标准库')
-        print('  Ctrl+C 结束')
+        print(f'  Working directory {ROOT}')
+        print(f'  Python {sys.version.split()[0]}   Scientific tasks use separate environments')
+        print('  Ctrl+C End')
         print('=' * 62, flush=True)
     if open_browser:
         threading.Timer(0.6, lambda: webbrowser.open(url)).start()
     try:
         httpd.serve_forever(poll_interval=0.3)
     except KeyboardInterrupt:
-        print('\n[webui] 已停止')
+        print('\n[webui] Stopped')
     finally:
         httpd.server_close()
     return 0

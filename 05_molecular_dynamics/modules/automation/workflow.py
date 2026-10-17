@@ -13,7 +13,7 @@ ROOT=Path(__file__).resolve().parents[2]
 def load_mapping(path):
     import yaml
     data=yaml.safe_load(Path(path).read_text(encoding='utf-8-sig'))
-    if not isinstance(data,dict): raise ValueError('配置/决定文件必须是键值映射。')
+    if not isinstance(data,dict): raise ValueError('Configuration/Decision file must be a key-value mapping.')
     return data
 
 def merge(a,b):
@@ -31,7 +31,7 @@ def settings(args, interactive):
     merge(cfg,{'MD':{'production':'100ps','cpu_threads':2},'replicates':1})
     if args.config: merge(cfg,load_mapping(Path(args.config).expanduser().resolve()))
     decisions=cfg.pop('decisions',{})
-    if not isinstance(decisions,dict): raise ValueError('decisions 必须是映射。')
+    if not isinstance(decisions,dict): raise ValueError('decisions must be a mapping.')
     if args.smoke_test:
         merge(cfg,{'MD':{'platform':'CPU','cpu_threads':2,'production':'10ps','equilibration':'2ps',
              'nvt':'1ps','npt':'1ps','report_interval':'1ps','checkpoint_interval':'2ps'},
@@ -39,13 +39,13 @@ def settings(args, interactive):
     elif interactive and not args.config:
         from .forcefields import list_presets
         print(json.dumps(list_presets(),ensure_ascii=False,indent=2))
-        print('当前启用整套预设：AMBER ff14SB + GAFF 2.11/AM1-BCC + TIP3P/NaCl。其他组合待验证。默认是短预运行。')
-        cfg['MD']['production']=input('生产时长 [100ps]：').strip() or '100ps'
-        cfg['replicates']=int(input('独立重复数 [1]：').strip() or '1')
-        cfg['MD']['cpu_threads']=int(input('CPU 线程数 [2]：').strip() or '2')
-        cfg['MD']['temperature']=float(input('温度 K [300]：').strip() or '300')
-        cfg['protein']['ph']=float(input('蛋白默认加氢 pH（已明确的 HIS 变体优先）[7]：').strip() or '7')
-        cfg['MD']['ionic_strength_molar']=float(input('NaCl 浓度 mol/L [0.15]：').strip() or '0.15')
+        print('The currently supported complete preset is:AMBER ff14SB + GAFF 2.11/AM1-BCC + TIP3P/NaCl. Other combinations await validation. The default is a short preflight run.')
+        cfg['MD']['production']=input('Production duration [100ps]: ').strip() or '100ps'
+        cfg['replicates']=int(input('Independent replicas [1]: ').strip() or '1')
+        cfg['MD']['cpu_threads']=int(input('CPU Thread count [2]: ').strip() or '2')
+        cfg['MD']['temperature']=float(input('Temperature K [300]: ').strip() or '300')
+        cfg['protein']['ph']=float(input('Default protein hydrogen addition pH(Explicit HIS variants take precedence)[7]: ').strip() or '7')
+        cfg['MD']['ionic_strength_molar']=float(input('NaCl Concentration mol/L [0.15]: ').strip() or '0.15')
         cfg['mmgbsa']['salt_molar']=cfg['MD']['ionic_strength_molar']
     cfg.update(workflow='md_from_complex_v2',configuration_version=2,project_name='Nexus_MD_v2')
     return cfg,decisions
@@ -53,11 +53,11 @@ def settings(args, interactive):
 def new_job(source,cfg,decisions,args):
     sha=digest(source)
     jobid=args.run_id or datetime.now(timezone.utc).strftime('%Y%m%dT%H%M%SZ_')+sha[:8]+'_'+uuid.uuid4().hex[:6]
-    if not re.fullmatch('[A-Za-z0-9_-]+',jobid): raise ValueError('任务 ID 只使用字母、数字、下划线和连字符。')
+    if not re.fullmatch('[A-Za-z0-9_-]+',jobid): raise ValueError('Task ID Use only letters, digits, underscores and hyphens.')
     job=ROOT/'runs'/jobid
     job.mkdir(parents=True,exist_ok=False)
     raw=job/'raw';raw.mkdir(); copy=raw/source.name;shutil.copyfile(source,copy)
-    if digest(copy)!=sha: raise ValueError('输入复制校验失败。')
+    if digest(copy)!=sha: raise ValueError('Input copy verification failed.')
     templates={};embedded_manifest={}
     from modules.utils.embedded_chemistry import read_embedded
     embedded=read_embedded(source.read_text())
@@ -66,18 +66,18 @@ def new_job(source,cfg,decisions,args):
         if (source.parent/name).is_file(): side_manifest=load_mapping(source.parent/name);break
     if embedded:
         embedded_manifest=embedded['manifest']
-        if side_manifest and side_manifest!=embedded_manifest: raise ValueError('内嵌与旁置 manifest 冲突。')
+        if side_manifest and side_manifest!=embedded_manifest: raise ValueError('Embedded and sidecar manifest conflict.')
         if embedded.get('ligand_sdf'):
             (raw/'embedded-ligand.sdf').write_text(embedded['ligand_sdf'])
             templates['default']=str((raw/'embedded-ligand.sdf').relative_to(job))
     ligand_meta=(embedded_manifest or side_manifest).get('ligand') or {}
     name=Path(ligand_meta.get('template_sdf','ligand.sdf'))
-    if name.is_absolute() or '..' in name.parts: raise ValueError('旁置模板路径不允许越过输入文件目录。')
+    if name.is_absolute() or '..' in name.parts: raise ValueError('Sidecar template paths cannot escape the input directory.')
     side=(source.parent/name).resolve()
-    if not side.is_relative_to(source.parent): raise ValueError('旁置模板链接越过输入目录。')
+    if not side.is_relative_to(source.parent): raise ValueError('Sidecar template link escapes the input directory.')
     if side.is_file():
         if embedded and embedded.get('ligand_sdf') and side.read_text()!=embedded['ligand_sdf']:
-            raise ValueError('内嵌与旁置 SDF 冲突。')
+            raise ValueError('Embedded and sidecar SDF conflict.')
         dest=raw/'provided-ligand.sdf';shutil.copyfile(side,dest);templates['default']=str(dest.relative_to(job))
     meta=embedded_manifest or side_manifest
     if meta: write(raw/'provided-manifest.json',meta)
@@ -92,7 +92,7 @@ def new_job(source,cfg,decisions,args):
 def waiting(job,pending,status='WAITING_FOR_DECISION'):
     write(job/'pending.json',{'status':status,'items':pending,
          'resume_command':f'bash run_md.sh --resume runs/{job.name} --decisions /path/to/decisions.yaml',
-         'note':'原始输入和已完成阶段保留；不会等待无人值守的键盘输入。'})
+         'note':'Original inputs and completed stages retained; no unattended keyboard prompt.'})
     update(job,status,pending_count=len(pending))
     print(json.dumps({'status':status,'job':str(job),'pending':pending},ensure_ascii=False,indent=2))
     return 4 if status=='DEPENDENCY_BLOCKED' else 3
@@ -107,7 +107,7 @@ def relocate(value, job, restore=False):
     if isinstance(value,str):
         if restore and value.startswith('@job/'):
             path=(job/value[5:]).resolve()
-            if not path.is_relative_to(job.resolve()):raise ValueError('任务路径越界。')
+            if not path.is_relative_to(job.resolve()):raise ValueError('Task path outside scope.')
             return str(path)
         if not restore and value.startswith(str(job)+'/'):
             return '@job/'+value[len(str(job))+1:]
@@ -122,11 +122,11 @@ def map_analysis_groups(groups, residues):
     for role,definition in result.items():
         if role in ('ligand','glue'):continue
         if not isinstance(definition,dict) or not isinstance(definition.get('chains'),list):
-            raise ValueError('分析组必须包含 chains 列表：'+str(role))
+            raise ValueError('Analysis groups must contain chains list:'+str(role))
         mapped=[]
         for chain in definition['chains']:
             if chain not in chains or len(chains[chain])!=1:
-                raise ValueError('原始链标识无法唯一映射到分析组：'+repr(chain))
+                raise ValueError('Original chain identifiers cannot map uniquely to analysis groups:'+repr(chain))
             mapped.extend(chains[chain])
         definition['chains']=mapped
     return result
@@ -139,14 +139,14 @@ def preflight(job,cfg,decisions,interactive):
     if interactive:
         models=sorted({a['model'] for a in inv['atoms']})
         if len(models)>1 and 'model' not in decisions:
-            decisions['model']=int(input('选择 MODEL '+str(models)+'：'))
+            decisions['model']=int(input('Select MODEL '+str(models)+': '))
         for item in inv.get('required_decisions',[]):
             if item.get('type')=='altloc' and 'altloc' not in decisions:
-                value=input('存在替代构象，请输入统一 altLoc 标签（如 A）；不能混合不兼容构象：').strip()
+                value=input('Alternate conformations present; enter a consistent altLoc label, e.g. A); Do not mix incompatible conformations:').strip()
                 if value:decisions['altloc']=value
         if 'keep_components' not in decisions and (sum(c['kind']=='ligand' for c in inv['components'])>1 or any(c['kind'] not in ('protein','ligand','water') for c in inv['components'])):
             print(json.dumps([{k:c.get(k) for k in ('id','kind','atom_count','residue_ids')} for c in inv['components']],ensure_ascii=False,indent=2))
-            choice=input('输入需要保留的组分 ID，用逗号分隔；回车全部保留并检查支持范围：').strip()
+            choice=input('Enter components to retain ID, comma-separated; Enter retains all and checks supported scope:').strip()
             if choice:decisions['keep_components']=[s.strip() for s in choice.split(',')]
     # Each decision attempt preserves its normalization artifacts for review.
     attempt=job/'normalized'/('attempt_'+uuid.uuid4().hex[:12])
@@ -159,24 +159,24 @@ def preflight(job,cfg,decisions,interactive):
     ligands=[c for c in comps if c['kind']=='ligand']
     protein=[c for c in comps if c['kind']=='protein']
     pending=[]
-    if not protein:pending.append({'id':'protein','message':'未识别到受支持蛋白，不能构建普通蛋白复合物。'})
+    if not protein:pending.append({'id':'protein','message':'No supported protein found; cannot construct a standard protein complex.'})
     others=[c for c in comps if c['kind'] not in ('protein','ligand','water')]
     if others:pending.append({'id':'unsupported_components','components':[{k:c.get(k) for k in ['id','kind','residue_ids']} for c in others],
-          'message':'保留了离子/金属/修饰组分的原始记录；当前普通非共价后端没有该组分的已验证参数路径。明确选择构建体后才可排除。'})
+          'message':'Original ion,/metal/or modified-component records retained. This noncovalent backend has no validated parameterization for them. Exclude only after explicit construct selection.'})
     waters=[c for c in comps if c['kind']=='water']
     if waters and decisions.get('water_policy')!='replace_bulk':
-        if interactive and input('输入含水；当前预设将移除输入水并重新溶剂化。确认不是必须保留的结合位点水？输入 yes：').strip().lower()=='yes':
+        if interactive and input('Input contains water; this preset removes it and resolvates. Confirm no essential binding-site water is being removed. Enter yes: ').strip().lower()=='yes':
             decisions['water_policy']='replace_bulk'
         else:pending.append({'id':'water_policy','key':'water_policy','options':['replace_bulk'],
-                    'message':'当前后端只支持重新溶剂化；有功能性晶体水时不要确认移除。'})
+                    'message':'This backend supports resolvation only; do not approve removal of functional crystallographic waters.'})
     if len(ligands)>1:
         pending.append({'id':'multiple_ligands','components':[c['id'] for c in ligands],
-          'message':'已识别多个配体/拷贝，未自动丢弃任何一个。当前模拟后端只验证了单配体；如研究体系确实只需一个，明确设置 keep_components，否则需要多配体后端。'})
+          'message':'Multiple ligands or/copies detected; none discarded automatically. Only a single ligand is validated. If scientifically appropriate, explicitly set keep_components, ; otherwise use a multiligand backend.'})
     if not inv.get('sequence_verified',False) and decisions.get('construct_confirmed') is not True:
-        if interactive and input('尚未验证完整目标序列。确认已有蛋白链就是目标构建体，内部缺口已经核对？输入 yes：').strip().lower()=='yes':
+        if interactive and input('Full target sequence has not been verified. Confirm these chains are the intended construct and internal gaps were checked. Enter yes: ').strip().lower()=='yes':
             decisions['construct_confirmed']=True
         else:pending.append({'id':'construct_confirmed','key':'construct_confirmed','options':[True],
-              'message':'尚未验证完整目标序列，不能证明无缺失残基；确认实际构建体。不会自动补造起始编号之前的残基。'})
+              'message':'Without full-sequence validation, missing residues cannot be ruled out. Confirm the construct; residues before the initial number are not invented.'})
     # Chemical input anomalies are never repaired during lossless normalization.
     for item in normalized.get('pending_decisions',[]):
         kind=str(item.get('type','')).lower(); ident=item.get('id','')
@@ -184,10 +184,10 @@ def preflight(job,cfg,decisions,interactive):
             termini=decisions.get('termini',{})
             selected=termini.get(item.get('residue_id')) if isinstance(termini,dict) else termini
             if selected!='standard_charged':
-                if interactive and input(str(item.get('message','末端化学异常'))+'\n选择常规带电末端（可能删除HXT并补OXT），输入 standard_charged；否则回车保留待决策：').strip()=='standard_charged':
+                if interactive and input(str(item.get('message','Unusual terminal chemistry'))+'\n Choose standard charged termini, potentially removing HXT and adding OXT), Input standard_charged; ; otherwise press Enter to leave undecided:').strip()=='standard_charged':
                     decisions.setdefault('termini',{})[item['residue_id']]='standard_charged'
                 else:pending.append({**item,'key':'termini.'+item['residue_id'],'options':['standard_charged'],
-                     'message':str(item.get('message',''))+' 需选择末端处理；封端或特殊末端当前没有已验证路径。'})
+                     'message':str(item.get('message',''))+' Choose terminal treatment; capped or special termini lack a validated path.'})
         else:
             pending.append(item)
     chemistry={}; target=None
@@ -215,7 +215,7 @@ def preflight(job,cfg,decisions,interactive):
                     name=original[atom['id']]['atom_name']
                     if name in mapping:mapped[atom['id']]=int(mapping[name])-1
                 if len(set(mapped.values()))!=len(mapped):
-                    raise ValueError('模板 atom_mapping 在重复原子名下不唯一；使用 stable ID 映射或确认候选。')
+                    raise ValueError('Template atom_mapping is ambiguous because atom names repeat; use stable ID mapping or confirm a candidate.')
                 template['atom_map']=mapped
         if chem_decision.get('smiles'):template={'smiles':chem_decision['smiles'],'trusted':True}
         if chem_decision.get('template_sdf'):
@@ -226,7 +226,7 @@ def preflight(job,cfg,decisions,interactive):
         chemistry=recover_component(component,job/'chemistry'/target,decision=chem_decision,template=template,timeout=30)
         if chemistry.get('status')=='WAITING' and interactive and chemistry.get('candidate_sha256'):
             print(json.dumps(chemistry,ensure_ascii=False,indent=2))
-            if input('核对候选的键级、手性、氢与电荷；明确接受这一个候选？输入 yes：').strip().lower()=='yes':
+            if input('Review bond orders, stereochemistry, hydrogens and charges. Explicitly accept this candidate? Enter yes: ').strip().lower()=='yes':
                 chem_decision={**chem_decision,'accept_candidate_sha256':chemistry['candidate_sha256']}
                 decisions.setdefault('chemistry',{})[target]=chem_decision
                 chemistry=recover_component(component,job/'chemistry'/target,decision=chem_decision,template=template,timeout=30)
@@ -256,14 +256,14 @@ def execute(job,args,interactive):
     source=read(job/'source.json');cfg=read(job/'settings.json');decisions=read(job/'decisions.json')
     verify(job,read(job/'raw_hashes.json'))
     if args.decisions:merge(decisions,load_mapping(Path(args.decisions).expanduser().resolve()))
-    if args.config and args.resume:raise ValueError('不能在续跑时替换配置。为新设置建立新任务；不会复用旧拓扑。')
+    if args.config and args.resume:raise ValueError('Cannot replace configuration on resume. Create a new task; old topology will not be reused.')
     current=read(job/'state.json')
     locked=(job/'execution_fingerprint.json').exists()
     if locked:
         frozen=read(job/'execution_fingerprint.json')
         if frozen['settings_sha256']!=fingerprint(cfg) or frozen['decisions_sha256']!=fingerprint(decisions):
-            raise ValueError('上游结构/科学决定变化，下游结果已失去可复用资格。请建立新任务，旧结果完整保留。')
-        if frozen['implementation']!=implementation():raise ValueError('实现变化，拒绝静默续跑。请用原版本恢复或建立新任务。')
+            raise ValueError('Upstream structure or/scientific decisions changed; downstream results cannot be reused. Create a new task; old results remain intact.')
+        if frozen['implementation']!=implementation():raise ValueError('Implementation changed; silent resume refused. Restore the original version or create a new task.')
         verify(job,frozen['preflight_files'])
         plan=relocate(read(job/'plan.json'),job,True);cfg=read(job/'effective_config.json')
     else:
@@ -286,9 +286,9 @@ def execute(job,args,interactive):
         write(job/'effective_config.json',cfg)
         import yaml
         (job/'config.yaml').write_text(yaml.safe_dump(cfg,sort_keys=False,allow_unicode=True))
-    print('任务：'+str(job));print('实际设置：'+json.dumps({'MD':cfg['MD'],'replicates':cfg['replicates']},ensure_ascii=False))
+    print('Task:'+str(job));print('Actual settings:'+json.dumps({'MD':cfg['MD'],'replicates':cfg['replicates']},ensure_ascii=False))
     if args.inspect_only:
-        if not locked:update(job,'READY',active_stage='input_preflight',note='仅输入准备检查；未参数化或运行 MD。')
+        if not locked:update(job,'READY',active_stage='input_preflight',note='Input preparation checks only; no parameterization or MD. ')
         return 0
     from .backend import dependency_report,prepare,build,run,analyze,audit_run
     dependencies=dependency_report(cfg);write(job/'dependencies.json',dependencies)
@@ -296,12 +296,12 @@ def execute(job,args,interactive):
     ready=dependencies.get('ready',dependencies.get('available',dependencies.get('status') in ['READY','PASS']))
     if not ready:return waiting(job,[{'id':'dependencies','report':dependencies}],'DEPENDENCY_BLOCKED')
     if locked and frozen['dependencies'].get('compatibility_fingerprint')!=dependencies.get('compatibility_fingerprint'):
-        raise ValueError('运行依赖版本或参数文件变化，拒绝复用检查点。请恢复原环境或建立新任务。')
+        raise ValueError('Runtime dependencies or parameter files changed; checkpoint reuse refused. Restore the original environment or create a new task.')
     if platform.system()!='Linux' or platform.machine() not in ('x86_64','AMD64'):
-        return waiting(job,[{'id':'target_platform','message':'原生动态验证仅在 x86-64 Ubuntu/Linux 执行；Mac 输入测试不是 Linux MD 验证。'}],'DEPENDENCY_BLOCKED')
+        return waiting(job,[{'id':'target_platform','message':'Native dynamics validation runs only under x86-64 Ubuntu/Linux ;Mac input tests do not establish Linux MD validation.'}],'DEPENDENCY_BLOCKED')
     free=shutil.disk_usage(job).free
     if free<2*1024**3:
-        return waiting(job,[{'id':'free_space','free_bytes':free,'message':'可用空间低于 2 GiB，停止建系。正式长模拟需要按体系和输出频率另行估算。'}],'DEPENDENCY_BLOCKED')
+        return waiting(job,[{'id':'free_space','free_bytes':free,'message':'Available space below 2 GiB, ; system construction stopped. Estimate storage separately for long simulations and output frequency.'}],'DEPENDENCY_BLOCKED')
     if not locked:
         write(job/'execution_fingerprint.json',{'settings_sha256':fingerprint(read(job/'settings.json')),
              'decisions_sha256':fingerprint(decisions),'implementation':implementation(),
@@ -332,22 +332,22 @@ def execute(job,args,interactive):
                     except BaseException:
                         traceback.print_exc();raise
             if name=='audit':
-                if not result.get('passed'):raise ValueError('动态验收未通过，不能标记 COMPLETE。')
+                if not result.get('passed'):raise ValueError('Dynamic acceptance failed; cannot mark COMPLETE. ')
                 write(job/'acceptance.json',result)
             stages[name].update(status='COMPLETE',completed=now(),files=files_under(job,folders))
             update(job,'RUNNING',stages=stages,active_stage=name)
         if args.prepare_only and name=='build':
             if current['status']!='COMPLETE':update(job,'PREPARED',active_stage='build')
-            print('结构、参数化与体系构建已完成；本次未推进模拟。');return 0
+            print('Structure, parameterization and system construction complete; simulation was not advanced.');return 0
     # Original identifiers remain available beside the analyzed topology.
     update(job,'COMPLETE',active_stage=None,completed=now())
-    (job/'REPORT.txt').write_text('任务完成：'+job.name+'\n配置：config.yaml\n验收：acceptance.json\n原始编号映射：analysis/input_atom_map.json、input_residue_map.json\n短测只验证工程链路，不证明充分平衡、收敛、结合亲和力或协同性。\n')
+    (job/'REPORT.txt').write_text('Task completed:'+job.name+'\n Configuration:config.yaml\n Acceptance:acceptance.json\n Original numbering map:analysis/input_atom_map.json, input_residue_map.json\n Short tests verify engineering integration, not sufficient equilibration, convergence, binding affinity or cooperativity.\n')
     (job/'pending.json').unlink(missing_ok=True)
     print(json.dumps({'status':'COMPLETE','job':str(job),'acceptance':str(job/'acceptance.json')},ensure_ascii=False))
     return 0
 
 def main(argv=None):
-    p=argparse.ArgumentParser(description='Nexus MD：无损输入、显式科学决定、OpenMM 自动运行')
+    p=argparse.ArgumentParser(description='Nexus MD: Lossless input, explicit scientific decisions,OpenMM automated execution')
     p.add_argument('--input');p.add_argument('--input-dir',default=str(ROOT/'inputs'))
     p.add_argument('--config');p.add_argument('--decisions');p.add_argument('--run-id')
     p.add_argument('--resume');p.add_argument('--non-interactive',action='store_true')
@@ -360,11 +360,11 @@ def main(argv=None):
             from .forcefields import list_presets
             print(json.dumps(list_presets(),ensure_ascii=False,indent=2));return 0
         if args.resume:
-            if args.input or args.run_id or args.smoke_test:raise ValueError('续跑不接受新输入、任务 ID 或新 smoke 设置。')
+            if args.input or args.run_id or args.smoke_test:raise ValueError('Resume does not accept a new input, task ID or new smoke settings.')
             value=Path(args.resume).expanduser()
             job=(value if value.is_absolute() else ROOT/value).resolve()
             if not job.is_relative_to(ROOT/'runs') or not (job/'source.json').is_file():
-                raise ValueError('新入口续跑路径必须为本项目 runs/<任务ID>；旧 results 任务继续使用 run.sh --run-id ID --resume。')
+                raise ValueError('Resume path must belong to this project runs/<Task ID>; Legacy results tasks continue using run.sh --run-id ID --resume. ')
         else:
             source=resolve_input(args.input,args.input_dir,interactive)
             cfg,decisions=settings(args,interactive)
@@ -377,10 +377,10 @@ def main(argv=None):
     except LockBusy as exc:
         print('ERROR: '+str(exc),file=sys.stderr);return 5
     except KeyboardInterrupt:
-        if job and (job/'state.json').exists():update(job,'INTERRUPTED',message='用户中断；后端从最后已提交检查点续跑。')
+        if job and (job/'state.json').exists():update(job,'INTERRUPTED',message='Interrupted by user; resume from the last committed checkpoint.')
         return 130
     except Exception as exc:
         if job and (job/'state.json').exists():update(job,'FAILED',error_type=type(exc).__name__,message=str(exc))
         print('ERROR: '+str(exc),file=sys.stderr)
-        if job: print('任务记录：'+str(job),file=sys.stderr)
+        if job: print('Task record:'+str(job),file=sys.stderr)
         return 2

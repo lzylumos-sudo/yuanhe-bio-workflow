@@ -8,7 +8,7 @@ from pathlib import Path
 import pytest
 
 ROOT = Path(__file__).resolve().parents[2]
-sys.path.insert(0, str(ROOT / "01_molecule_generation"))
+sys.path.insert(0, str(ROOT / "v2"))
 
 from src.hypotheses import derive_hypotheses, generate_hypotheses
 from src.structure import (

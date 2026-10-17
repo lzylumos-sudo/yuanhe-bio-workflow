@@ -1,0 +1,16 @@
+Host prerequisites and external-disk deployment
+
+Install Windows x86-64 with hardware virtualization, WSL2, an Ubuntu x86-64 distribution, a compatible Windows NVIDIA driver and a browser. Do not install a separate Linux NVIDIA GPU driver in WSL. Windows Python, Node.js, Docker and an LLM API key are not required by this workbench.
+
+WSL alone is insufficient. Install separate chemistry/screening, Peptide2Mol, REINVENT4, receptor-preparation and membrane-analysis environments, plus GNINA and GROMACS. Keep environments on the Linux filesystem, not ordinary exFAT directories. Follow validation_5070/INSTALL_AND_VALIDATE.txt; the first successful target solve and actual calculations are still pending acceptance.
+
+The original external disk contained PMT_major.ckpt (67,462,479 bytes) and libinvent.prior (94,756,131 bytes), with recorded hashes. GitHub excludes these weights, vendor source trees and the historical WSL image. Restore them using the dependency manifest and restorer. GROMACS requires executable/force fields/system parameters, not trained neural-network weights. GNINA must load and execute its configured CNN model.
+
+Configure deployment/runtime.json or the environment dialog, then use start_windows.cmd. The launcher reads the configured chemistry interpreter. New runs freeze inputs/settings; failures preserve attempts. Stop work and the specific WSL distribution before safe disk removal. Every new host still requires initial setup and compatibility checks; plugging in a disk is not evidence of portable acceptance.
+
+See ../USER_GUIDE.txt for daily UI operations and ../docs/04_VALIDATION.md for tested versus untested scope. The newer workbench includes membrane construction and trajectory analysis; older notes describing an external-TPR-only interface are historical.
+
+Official host references:
+https://learn.microsoft.com/windows/wsl/install
+https://learn.microsoft.com/windows/wsl/reference
+https://docs.nvidia.com/cuda/wsl-user-guide/index.html

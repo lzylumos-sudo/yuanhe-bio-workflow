@@ -3,7 +3,7 @@
 Two host facts this project has to live with on the build machine:
 
 1. The working directory contains CJK characters
-   (``C:\\Users\\user\\Desktop\\元核生物``).  RDKit's C++ layer opens files
+   (``C:\\Users\\user\\Desktop\\Yuanhe Bio``).  RDKit's C++ layer opens files
    through narrow ``char*`` paths, so any RDKit call that takes a *filename*
    fails there with ``OSError: Bad input file``.  Solution: every RDKit file
    read goes through :func:`read_mol_blocks` (Python reads bytes, RDKit parses a

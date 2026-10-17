@@ -1,52 +1,52 @@
-# 安装与配置
+# Installation and configuration
 
-## 1. 网页预览
+The target platform is Windows with WSL2, an NVIDIA RTX 5070 and Linux x86-64 environments. Keep environments on the WSL Linux filesystem, not an exFAT external disk. The external disk carries the project, structures, model files and run records. A new host still needs compatible installed dependencies.
 
-在 Python 3.11+ 运行 `python3 00_workbench/run_webui.py --no-browser`，打开 `http://127.0.0.1:8777`。默认仅监听本机。首页读取集中结构目录；历史页面没有随仓库打包旧结果，不能把空历史页面当作本次计算失败。
+## Preview
 
-## 2. 化学和科学依赖
+With Python 3.11+, run `python3 00_workbench/run_webui.py --no-browser` from the repository root and open `http://127.0.0.1:8777`. Starting the interface does not start calculations. Historical result datasets are not bundled; an empty historical page is expected.
 
-不同模块/模型使用独立环境，不应强行安装到同一个环境。
+On Windows, use `start_windows.cmd` and select the WSL distribution. The launcher reads the chemistry interpreter from `deployment/runtime.json`. Daily preparation, review, execution, recovery and export are available in the workbench.
 
-- 生成模块工程测试：Python 3.11、pytest、RDKit、NumPy。
-- 对接环境：见 `02_docking/env/sbvs2.environment.yml` 与对应平台锁文件；实际 GNINA 可执行程序另行安装。
-- 筛选环境：依赖列表见 `03_virtual_screening/pyproject.toml`，可在独立环境内执行 `pip install -e ./03_virtual_screening`。
-- ZLIS：见 `04_interaction_analysis/env/` 和该模块 README。
-- OpenMM：x86-64 Ubuntu/WSL2，进入 `05_molecular_dynamics` 执行 `bash setup.sh`；仓库保留 `env/linux-64-explicit.lock`，不包含离线环境包。新版入口为 `bash run_md.sh`。
-- Peptide2Mol、REINVENT4：分别按官方固定版本环境安装，来源与目标路径见 `deployment/model_dependencies.json`。不将模型运行环境装进仓库。
+## Separate environments
 
-## 3. 恢复本地第三方模型
+- Chemistry and screening: Python, RDKit, NumPy, PyYAML, gemmi and the screening package dependencies. See `02_docking/env/sbvs2.environment.yml` and `03_virtual_screening/pyproject.toml`.
+- Peptide2Mol: its own Python/PyTorch/CUDA and geometric-operator environment. RTX 5070 compatibility must be tested with the actual operators, not inferred from GPU detection.
+- REINVENT4: a separate environment with the pinned source and LibInvent prior.
+- GNINA: a separately installed executable and compatible CNN runtime. Record actual CNN model, device and version.
+- Membrane preparation and analysis: `deployment/membrane-environment.yml`, installed through the interface after the base environment is configured. The first successful solve exports an exact package lock and pip freeze; the YAML alone is not a solved lock.
+- GROMACS: Linux build selected by its actual executable path. Record whether execution really used CPU or GPU.
+- Optional ZLIS and standalone OpenMM: follow their module READMEs. Their environments and evidence do not validate GROMACS.
 
-已有原始项目时，在仓库根目录运行：
+See `deployment/validation_5070/INSTALL_AND_VALIDATE.txt` for installation commands and target-machine experiments, and `USER_GUIDE.txt` for the UI workflow.
 
-```bash
-python3 deployment/restore_models.py --source-root '/原项目路径/元核生物'
-```
+## Restore models
 
-工具只复制第三方模型目录到忽略的 `01_molecule_generation/vendor/`，排除 `.git`、`.env` 和缓存；不覆盖现有目录；核对两个权重的 SHA-256。不安装依赖、不运行模型。缺少 Git 元数据时，适配器仅记录源码指纹，不声称验证了官方提交。
-
-无原项目时，可按 `deployment/model_dependencies.json` 从官方获取固定提交与权重；官方来源不保证重现旧本地补丁，真实推理仍须独立验证。模型适配器拒绝缺失权重、错误哈希或空有效输出。
-
-## 4. 本机配置
-
-复制 `deployment/runtime.example.json` 为 `deployment/runtime.json`，填写各独立环境/程序的实际路径，后者已被 Git 忽略。然后运行：
+From the repository root:
 
 ```bash
-python3 deployment/doctor.py --config deployment/runtime.json
+python3 deployment/restore_models.py --source-root /path/to/source-project
 ```
 
-doctor 是只读环境检查，检查通过也不等于完整推理或科学验证。网页中创建新运行时选择 `data/structures/9nu4.pdb`。必须明确链、残基范围与科学输入；核心选择、GNINA 受体/盒及已准备 GROMACS TPR 在对应阶段审核。
+The restorer accepts this repository layout or a source directory containing the pinned model files. It copies only model directories into ignored `01_molecule_generation/vendor/`, excludes Git metadata and secrets, refuses overwrite and checks both weight hashes. It does not install dependencies or run inference. Without upstream Git metadata, adapters record a source fingerprint rather than claiming verified upstream commit identity.
 
-## 5. 工程测试
+Alternatively obtain the pinned source and weights listed in `deployment/model_dependencies.json`. Upstream sources may not reproduce historical local patches; validate actual inference separately. Missing weights, wrong hashes and empty valid outputs must fail explicitly.
 
-使用具备相应依赖的 Python，分别在各模块目录运行 pytest；不要从仓库根目录一次混收集多个同名 `src`/测试包。
+## Runtime settings
+
+Copy `deployment/runtime.example.json` to ignored `deployment/runtime.json`, then enter actual paths in Environment and diagnostics. Save before creating a new run. Existing runs retain frozen settings.
+
+`python3 deployment/doctor.py --config deployment/runtime.json` is an optional read-only check. A passing dependency check is not scientific acceptance. Select `data/structures/9nu4.pdb`, review chains and residue ranges, then review cores, receptor, docking box and membrane system at the relevant stages.
+
+## Engineering checks
+
+Run each module's tests in its own directory to avoid collisions between packages named `src`:
 
 ```bash
 cd 01_molecule_generation
 PYTHONPATH=. python -m pytest tests -q
-# 回到根目录后：
 cd ../00_workbench
-PYTHONPATH=. python -m pytest tests/test_workflow_regressions.py -q
+PYTHONPATH=. python -m pytest tests/test_workflow_regressions.py tests/test_studio_integration.py -q
 ```
 
-当前验证范围和依赖差异见 `04_VALIDATION.md`。Windows 启动、Linux 安装和 GPU 真实计算需在目标机器再验收。
+See `04_VALIDATION.md` for the actual acceptance boundary. Windows launch, environment solving, model inference, GNINA CNN and membrane dynamics require target-machine validation.

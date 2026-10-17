@@ -51,9 +51,9 @@ class InventoryTests(unittest.TestCase):
         self.assertEqual(saved["inverse_serial_to_id"], {"1": "a000001", "2": "a000002"})
 
     def test_filename_unicode_spaces_parentheses_uppercase_extension(self):
-        p = self.inventory([atom(1), atom(2)], name="我的复合物 R2 (new).v1.PDB")
-        self.assertEqual(p["source"]["filename"], "我的复合物 R2 (new).v1.PDB")
-        r = normalize_pdb(p, {}, self.root / "输出 (1)")
+        p = self.inventory([atom(1), atom(2)], name="my_complex R2 (new).v1.PDB")
+        self.assertEqual(p["source"]["filename"], "my_complex R2 (new).v1.PDB")
+        r = normalize_pdb(p, {}, self.root / "Output (1)")
         self.assertTrue(Path(r["normalized_path"]).is_file())
 
     def test_bond_multiplicity_does_not_add_forward_reverse(self):

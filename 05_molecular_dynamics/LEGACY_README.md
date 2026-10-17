@@ -42,15 +42,15 @@ Production MD is explicitly CPU-limited in this build, and PDBFixer preparation 
 
 Sources: [OpenMM documentation](https://docs.openmm.org/latest/userguide/), [OpenMMForceFields](https://github.com/openmm/openmmforcefields), [ParmEd OpenMM export](https://parmed.github.io/ParmEd/html/openmm.html), [Amber MM/PB(GB)SA tutorial](https://ambermd.org/tutorials/advanced/tutorial3/).
 
-## 独立的 10 ns 完成后验收
+## Independent completed 10 ns audit
 
-主入口完成分析后会自动核验并生成报告。公开 CPU 10 ns 示例还应运行独立后验器：
+After normal analysis, audit the public CPU example independently:
 
 ```bash
 source runtime.sh
 "$NEXUS_ENV_PREFIX/bin/python" scripts/validate_10ns.py --run-id public_1fkj_10ns_v2
 ```
 
-该工具只读取已经完成的运行，在独立 CPU Context 中重载二进制 checkpoint，绝不推进模拟。它检查至少 5,000,000 步 × 2 fs、输入/配置/系统/每段轨迹/分析哈希、有限坐标、全局 CSV 步数与时间、实际 DCD 帧数及时间。每个 DCD 的时间头从本段起计，因此以已独立验证的前段步数累加偏移并逐段对照 CSV，不把本段时间误当整个生产时长。当前后验器只重载 CPU checkpoint；不会自动使用 GPU。
+The auditor only reads a completed run and reloads its binary checkpoint in a separate CPU Context without advancing simulation. It checks at least 5,000,000 steps at 2 fs, input/configuration/system/segment/analysis hashes, finite coordinates, global CSV step/time and actual DCD frame counts/times. Segment-local DCD times are offset using independently verified preceding steps before comparison to the global CSV. It does not automatically use a GPU.
 
-全部通过才写 `installation_evidence/10ns_final_audit.json`、`validation_status.json` 与 `MD_TEST_PASS.md`。未完成或只有 4 ps 会非零退出且不覆盖已存在的成功证据。真实 4 ps 拒绝测试见 `installation_evidence/10ns_validator_rejection_test.json`。此结果仅证明数值流程完成，不证明收敛或结合亲和力。
+Only full success writes installation_evidence/10ns_final_audit.json, validation_status.json and MD_TEST_PASS.md. Incomplete or 4 ps runs exit nonzero without overwriting prior successful evidence; the historical rejection record is installation_evidence/10ns_validator_rejection_test.json. Numerical completion does not establish convergence or affinity.

@@ -18,8 +18,8 @@ for d in importlib.metadata.distributions():
 write_json(ROOT/'env/pip_sources.json',pip)
 lock=read_json(ROOT/'env/vendor.lock.json');lock['micromamba']={'version':'2.3.3','path':'/opt/sbvs/vendor/micromamba','sha256':sha('/opt/sbvs/vendor/micromamba'),'url':'https://micro.mamba.pm/api/micromamba/linux-64/2.3.3','publisher_sha256_verified':False};lock['3Dmol.js']={'version':'2.5.5','url':'https://cdn.jsdelivr.net/npm/3dmol@2.5.5/build/3Dmol-min.js','sha256':sha(ROOT/'src/sbvs/web/static/3Dmol-min.js'),'source_kind':'versioned npm package via jsDelivr','publisher_sha256_verified':False};write_json(ROOT/'env/vendor.lock.json',lock)
 write_json(ROOT/'docs/licenses/sources.json',sources)
-text='# 第三方来源与许可证\n\n本项目不把整套发行包统一标为 Apache-2.0。GNINA 包含其仓库说明的 GPL/Apache 授权部分及第三方依赖；准确原文保存在 licenses/，分发前应分别审查这些条款。NVIDIA 用户态库有独立许可，不等于显卡驱动随项目迁移。\n\n'
-text+='源码许可证原文与 URL/SHA256：docs/licenses/sources.json。Conda 每个实际包的版本、build、来源和 license：env/package_provenance.json。pip 来源：env/pip_sources.json。引擎与前端资产：env/vendor.lock.json。\n\n'
-text+='Ubuntu Base 来源 https://cdimage.ubuntu.com/ubuntu-base/releases/24.04/release/ ，原始发行包保存在 runtime/downloads/。RCSB PDB/CCD 来源与哈希在 data/sources.json。3Dmol.js 2.5.5 通过固定版本 jsDelivr npm 镜像本地化，不在浏览器运行时访问 CDN。\n'
+text='# Third-party sources and licenses\n\n The distribution is not uniformly licensed as Apache-2.0. GNINA and contains the repository documented GPL/Apache licensed portions and dependencies; exact texts are stored in licenses/, Review these terms separately before redistribution.NVIDIA User-space libraries have separate licenses; GPU drivers do not migrate with the project.\n\n'
+text+='Source license texts and URL/SHA256: docs/licenses/sources.json. Conda Each installed package version,build, source and license: env/package_provenance.json. pip Source:env/pip_sources.json. Engine and frontend assets:env/vendor.lock.json. \n\n'
+text+='Ubuntu Base Source https://cdimage.ubuntu.com/ubuntu-base/releases/24.04/release/ , Original distribution stored in runtime/downloads/. RCSB PDB/CCD Sources and hashes in data/sources.json. 3Dmol.js 2.5.5 Localized from a pinned jsDelivr npm mirror; browsers do not access CDN. \n'
 (ROOT/'docs/THIRD_PARTY_NOTICES.md').write_text(text,encoding='utf-8')
 print(json.dumps({'license_files':len(sources),'conda_packages':len(packages),'pip_packages':len(pip)}))

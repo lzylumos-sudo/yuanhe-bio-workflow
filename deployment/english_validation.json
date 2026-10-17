@@ -1,0 +1,48 @@
+{
+  "release": "0.3.0-rc1",
+  "checks": {
+    "workbench": {
+      "exit_code": 0,
+      "summary": "43 passed in 0.84s"
+    },
+    "legacy_geometry": {
+      "exit_code": 0,
+      "summary": "8 passed, 1 skipped, 1 deselected in 34.30s"
+    },
+    "generation": {
+      "exit_code": 0,
+      "summary": "57 passed in 0.82s"
+    },
+    "screening": {
+      "exit_code": 0,
+      "summary": "28 passed, 3 skipped; integration tests excluded"
+    },
+    "docking": {
+      "exit_code": 0,
+      "summary": "29 passed, 2 skipped in 11.79s"
+    },
+    "openmm_contracts": {
+      "exit_code": 0,
+      "summary": "76 passed in 5.85s"
+    },
+    "interaction_analysis": {
+      "exit_code": 0,
+      "summary": "40 passed, 1 warning in 21.23s"
+    },
+    "docking_unit": {
+      "exit_code": 0,
+      "summary": "11 passed in 1.04s"
+    },
+    "frontend": {
+      "exit_code": 0,
+      "summary": "15 frontend tests passed; all 18 JavaScript files parsed"
+    }
+  },
+  "target_windows_wsl_rtx5070": "not_tested",
+  "real_model_inference": "not_run",
+  "target_docking": "not_run",
+  "membrane_parameterization_and_md": "not_run",
+  "english_integrity": "No Han characters in current distributable text, decoded JSON or filenames; Python syntax checked; license digest matched.",
+  "ui_review": "English workspace and new-run dialog inspected in browser; guided tools and license links present.",
+  "scope": "Local engineering checks only; no target model inference, docking, membrane construction or MD performed."
+}

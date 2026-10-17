@@ -3,7 +3,7 @@
 from __future__ import annotations
 import argparse,csv,json,math,os,shutil,subprocess,sys,time
 from pathlib import Path
-from webui.workflow import ROOT,UI,STAGES,atomic,digest,read,require,run_dir
+from webui.workflow import ROOT,UI,STAGES,atomic,digest,read,require,run_dir,lease_fds,gnina_environment
 GEN=ROOT/'01_molecule_generation'
 SCREEN=ROOT/'03_virtual_screening'
 sys.path.insert(0,str(GEN))
@@ -13,13 +13,13 @@ class Blocked(RuntimeError):pass
 def executable(value,label):
  path=shutil.which(value) if value else None
  if not path and value and Path(value).is_file():path=str(Path(value).resolve())
- if not path or not os.access(path,os.X_OK):raise Blocked(label+' 可执行程序未配置或不可运行')
+ if not path or not os.access(path,os.X_OK):raise Blocked(label+' Executable is missing or cannot run')
  return path
 
 def command(argv,cwd,timeout,env=None):
  print(json.dumps({'argv':list(map(str,argv)),'cwd':str(cwd)},ensure_ascii=False),flush=True)
- p=subprocess.run(list(map(str,argv)),cwd=cwd,env=env,timeout=timeout,check=False)
- if p.returncode:raise RuntimeError(f'子进程失败，退出码 {p.returncode}')
+ p=subprocess.run(list(map(str,argv)),cwd=cwd,env=env,timeout=timeout,check=False,pass_fds=lease_fds())
+ if p.returncode:raise RuntimeError(f'Subprocess failed with exit code {p.returncode}')
 
 def csv_write(path,rows,fields):
  with Path(path).open('w',newline='',encoding='utf-8') as f:
@@ -27,7 +27,7 @@ def csv_write(path,rows,fields):
 
 def stage_prepare(d,cfg,out):
  from src.structure import prepare_structure
- if digest(d/'input.pdb')!=cfg['input_sha256']:raise RuntimeError('输入结构哈希不匹配')
+ if digest(d/'input.pdb')!=cfg['input_sha256']:raise RuntimeError('Input structure hash mismatch')
  result=prepare_structure(d/'input.pdb',out,structure_id=Path(cfg['structure']).stem,
  receptor_chain=cfg['receptor_chain'],peptide_chain=cfg['peptide_chain'],receptor_start=cfg['receptor_range'][0],
  receptor_end=cfg['receptor_range'][1],crop_distance_A=float(cfg['pocket_radius']),source_url='local project input')
@@ -52,16 +52,16 @@ def stage_reinvent4(d,cfg,out):
  from rdkit import Chem
  from rdkit.Chem import AllChem
  selections=cfg.get('core_selections') or []
- if not selections:raise Blocked('缺少已审核的核心选择：core_selections 中填写 seed_id 和 key_atom_indices（从 1 开始）。先检查 Peptide2Mol 种子的结构。')
+ if not selections:raise Blocked('Reviewed core selection required: in core_selections enter seed_id and key_atom_indices(from 1 onward). First inspect Peptide2Mol seed structures.')
  seeds={r['id']:r for r in read(d/'peptide2mol/seeds.json',[])};mc=read(GEN/'configs/project.json')['models']['reinvent4']
  exe=executable(cfg['reinvent_executable'],'REINVENT4');rows=[];failures=[];seen=set();core_records=[];sampled=0
  for n,selection in enumerate(selections):
   seed=seeds.get(selection.get('seed_id'))
-  if not seed:raise ValueError('核心引用了不存在的种子')
+  if not seed:raise ValueError('Core references an unknown seed')
   mol=Chem.SDMolSupplier(str(d/seed['raw_sdf']),removeHs=True)[0]
-  if mol is None:raise ValueError('种子 SDF 无法解析')
+  if mol is None:raise ValueError('Seed SDF could not be parsed')
   keys=selection.get('key_atom_indices',[])
-  if not keys or any(not isinstance(x,int) or x<1 or x>mol.GetNumAtoms() for x in keys):raise ValueError('核心原子编号无效')
+  if not keys or any(not isinstance(x,int) or x<1 or x>mol.GetNumAtoms() for x in keys):raise ValueError('Invalid core atom indices')
   for atom in mol.GetAtoms():atom.SetAtomMapNum(atom.GetIdx()+1)
   core=derive_design_core(mol,keys,seed_id=seed['id'],max_attachment_points=1)
   coremol=Chem.MolFromSmiles(core.design_core)
@@ -87,7 +87,7 @@ def stage_reinvent4(d,cfg,out):
    'route_status':'not_evaluated','protonation':'as_input_not_pH_enumerated','provenance_manifest':str((out/f'core_{n:04d}/manifest.json').relative_to(d))})
  atomic(out/'cores.json',core_records);atomic(out/'failures.json',failures);atomic(out/'candidates.json',rows)
  csv_write(out/'molecules.csv',rows,['id','smiles','seed_id','core','route_status','protonation','sdf','provenance_manifest'])
- if not rows:raise RuntimeError('未生成可进入对接的有效独立分子')
+ if not rows:raise RuntimeError('No valid unique molecules available for docking')
  return {'sampled':sampled,'unique':len(seen),'failed':len(failures),'remaining':len(rows)}
 
 def stage_docking(d,cfg,out):
@@ -99,35 +99,38 @@ def stage_docking(d,cfg,out):
  if cfg['gnina_device']=='gpu':
   smi=shutil.which('nvidia-smi') or '/usr/lib/wsl/lib/nvidia-smi'
   probe=subprocess.run([smi,'--query-gpu=name','--format=csv,noheader'],capture_output=True,text=True,timeout=20)
-  if probe.returncode or not probe.stdout.strip():raise Blocked('请求 GPU 对接，但 WSL 未检测到 NVIDIA GPU')
+  if probe.returncode or not probe.stdout.strip():raise Blocked('Requested GPU docking, but WSL was not detected NVIDIA GPU')
  # Explicit preparation is a scientific input, not guessed from raw coordinates.
  rec=Path(cfg.get('docking_receptor') or '')
- if not cfg.get('docking_receptor') or not rec.is_file():raise Blocked('请配置经过质子化/残基审核的完整受体 docking_receptor；不会把局部模型口袋直接用于对接')
+ if not rec.is_absolute():rec=d/rec
+ if not cfg.get('docking_receptor') or not rec.is_file():raise Blocked('Configure a protonated,/residue-reviewed full receptor docking_receptor; The local model pocket is not used directly for docking')
+ review=cfg.get('receptor_review',{})
+ if review and (not review.get('reviewed') or digest(rec)!=review.get('sha256')):raise ValueError('Receptor differs from the reviewed file; prepare and review it again')
  expected=read(d/'prepare/preparation.json')['receptor']['range_atom_count']
  atoms=[l for l in rec.read_text().splitlines() if l.startswith(('ATOM  ','HETATM')) and l[76:78].strip().upper()!='H']
- if any(l[21:22]==cfg['peptide_chain'] for l in atoms):raise ValueError('对接受体仍包含多肽链')
- if len(atoms)<expected*.8:raise ValueError('对接受体重原子数显著不足，疑似局部口袋或错误文件')
+ if any(l[21:22]==cfg['peptide_chain'] for l in atoms):raise ValueError('Docking receptor still contains the peptide chain')
+ if len(atoms)<expected*.8:raise ValueError('Too few receptor heavy atoms; possible cropped pocket or incorrect file')
  b=cfg.get('docking_box')
- if not isinstance(b,dict) or len(b.get('center',[]))!=3 or len(b.get('size',[]))!=3:raise Blocked('需要明确审核后的 docking_box.center 与 size，单位 Å')
+ if not isinstance(b,dict) or len(b.get('center',[]))!=3 or len(b.get('size',[]))!=3:raise Blocked('Explicitly reviewed values required for docking_box.center and size, units Å')
  box=Box(tuple(map(float,b['center'])),tuple(map(float,b['size'])),'manual')
- if box.validate():raise ValueError('对接盒无效或过大: '+','.join(box.validate()))
+ if box.validate():raise ValueError('Invalid or oversized docking box: '+','.join(box.validate()))
  receptor=out/'receptor.pdb';shutil.copyfile(rec,receptor);atomic(out/'box.json',b)
  proto=Protocol.preset('standard',seeds=(cfg['seed'],));rows=read(d/'reinvent4/candidates.json',[]);results=[];successful=[]
  for row in rows:
-  result=run_gnina_job(exe,receptor,d/row['sdf'],box,proto,cfg['seed'],out/'jobs'/row['id'],device=cfg['gnina_device'],cpu=4,timeout=cfg['timeout_seconds'],nvidia_smi=shutil.which('nvidia-smi'))
+  result=run_gnina_job(exe,receptor,d/row['sdf'],box,proto,cfg['seed'],out/'jobs'/row['id'],device=cfg['gnina_device'],cpu=4,timeout=cfg['timeout_seconds'],nvidia_smi=shutil.which('nvidia-smi'),env_extra=gnina_environment())
   entry={**row,'status':result['status'],'error':result.get('error')}
   if result['status']=='ok':
    best=max(result['poses'],key=lambda x:x['cnn_pose_score']);entry.update(best);successful.append(row['id'])
   results.append(entry);atomic(out/'progress.json',{'input':len(rows),'processed':len(results),'successful':len(successful),'failed':len(results)-len(successful)})
  atomic(out/'results.json',results);csv_write(out/'molecules.csv',results,['id','smiles','status','empirical_score_kcal_mol','cnn_pose_score','cnn_affinity_pK','error'])
- if not successful:raise RuntimeError('所有分子对接失败，详见各 job_record.json')
+ if not successful:raise RuntimeError('All molecules failed docking; inspect each job_record.json')
  return {'input':len(rows),'remaining':len(successful),'failed':len(rows)-len(successful),'poses':sum(len(read(out/'jobs'/x/'job_record.json')['poses']) for x in successful)}
 
 def stage_screening(d,cfg,out):
- py=executable(cfg.get('screen_python') or cfg['chem_python'],'虚拟筛选 Python')
+ py=executable(cfg.get('screen_python') or cfg['chem_python'],'Virtual screening Python')
  # Separate stage-local database prevents cross-run counts and candidate contamination.
  workspace=out/'workspace';workspace.mkdir();shutil.copytree(SCREEN/'configs',workspace/'configs')
- host={'paths':{'structures_dir':str(ROOT)},'tools':{'gnina':[executable(cfg['gnina'],'GNINA')]},
+ host={'paths':{'structures_dir':str(ROOT)},'tools':{'gnina':[executable(cfg['gnina'],'GNINA')], 'gnina_settings':{'cnn_model':'crossdock_default2018_1_3','device':cfg['gnina_device'],'exhaustiveness':16,'num_modes':9,'cpu':4,'cnn_scoring':'rescore','environment':gnina_environment()}},
  'executors':{'md_openmm_linux':{'mode':'disabled','note':'GROMACS used separately; membrane system not auto-prepared'}}}
  atomic(workspace/'host.json',host)
  handoff=out/'docking_input';handoff.mkdir()
@@ -142,26 +145,43 @@ def stage_screening(d,cfg,out):
  import tempfile
  env['ZVSS_SCRATCH']=tempfile.mkdtemp(prefix='yuanhe_zvss_')
  command([py,'-m','zvss.cli','--root',workspace,'run','--input',handoff,'--run-id','screen',
- '--target',workspace/'configs/targets'/f"{cfg['target_profile']}.yaml",'--budget',workspace/'configs/budgets/quick.yaml',
+ '--target',workspace/'configs/targets'/f"{cfg['target_profile']}.yaml",'--budget',workspace/'configs/budgets'/f"{cfg.get('screening_budget','quick')}.yaml",
  '--host',workspace/'host.json','--hints',json.dumps({'receptor_file':str(d/'docking/receptor.pdb'),'box':cfg['docking_box'],'seed':cfg['seed']})],workspace,cfg['timeout_seconds'],env)
  state=read(workspace/'runs/screen/run_state.json',{})
- if state.get('errors'):raise RuntimeError('筛选模块报告错误')
+ if state.get('errors'):raise RuntimeError('Screening module reported an error')
  files=list((workspace/'runs/screen').rglob('candidates.csv'))
- if not files:raise RuntimeError('筛选未产出 candidates.csv')
+ if not files:raise RuntimeError('Screening did not produce candidates.csv')
  with files[0].open(encoding='utf-8-sig',newline='') as f:rows=list(csv.DictReader(f))
- atomic(out/'candidates.json',rows);shutil.copyfile(files[0],out/'molecules.csv')
- return {'input':read(d/'docking/stage.json')['counts']['remaining'],'remaining':len({x.get('compound_id') for x in rows if x.get('compound_id')})}
+ from rdkit import Chem
+ selected=out/'selected_poses';selected.mkdir()
+ for row in rows:
+  pid=row.get('pose_id','')
+  if not pid or '/' in pid or '\\' in pid:continue
+  matches=list(workspace.rglob(pid+'.sdf'))
+  if not matches:continue
+  mol=next((m for m in Chem.SDMolSupplier(str(matches[0]),removeHs=False) if m is not None),None)
+  if mol is None:continue
+  target=selected/(pid+'.sdf');shutil.copyfile(matches[0],target)
+  row['sdf']=str(target.relative_to(d));row['smiles']=Chem.MolToSmiles(Chem.RemoveHs(mol),isomericSmiles=True)
+ atomic(out/'candidates.json',rows)
+ csv_write(out/'molecules.csv',rows,list(dict.fromkeys(k for row in rows for k in row)))
+ return {'input':read(d/'docking/stage.json')['counts']['remaining'],'remaining':len({x.get('compound_id') for x in rows if x.get('compound_id')}),'formal':len({x.get('compound_id') for x in rows if x.get('qualification')=='formal'}),'preliminary':len({x.get('compound_id') for x in rows if x.get('qualification')!='formal'})}
 
 def stage_gromacs(d,cfg,out):
+ if cfg.get('md_system_ids'):
+  py=executable(cfg.get('md_python'),'membrane simulation Python')
+  command([py,str(UI/'md_stage.py'),'--run-id',d.name,'--output',out],out,cfg['timeout_seconds'])
+  systems=read(out/'systems.json',[])
+  return {'simulations_completed':len(systems),'remaining':len({s['compound_id'] for s in systems}),'scientifically_validated':0}
  exe=executable(cfg['gmx'],'GROMACS')
- if not cfg.get('gromacs_system_reviewed'):raise Blocked('缺少膜体系、力场与平衡审核；不会把 OpenMM 水溶液流程冒充 GROMACS 膜模拟')
+ if not cfg.get('gromacs_system_reviewed'):raise Blocked('Membrane system, force field and equilibration review required; a OpenMM solution workflow is not a substitute for GROMACS membrane simulation')
  tpr=Path(cfg.get('gromacs_tpr') or '')
- if not cfg.get('gromacs_tpr') or not tpr.is_file():raise Blocked('需要已构建、已平衡并审核的 production.tpr；当前项目没有完整膜体系自动构建模块')
+ if not cfg.get('gromacs_tpr') or not tpr.is_file():raise Blocked('A constructed, equilibrated and reviewed system is required for production.tpr; Build and select a system in the membrane wizard, or import a reviewed TPR')
  shutil.copyfile(tpr,out/'production.tpr')
  command([exe,'--version'],out,60)
  command([exe,'mdrun','-s','production.tpr','-deffnm','production'],out,cfg['timeout_seconds'])
- if not (out/'production.gro').is_file() or not (out/'production.log').is_file():raise RuntimeError('GROMACS 缺少最终结构或日志')
- atomic(out/'analysis_status.json',{'status':'not_evaluated','note':'轨迹需针对所选受体/配体定义分析组；尚未实现自动膜体系准备与科学终点分析'})
+ if not (out/'production.gro').is_file() or not (out/'production.log').is_file():raise RuntimeError('GROMACS Final structure or log missing')
+ atomic(out/'analysis_status.json',{'status':'not_evaluated','note':'Trajectory analysis requires receptor-specific/and ligand groups; external TPR mode only runs simulation; use the membrane wizard for integrated analysis'})
  return {'simulations_completed':1,'scientifically_validated':0}
 
 def main():
@@ -169,7 +189,7 @@ def main():
  d=run_dir(a.run_id);out=d/a.stage;cfg=read(d/'config.json');rec=read(out/'stage.json',{})
  try:
   if rec.get('status')!='running':raise RuntimeError('Stage must be started by the workflow manager')
-  if digest(d/'config.json')!=read(d/'run.json')['config_sha256']:raise RuntimeError('配置已变化')
+  if digest(d/'config.json')!=read(d/'run.json')['config_sha256']:raise RuntimeError('Configuration changed')
   order=[x[0] for x in STAGES];i=order.index(a.stage)
   if i:require(d,order[i-1])
   for prior in order[:i+1]:

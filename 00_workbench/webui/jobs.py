@@ -19,32 +19,32 @@ ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 KINDS = {
     'evidence': dict(
-        label='证据链重建',
+        label='Evidence reconstruction',
         script='run_evidence.py',
-        docs='从三个 PDB 现算全部结构数字，并逐条核对 24 条文献先验（约 30 s）',
+        docs='Recalculate from three PDB structures and verify all 24 literature priors (approximately 30 s)',
         args={'out': dict(type='path', default='evidence')},
         suffix=[('out', '--out')],
     ),
     'pipeline': dict(
-        label='设计管线',
+        label='Design pipeline',
         script='run_pipeline.py',
-        docs='界面 → 药效团 → 口袋 → 骨架枚举 → 位姿打分 → 排名导出（约 50 s）',
+        docs='Interface → Pharmacophore → Pocket → Scaffold enumeration → Pose scoring → Rank export (approximately 50 s)',
         args={'out': dict(type='path', default='results')},
         suffix=[('out', '--out')],
     ),
     'filters': dict(
-        label='结构衍生过滤器',
+        label='Structure-derived filters',
         script='run_filters.py',
-        docs='F1 锚点特异性 / F2 同电荷排斥 / F3 跨亚口袋 / F4 三结构集合（约 80 s）',
+        docs='F1 Anchor specificity / F2 Like-charge repulsion / F3 Cross-subpocket / F4 Three-structure ensemble (approximately 80 s)',
         args={'out': dict(type='path', default='results'),
               'targets': dict(type='int', default=0, minimum=0, maximum=5000),
               'max_spread': dict(type='float', default=5.0, minimum=0.5, maximum=50.0)},
         suffix=[('out', '--out'), ('targets', '--targets'), ('max_spread', '--max-spread')],
     ),
     'tests': dict(
-        label='冒烟测试',
+        label='Smoke tests',
         script='tests/test_smoke.py',
-        docs='结构解析 / 先验 / 证据链 / 组装 / 枚举 / 口袋 / 端到端自检',
+        docs='Structure parsing / Priors / Evidence chain / Assembly / Enumeration / Pocket / End-to-end self-check',
         args={},
         suffix=[],
     ),
@@ -106,20 +106,20 @@ def _validate(kind, payload):
         raw = (payload or {}).get(name, rules.get('default'))
         if rules['type'] == 'path':
             if not _SAFE_PATH.fullmatch(str(raw)) or '..' in str(raw) or os.path.isabs(str(raw)) or str(raw).startswith(('\\', '/')):
-                raise ValueError(f'非法的输出目录: {raw!r}')
+                raise ValueError(f'Invalid output directory: {raw!r}')
             resolved = os.path.realpath(os.path.join(ROOT, str(raw)))
             if os.path.commonpath([resolved, os.path.realpath(ROOT)]) != os.path.realpath(ROOT):
-                raise ValueError('输出目录超出项目范围')
+                raise ValueError('Output directory is outside the project')
             out[name] = str(raw)
         elif rules['type'] == 'int':
             val = int(float(raw))
             if not (rules['minimum'] <= val <= rules['maximum']):
-                raise ValueError(f'{name} 超出范围 [{rules["minimum"]}, {rules["maximum"]}]')
+                raise ValueError(f'{name} Out of range [{rules["minimum"]}, {rules["maximum"]}]')
             out[name] = val
         elif rules['type'] == 'float':
             val = float(raw)
             if not (rules['minimum'] <= val <= rules['maximum']):
-                raise ValueError(f'{name} 超出范围 [{rules["minimum"]}, {rules["maximum"]}]')
+                raise ValueError(f'{name} Out of range [{rules["minimum"]}, {rules["maximum"]}]')
             out[name] = val
     for key, flag in spec['suffix']:
         argv += [flag, str(out[key])]
@@ -128,17 +128,17 @@ def _validate(kind, payload):
 
 def start(kind, payload=None):
     if kind not in KINDS:
-        raise ValueError(f'未知任务类型: {kind}')
-    raise RuntimeError('旧版枚举入口已归档为只读，请使用统一工作台的真实模型流程')
+        raise ValueError(f'Unknown job type: {kind}')
+    raise RuntimeError('Legacy enumeration is archived as read-only; use the workbench model workflow')
     spec = KINDS[kind]
     with _lock:
         running_same = [j for j in _jobs.values()
                         if j['kind'] == kind and j['status'] in ('queued', 'running')]
         if running_same:
-            raise RuntimeError(f'该任务已在运行中（{running_same[0]["id"]}）')
+            raise RuntimeError(f'This job is already running ({running_same[0]["id"]})')
         n_running = sum(1 for j in _jobs.values() if j['status'] in ('queued', 'running'))
         if n_running >= 2:
-            raise RuntimeError('同时最多运行 2 个任务，请等待当前任务结束')
+            raise RuntimeError('At most 2 concurrent jobs; wait for an active job to finish')
     argv, params = _validate(kind, payload or {})
     cmd = [sys.executable, os.path.join(ROOT, spec['script'])] + argv
     job_id = uuid.uuid4().hex[:10]
@@ -148,7 +148,7 @@ def start(kind, payload=None):
     with _lock:
         active = [j for j in _jobs.values() if j['status'] in ('queued', 'running')]
         if active:
-            raise RuntimeError('已有任务运行；共享输出目录只能串行写入')
+            raise RuntimeError('A job is running; shared output directories require serial writes')
         _jobs[job_id] = job
         _order.append(job_id)
     threading.Thread(target=_run, args=(job_id,), name=f'job-{job_id}', daemon=True).start()
@@ -188,7 +188,7 @@ def _run(job_id):
             job['error'] = f'{type(exc).__name__}: {exc}'
             job['ended'] = _now()
             job['exit'] = -1
-        _append(job, f'[启动失败] {job["error"]}', 'stderr')
+        _append(job, f'[Startup failed] {job["error"]}', 'stderr')
         return
     with _lock:
         job['proc'] = proc
@@ -212,8 +212,8 @@ def _run(job_id):
         job['proc'] = None
         if job['status'] != 'cancelled':
             job['status'] = 'done' if code == 0 else 'failed'
-    _append(job, f'[{"完成" if code == 0 else "失败"}] exit={code} '
-                 f'用时 {job["ended"] - job["started"]:.1f}s')
+    _append(job, f'[{"Completed" if code == 0 else "Failed"}] exit={code} '
+                 f'Duration {job["ended"] - job["started"]:.1f}s')
 
 
 def cancel(job_id):

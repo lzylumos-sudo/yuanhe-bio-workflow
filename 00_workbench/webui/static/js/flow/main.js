@@ -46,7 +46,7 @@ async function render() {
   const token = ++state.token;
   const n = stageNo();
   if (state.cleanup) { try { state.cleanup(); } catch (e) { /* ignore */ } state.cleanup = null; }
-  page.replaceChildren(el('div', { class: 'loading', text: '载入中…' }));
+  page.replaceChildren(el('div', { class: 'loading', text: 'Loading...' }));
   try {
     await loadWorkflow();
     if (token !== state.token) return;
@@ -59,7 +59,7 @@ async function render() {
     state.cleanup = cleanup;
     window.scrollTo(0, 0);
   } catch (err) {
-    page.replaceChildren(el('div', { class: 'err', text: `载入失败：${err.message}` }));
+    page.replaceChildren(el('div', { class: 'err', text: `Load failed:${err.message}` }));
   }
 }
 

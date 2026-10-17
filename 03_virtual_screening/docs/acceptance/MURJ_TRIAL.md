@@ -1,37 +1,7 @@
-# MurJ 试筛报告（冻结受体 + 盒缺失）
+# Historical MurJ trial: receptor ready, docking blocked
 
-## 已冻结的受体
+Target: EcMurJ / 9NU4 chain A / UniProt P0AF16. The historical murj2 receptor had 3,785 atoms, 498 residues and author range 3-500. Removed fusion residues -101..2 comprised 104 residues and 813 atoms; component deletions were recorded. The original complex with its 29 modeled Sgl residues remained archived. Numbering round trips, selected-domain coverage and reference retention passed; WT restoration was not evaluated.
 
-| 项 | 值 |
-| --- | --- |
-| 靶点 | EcMurJ / 9NU4 chain A / UniProt P0AF16 |
-| 受体文件 | `runs/murj2/reference/receptor.pdb` |
-| 原子数 / 残基 / 编号 | 3785 / 498 / auth 3–500（= 天然域） |
-| 删除内容 | N 端融合 −101–2（104 残基、813 原子）、水/离子/脂/配体/其他链，记录见 `reference/audit/deletions.csv` |
-| 原生复合体留档 | `runs/murj2/reference/complex_full.pdb`（sha256 `96383da4…`，含 29 残基 Sgl 肽，仅作机制参考） |
-| 审计状态 | 编号往返、仅天然域、完整覆盖、参考留档 = pass；WT 侧链恢复 = `not_evaluated` |
+At that time no reviewed local docking box was available. 9NU4 contains a peptide reference, not a co-crystal small molecule; the upstream generic 1DRF box was inapplicable. The system therefore did not fabricate a blind box or MurJ poses. Approximately 20 chemically complete input compounds were available, but no target docking submission was made. GNINA was also blocked by missing CUDA runtime libraries.
 
-## 局部对接盒：缺失
-
-MurJ 没有任何可核验的局部对接盒来源：
-
-- 9NU4 沉积中没有共结晶小分子配体；
-- B 链为 29 残基 Sgl 肽，只能作机制参考，不能定义可对接位点；
-- 上游 `F:\MemPilot` 只提供 1DRF 的受体与盒，没有 MurJ 盒。
-
-按项目规则，**不猜测位点、不生成盲对接盒**。因此本轮不对 MurJ 产生任何对接结果或位姿级指标。
-
-## 约 20 个化学信息完整分子的尝试状态
-
-| 阶段 | 状态 |
-| --- | --- |
-| 受体准备与审计 | 已完成（见上） |
-| 分子身份/化学完整性 | 可执行（输入沿用上游 20 分子集合），但本轮未提交，因为后续位姿级阶段全部无盒可用 |
-| 对接（GNINA） | `blocked_missing_docking_box` + `blocked_external_tool`（CUDA 运行时缺失，见 `GNINA_ENV.md`） |
-| 位姿 QA / 机制 / 复对接 / 膜环境 | `not_evaluated` |
-| 候选 | **0**，解释保留，规则未放宽 |
-
-## 解除阻塞所需输入
-
-1. 一个经验证的 MurJ 位点定义：共结晶配体结构、定点突变/交联定义的结合面，或上游项目冻结并记录的对接盒；
-2. 可执行的 GNINA 运行时（补齐全套 CUDA 12 运行时后即可用同一适配器直接对接）。
+Pose QA, local mechanism, redocking and membrane pose assessment remained not_evaluated; candidate count was zero. The required next inputs were a sourced/reviewed MurJ site hypothesis and an executable GNINA runtime. The later workbench can calculate and preview a candidate box from selected residues, but that still requires scientific review and is not retrospective validation of this historical trial.

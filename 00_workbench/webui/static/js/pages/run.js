@@ -6,7 +6,7 @@ import {
 } from '../ui.js';
 
 const STATUS_LABEL = {
-  queued: '排队中', running: '运行中', done: '完成', failed: '失败', cancelled: '已取消',
+  queued: 'Queued', running: 'Running', done: 'Completed', failed: 'Failed', cancelled: 'Cancelled',
 };
 
 export async function mount(root, ctx) {
@@ -22,10 +22,10 @@ export async function mount(root, ctx) {
   root.replaceChildren();
   root.appendChild(div({ class: 'page-head' },
     div(null,
-      el('h1', { text: '运行管线' }),
-      div({ class: 'sub', text: '在这里重跑仓库自带的四个入口脚本。命令被白名单限定，参数经过校验；日志从子进程逐行流式返回。结果写回 results/ 与 evidence/，其它页面刷新后即可看到新数字。' })),
+      el('h1', { text: 'Run pipeline' }),
+      div({ class: 'sub', text: 'Rerun the four bundled entry scripts. Commands are allowlisted, arguments validated and subprocess logs streamed. Results are written to results/ and evidence/, ; refresh other pages for updated values.' })),
     div({ class: 'actions' },
-      el('button', { class: 'btn', text: '刷新状态', onclick: () => reloadJobs() }))));
+      el('button', { class: 'btn', text: 'Refresh status', onclick: () => reloadJobs() }))));
 
   /* ---------- launcher cards ---------- */
   const launchCards = div({ class: 'grid cols-2', style: { gap: '12px' } });
@@ -44,14 +44,14 @@ export async function mount(root, ctx) {
     }
     const btn = el('button', {
       class: kind.kind === 'pipeline' ? 'btn primary' : 'btn',
-      text: '运行',
+      text: 'Run',
       onclick: async () => {
         btn.disabled = true;
         try {
           const params = {};
           for (const [name, input] of Object.entries(inputs)) params[name] = input.value;
           const res = await api.startJob(kind.kind, params);
-          toast(`已启动：${kind.label}`, 'ok');
+          toast(`Started:${kind.label}`, 'ok');
           selected = res.id;
           cursor = 0;
           logLines = [];
@@ -87,7 +87,7 @@ export async function mount(root, ctx) {
   function paintHistory() {
     history.replaceChildren();
     if (!jobs.length) {
-      history.appendChild(div({ class: 'empty-state', text: '还没有运行记录。' }));
+      history.appendChild(div({ class: 'empty-state', text: 'No run records yet.' }));
       return;
     }
     for (const job of jobs) {
@@ -104,30 +104,30 @@ export async function mount(root, ctx) {
           span({ class: `status-chip ${job.status}`, text: STATUS_LABEL[job.status] || job.status }),
           span({ class: 'tiny', text: job.label }),
           span({ class: 'right tiny muted mono', style: { marginLeft: 'auto' }, text: job.id })),
-        div({ class: 'tiny muted mono', style: { marginTop: '2px' }, text: `exit ${job.exit ?? '—'} · ${job.total_lines} 行` })));
+        div({ class: 'tiny muted mono', style: { marginTop: '2px' }, text: `exit ${job.exit ?? '—'} · ${job.total_lines} rows` })));
     }
   }
 
   function paintConsole() {
     const job = jobs.find((j) => j.id === selected);
     consoleTitle.replaceChildren(
-      el('h3', { text: job ? `${job.label} · ${job.id}` : '日志' }),
+      el('h3', { text: job ? `${job.label} · ${job.id}` : 'Log' }),
       job ? span({ class: `right status-chip ${job.status}`, text: STATUS_LABEL[job.status] || job.status }) : null);
     consoleTools.replaceChildren(
-      job ? span({ class: 'tiny muted mono', text: (job.cmd || []).slice(1).join(' ') || job.kind }) : span({ class: 'tiny muted', text: '选择左侧任意一次运行' }),
+      job ? span({ class: 'tiny muted mono', text: (job.cmd || []).slice(1).join(' ') || job.kind }) : span({ class: 'tiny muted', text: 'Select a run on the left' }),
       div({ class: 'grow' }),
       job && (job.status === 'running' || job.status === 'queued')
-        ? el('button', { class: 'btn sm danger', text: '中止', onclick: () => cancel(job.id) })
+        ? el('button', { class: 'btn sm danger', text: 'Stop', onclick: () => cancel(job.id) })
         : null,
       el('button', {
-        class: 'btn sm ghost', text: '导出日志',
+        class: 'btn sm ghost', text: 'Export log',
         onclick: () => downloadText(`job-${job?.id || 'log'}-${formatNow()}.txt`, logLines.join('\n'), 'text/plain;charset=utf-8'),
       }),
-      el('button', { class: 'btn sm ghost', text: '清屏', onclick: () => { logLines = []; consoleNode.replaceChildren(); } }));
+      el('button', { class: 'btn sm ghost', text: 'Clear', onclick: () => { logLines = []; consoleNode.replaceChildren(); } }));
     consoleNode.replaceChildren(...logLines.map((line) => {
-      const cls = /\[完成\]/.test(line.text) ? 'done' : /\[失败\]|Traceback|Error/.test(line.text) ? 'fail' : /^\$/.test(line.text) ? 'cmd' : '';
+      const cls = /\[Completed\]/.test(line.text) ? 'done' : /\[Failed\]|Traceback|Error/.test(line.text) ? 'fail' : /^\$/.test(line.text) ? 'cmd' : '';
       return div({ class: `ln ${cls}` },
-        line.t ? span({ class: 't', text: new Date(line.t * 1000).toLocaleTimeString('zh-CN') }) : null,
+        line.t ? span({ class: 't', text: new Date(line.t * 1000).toLocaleTimeString('en') }) : null,
         line.text);
     }));
     consoleNode.scrollTop = consoleNode.scrollHeight;
@@ -136,7 +136,7 @@ export async function mount(root, ctx) {
   async function cancel(id) {
     try {
       await api.cancelJob(id);
-      toast('已请求中止', 'warn');
+      toast('Stop requested', 'warn');
     } catch (err) {
       toast(err.message, 'err');
     }
@@ -151,7 +151,7 @@ export async function mount(root, ctx) {
       paintHistory();
       paintConsole();
     } catch (err) {
-      toast(`读取任务状态失败：${err.message}`, 'err');
+      toast(`Could not read job status:${err.message}`, 'err');
     }
   }
 
@@ -174,7 +174,7 @@ export async function mount(root, ctx) {
           paintConsole();
           if (job.status === 'done') {
             invalidate();
-            toast(`${job.label} 完成，结果文件已更新（其它页面刷新即可看到新数字）`, 'ok', 6000);
+            toast(`${job.label} Completed; result files updated. Refresh other pages for new values.`, 'ok', 6000);
           } else {
             toast(`${job.label} ${STATUS_LABEL[job.status] || job.status}`, 'err', 5000);
           }
@@ -201,7 +201,7 @@ export async function mount(root, ctx) {
   reloadJobs();
 
   root.appendChild(div({ class: 'section grid wide-left' },
-    card({ title: '运行历史' }, history),
+    card({ title: 'Run history' }, history),
     consoleCard));
 
   return () => {

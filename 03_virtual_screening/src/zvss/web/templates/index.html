@@ -18,12 +18,12 @@
 </head>
 <body>
 <h1>ZVSS · Zhiyu Virtual Screening Studio <span class="muted">v{{ version }}</span></h1>
-<p class="muted">本机 127.0.0.1 服务；页面只读展示数据库与已生成的报告文件，不触发计算。</p>
+<p class="muted">Local 127.0.0.1 service; read-only database and report display, without computation</p>
 
-<h2>运行记录</h2>
+<h2>Run records</h2>
 {% if runs %}
 <table>
-  <tr><th>run_id</th><th>状态</th><th>靶点</th><th>预算</th><th>配置摘要</th><th>创建</th></tr>
+  <tr><th>run_id</th><th>Status</th><th>Target</th><th>Budget</th><th>Configuration digest</th><th>Create</th></tr>
   {% for r in runs %}
   <tr>
     <td><a href="/run/{{ r.run_id }}">{{ r.run_id }}</a></td>
@@ -36,7 +36,7 @@
   {% endfor %}
 </table>
 {% else %}
-<p class="muted">暂无运行记录。执行 <code>zvss run --input &lt;目录&gt; --target &lt;目标配置&gt;</code> 后再刷新。</p>
+<p class="muted">No run records. Execute <code>zvss run --input &lt;Contents&gt; --target &lt;target configuration&gt;</code> then refresh.</p>
 {% endif %}
 </body>
 </html>

@@ -140,7 +140,7 @@ class ChemicalRecoveryTests(unittest.TestCase):
 
     def test_cache_key_tracks_evidence_not_filename(self):
         component, _ = component_from_smiles("CCO")
-        first = self.recover(component, name="名称 (1)", template={"smiles": "CCO"})
+        first = self.recover(component, name="Name (1)", template={"smiles": "CCO"})
         renamed = copy.deepcopy(component)
         renamed["id"] = "another_filename"
         for atom in renamed["atoms"]:

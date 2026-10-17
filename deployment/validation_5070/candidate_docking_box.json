@@ -1,0 +1,29 @@
+{
+  "input": "/Volumes/Zhiyu Li/Yuanhe Bio/9nu4.pdb",
+  "sha256": "ec509ae9f04236407d515de6f64095fefb44a8432eca8287e9bd8b3f75c78a3a",
+  "candidate_box": {
+    "center": [
+      159.115,
+      153.366,
+      136.322
+    ],
+    "size": [
+      24.324,
+      21.754,
+      22.565
+    ]
+  },
+  "residues": [
+    50,
+    51,
+    53,
+    54,
+    237,
+    240,
+    241,
+    244
+  ],
+  "review_required": true,
+  "over_profile_max": false,
+  "warning": "A candidate box from local TM2/TM7 profile, not a validated binding site. Review against peptide reference in the SAME coordinate frame."
+}

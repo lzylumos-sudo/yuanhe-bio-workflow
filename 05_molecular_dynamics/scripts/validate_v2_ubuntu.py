@@ -175,7 +175,7 @@ def probe_checkpoint(job, output):
         raise ValueError("The native checkpoint probe requires x86-64 Linux.")
     job = Path(job).resolve()
     if not job.is_relative_to((ROOT / "runs").resolve()):
-        raise ValueError("Checkpoint probe job must belong to this project's runs directory.")
+        raise ValueError("Checkpoint probe job must belong to this project runs directory.")
     sys.path.insert(0, str(ROOT))
     from modules.automation.backend import _reload_final_checkpoint
     config = read_json(job / "effective_config.json")

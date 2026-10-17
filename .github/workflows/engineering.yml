@@ -5,6 +5,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      - name: English content and source integrity
+        run: python3 deployment/check_english.py
       - uses: actions/setup-python@v5
         with:
           python-version: '3.11'

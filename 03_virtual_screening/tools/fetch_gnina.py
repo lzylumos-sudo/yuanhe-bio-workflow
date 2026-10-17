@@ -1,4 +1,4 @@
-"""Fetch the exact GNINA build recorded by the upstream project's vendor lock.
+"""Fetch the exact GNINA build recorded by the upstream project vendor lock.
 
 The upstream MemPilot project pins gnina 1.3.3 with a sha256 in
 ``env/vendor.lock.json``.  This script downloads that same artifact and refuses

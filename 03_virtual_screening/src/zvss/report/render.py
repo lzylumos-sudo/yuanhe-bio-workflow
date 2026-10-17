@@ -8,10 +8,10 @@ from typing import Any
 
 from ..util import atomic_write_json, atomic_write_text, now_iso, relpath
 
-DONE = "已实现并用真实数据验证"
-IMPL = "已实现未用真实数据验证"
-BLOCKED = "被外部条件阻塞"
-NOTDONE = "未实现"
+DONE = "Implemented and validated with real data"
+IMPL = "Implemented; real-data validation pending"
+BLOCKED = "Blocked by external prerequisites"
+NOTDONE = "Not implemented"
 
 
 def write_all(ctx, state: dict[str, Any]) -> dict[str, Any]:
@@ -163,47 +163,47 @@ def _markdown(ctx, state, ranking, selection, md, target, imported, qa, mech, re
     lines: list[str] = []
     profile = ctx.config.target
     lines += [
-        f"# ZVSS 筛选报告 {ctx.run_id}",
+        f"# ZVSS Screening report {ctx.run_id}",
         "",
-        f"- 靶点: `{profile.target_id}` ({profile.display_name or profile.target_id})",
-        f"- 参考结构: `{profile.primary.pdb_id}` chain `{profile.primary.chain}`",
-        f"- 配置摘要: `{ctx.config.digest()}` | 代码版本 `{ctx.config.code_version}`",
-        f"- 预算: `{ctx.config.budget.budget_id}` | 选择版本: `{(selection or {}).get('selection_version')}`",
+        f"- Target: `{profile.target_id}` ({profile.display_name or profile.target_id})",
+        f"- Reference structure: `{profile.primary.pdb_id}` chain `{profile.primary.chain}`",
+        f"- Configuration digest: `{ctx.config.digest()}` | Code version `{ctx.config.code_version}`",
+        f"- Budget: `{ctx.config.budget.budget_id}` | Selection version: `{(selection or {}).get('selection_version')}`",
         "",
-        "## 1. 输入与身份",
+        "## 1. Inputs and identity",
         "",
-        f"- 发现文件: {len(imported.get('files') or [])} 个",
-        f"- 位姿: 读取 {imported.get('poses_seen', 0)} / 导入 {imported.get('poses_imported', 0)} / 失败 {imported.get('poses_failed', 0)}",
-        f"- 化合物 {imported.get('parents', 0)} | 化学状态 {imported.get('states', 0)} | 对接作业 {imported.get('jobs', 0)}",
-        f"- 受体: {(imported.get('receptor') or {}).get('status')} | 盒子来源: {(imported.get('box') or {}).get('source', '未找到')}",
+        f"- Files discovered: {len(imported.get('files') or [])} items",
+        f"- Pose: Read {imported.get('poses_seen', 0)} / Import {imported.get('poses_imported', 0)} / Failed {imported.get('poses_failed', 0)}",
+        f"- Compounds {imported.get('parents', 0)} | Chemical states {imported.get('states', 0)} | Docking jobs {imported.get('jobs', 0)}",
+        f"- Receptor: {(imported.get('receptor') or {}).get('status')} | Box source: {(imported.get('box') or {}).get('source', 'Not found')}",
     ]
     if imported.get("needs_input"):
-        lines.append(f"- 需人工补充化学结构: {len(imported['needs_input'])} 条")
+        lines.append(f"- Chemical structure requires manual completion: {len(imported['needs_input'])} entries")
     if imported.get("conflicts"):
-        lines.append(f"- 身份冲突: {len(imported['conflicts'])} 条（未合并，逐条保留）")
+        lines.append(f"- Identity conflicts: {len(imported['conflicts'])} entries, retained separately without merging")
     lines.append("")
 
-    lines += ["## 2. 校验与局部机制", ""]
-    lines.append(f"- 位姿质检: 通过 {qa.get('passed', 0)} / 标记 {qa.get('flagged', 0)} / 失败 {qa.get('failed', 0)}")
+    lines += ["## 2. Validation and local mechanism", ""]
+    lines.append(f"- Pose QC: Passed {qa.get('passed', 0)} / Flagged {qa.get('flagged', 0)} / Failed {qa.get('failed', 0)}")
     pb = qa.get("posebusters") or {}
-    lines.append(f"- PoseBusters: {'可用' if pb.get('available') else '不可用'} {pb.get('reason') or ''}".rstrip())
-    lines.append(f"- 接触分析: 已评估 {mech.get('evaluated', 0)} 个位姿, 截断 {mech.get('cutoff')} Å")
+    lines.append(f"- PoseBusters: {'Available' if pb.get('available') else 'Unavailable'} {pb.get('reason') or ''}".rstrip())
+    lines.append(f"- Contact analysis: Evaluated {mech.get('evaluated', 0)} poses, truncated {mech.get('cutoff')} Å")
     ref = mech.get("reference") or {}
-    lines.append(f"- 参考配体接触基线: {ref.get('status')} ({ref.get('contact_count', 'n/a')})")
+    lines.append(f"- Reference-ligand contact baseline: {ref.get('status')} ({ref.get('contact_count', 'n/a')})")
     lines.append("")
 
-    lines += ["## 3. 证据分层与排名", ""]
+    lines += ["## 3. Evidence tiers and ranking", ""]
     tiers = ranking.get("tiers") or {}
-    lines.append(f"- 分层计数: A={tiers.get('A', 0)} B={tiers.get('B', 0)} C={tiers.get('C', 0)} D={tiers.get('D', 0)}")
+    lines.append(f"- Tier counts: A={tiers.get('A', 0)} B={tiers.get('B', 0)} C={tiers.get('C', 0)} D={tiers.get('D', 0)}")
     weights = ranking.get("weights_used") or {}
-    lines.append(f"- 使用权重: {weights}")
+    lines.append(f"- Weights used: {weights}")
     skipped = ranking.get("weights_skipped") or []
     if skipped:
-        lines.append(f"- 因缺少数据而跳过的权重: {skipped}")
+        lines.append(f"- Weights skipped for missing data: {skipped}")
     lines.append("")
     top = (ranking.get("ranking") or [])[:15]
     if top:
-        lines += ["| 排名 | 化合物 | 层 | 综合分 | 缺失证据 |", "| --- | --- | --- | --- | --- |"]
+        lines += ["| Rank | Compounds | Tier | Composite score | Missing evidence |", "| --- | --- | --- | --- | --- |"]
         for entry in top:
             lines.append(
                 f"| {entry.get('rank')} | `{entry['compound_id']}` | {entry['tier']} | "
@@ -211,29 +211,29 @@ def _markdown(ctx, state, ranking, selection, md, target, imported, qa, mech, re
             )
         lines.append("")
 
-    lines += ["## 4. 候选与排除", ""]
+    lines += ["## 4. Candidates and exclusions", ""]
     primary = (selection or {}).get("primary") or []
     preliminary = (selection or {}).get("preliminary") or []
     exploratory = (selection or {}).get("exploratory") or []
     verdicts = (selection or {}).get("qualification") or {}
     formal_count = (selection or {}).get("formal_qualified")
     lines.append(
-        f"- 正式主候选: {len(primary)} | 展示性初步候选: {len(preliminary)} | "
-        f"探索性候选: {len(exploratory)} | 排除: {(selection or {}).get('excluded', 0)}"
+        f"- Qualified primary candidates: {len(primary)} | Preliminary display candidates: {len(preliminary)} | "
+        f"Exploratory candidates: {len(exploratory)} | Excluded: {(selection or {}).get('excluded', 0)}"
     )
     lines.append(
-        f"- 满足全部正式要求的化合物: {formal_count if formal_count is not None else '未计算'} "
-        f"(正式要求: {', '.join((selection or {}).get('qualification_rules') or []) or '未配置'})"
+        f"- Compounds meeting all formal requirements: {formal_count if formal_count is not None else 'Not computed'} "
+        f"(Formal requirements: {', '.join((selection or {}).get('qualification_rules') or []) or 'Not configured'})"
     )
     if not primary:
         lines.append(
-            "- **本轮没有正式主候选**：缺少必需证据（逐项见 `qualification.csv`），"
-            "规则未放宽，展示清单不作为科学资格。"
+            "- **No qualified primary candidates in this run**: Required evidence missing; details in `qualification.csv`), "
+            "Rules were not relaxed; display lists do not establish scientific qualification."
         )
     if primary or preliminary or exploratory:
         lines += [
             "",
-            "| 角色 | 序号 | 化合物 | 层 | 资格 | 综合分 | 未满足要求 |",
+            "| Role | Index | Compounds | Tier | Qualification | Composite score | Unmet requirements |",
             "| --- | --- | --- | --- | --- | --- | --- |",
         ]
         for entry in primary + preliminary + exploratory:
@@ -247,7 +247,7 @@ def _markdown(ctx, state, ranking, selection, md, target, imported, qa, mech, re
     # per-candidate qualification detail for the shortlisted candidates
     shortlist = primary + preliminary + exploratory
     if shortlist:
-        lines += ["逐候选资格明细:", "", "| 化合物 | 要求 | 状态 | 观察值 | 说明 |", "| --- | --- | --- | --- | --- |"]
+        lines += ["Candidate qualification details:", "", "| Compounds | Requirement | Status | Observed value | Description |", "| --- | --- | --- | --- | --- |"]
         for entry in shortlist:
             verdict = verdicts.get(entry["compound_id"]) or {}
             for requirement in verdict.get("requirements") or []:
@@ -258,36 +258,36 @@ def _markdown(ctx, state, ranking, selection, md, target, imported, qa, mech, re
         lines.append("")
     exclusions = (selection or {}).get("exclusions") or []
     if exclusions:
-        lines += ["排除理由（节选）:", ""]
+        lines += ["Selected exclusion reasons:", ""]
         for item in exclusions[:10]:
             lines.append(f"- `{item['compound_id']}`: {item['reason_code']} ({item['detail']})")
     lines.append("")
 
-    lines += ["## 5. MD 任务包", ""]
-    lines.append(f"- 生成任务包: {md.get('count', 0)} | 可执行: {md.get('ready', 0)} | 阻塞: {md.get('blocked', 0)}")
+    lines += ["## 5. MD Task bundles", ""]
+    lines.append(f"- Task bundles generated: {md.get('count', 0)} | Executable: {md.get('ready', 0)} | Blocked: {md.get('blocked', 0)}")
     for package in (md.get("packages") or [])[:6]:
         lines.append(f"- `{os.path.basename(package.get('packages', ''))}` → {package.get('execution_status')}")
     lines.append("")
 
-    lines += ["## 6. 明确未完成 / 阻塞", ""]
+    lines += ["## 6. Explicitly incomplete / Blocked", ""]
     blockers = _blockers(md, redock, membrane)
     if blockers:
         for item in blockers:
             lines.append(f"- `{item['stage']}` / `{item['code']}`: {item.get('detail')}")
     else:
-        lines.append("- 无记录的阻塞项（仅代表本轮未触发）")
+        lines.append("- No recorded blockers; this only means none were triggered in this run")
     lines += [
-        "- 膜环境: 仅给出跨膜螺旋主轴几何代理，未构建膜体系",
-        "- 多 seed 再对接: "
-        + ("已完成" if (redock.get("status") == "completed") else "被 GNINA 可用性阻塞，未产生再对接证据"),
+        "- Membrane environment: Only a transmembrane helix-axis proxy; no membrane system constructed",
+        "- multiple seed Redocking: "
+        + ("Completed" if (redock.get("status") == "completed") else "Blocked by GNINA availability; no redocking evidence produced"),
         "",
-        "## 7. 复现",
+        "## 7. Reproduction",
         "",
         "```",
-        f"zvss run --input <输入目录> --target {profile.source_path} --budget {ctx.config.budget.budget_id} --label <标签>",
+        f"zvss run --input <Input directory> --target {profile.source_path} --budget {ctx.config.budget.budget_id} --label <Labels>",
         "```",
         "",
-        "同一配置摘要 + 同一输入 + 同一代码版本应产生相同的 selection_version。",
+        "Same configuration digest + Same input + Same code version should produce identical selection_version. ",
         "",
     ]
     return "\n".join(lines)

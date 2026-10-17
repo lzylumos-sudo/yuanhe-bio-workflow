@@ -1,0 +1,13 @@
+{
+  "INSTALL_AND_VALIDATE.txt": "9883f99ea96cd53568f4b488449365d344ab9ee4da7688a53320f7898de1f5fa",
+  "acceptance_record.csv": "02f1c3aa11baa0753e4ac6ad84cc36c61cda18b22052f6c6ca375cf95acf8baf",
+  "build_gromacs_gpu.sh": "ba0c375266267a8ea33e29798f33fe209e023ffc3067174f4871a5942542e907",
+  "candidate_docking_box.json": "14e03bf183fdb6de6773f20a1889d443a6e150c7c3308d34f2927c20fe5a982f",
+  "check_gpu.py": "244eb961d19db78f073dc1412637643fd57690f885b29e7c2b19a947b24027c8",
+  "helper_validation.json": "50bf63a9165d29ab60998761d3d4749326eb09269bc1e9d2717863c8efcb8daa",
+  "inspect_case.py": "dec92f5b04c9c0a1fa066a42e145ee9c362dcad20f2de7cbae9152ae5d54fa4a",
+  "install_envs.sh": "260f594cac6aff4c97e879bfb8c5853f30f14ea91d7f404f7498adb5ec2a5a8e",
+  "peptide-inference-requirements.txt": "29eadbc7cfc303805166e11d1186e4cfc729b407c81ee5cb8fb7ca4f41aa661f",
+  "prepare_receptor.py": "75cd2b4f95e89c61767a7694520ecbbdb8dc2317f6efc7939052e9b00a063e35",
+  "structure_inspection.json": "663f2392edb705fef6eebfb8960cb0a6dd30bd4794d4333e4a91d9d2544aa03e"
+}

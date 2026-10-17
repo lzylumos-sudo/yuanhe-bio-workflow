@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
-# 用法: ./run.sh <sbvs2 子命令...>   例: ./run.sh doctor
-# 解释器优先 $SBVS_PYTHON，其次 PATH 中带 rdkit 的 python3；不写死任何盘符或 /opt/sbvs。
+# Usage: ./run.sh <sbvs2 Subcommands...>   Example: ./run.sh doctor
+# Interpreter preference: $SBVS_PYTHON, then PATH containing rdkit associated python3; No hard-coded drive letter or /opt/sbvs.
 set -euo pipefail
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PY="${SBVS_PYTHON:-python3}"

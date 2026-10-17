@@ -1,0 +1,44 @@
+Licensing scope / License scope — Yuanhe Research Studio
+Effective version: 0.3.0-rc1, 2026-10-18
+
+The unmodified PolyForm Noncommercial License 1.0.0 in LICENSE applies to
+original project-authored code and original changes in this release to the
+extent their copyright holders are entitled to license them on those terms.
+The licensors are the respective copyright holders of those contributions.
+No organization or legal entity is invented by this notice.
+
+Required Notice: This distribution includes Yuanhe Research Studio source-available code under PolyForm Noncommercial License 1.0.0. Preserve LICENSE, LICENSE_SCOPE.txt, and THIRD_PARTY_NOTICES.txt with redistributed copies.
+
+Commercial use is not granted by this project's license. Obtain separate
+written permission from the relevant rights holders before a commercial use
+that is not a permitted purpose under the standard license. The standard
+license's definitions and express permissions, including its provision for
+specified noncommercial organizations, control; this explanation does not
+replace or narrow its text.
+
+EXCLUSIONS AND PRE-EXISTING RIGHTS
+1. All third-party software, vendor/ subtrees, binaries, runtime environments,
+   model checkpoints/priors, datasets, structures, and documentation copied
+   from upstream retain their own terms. The root LICENSE does not relicense
+   them or prohibit uses their actual licenses permit.
+2. Existing copyright, attribution, license and NOTICE files remain intact.
+   Modifications to upstream files remain subject to upstream obligations.
+3. ZVSS's earlier pyproject.toml declared its project code MIT-licensed.
+   Previously granted MIT rights are not withdrawn. The new noncommercial
+   terms cover new protectable project contributions only where legally
+   permissible, not previously licensed copies or unmodified MIT material.
+4. Code that is a derivative of a copyleft component must comply with that
+   component's terms. No noncommercial restriction is asserted where it would
+   conflict with a governing GPL/LGPL or other upstream license. A repository
+   license is not a conclusion that all dependency combinations can lawfully
+   be redistributed; especially review GPL dependencies and imported Python
+   modules before distributing a combined runtime or binary build.
+5. These terms do not claim exclusive rights over research facts, public PDB
+   coordinates, third-party model outputs, or other material the licensors do
+   not own. Previously distributed permissively licensed versions remain
+   usable under their original licenses.
+
+This project is source-available under a noncommercial license, not an unrestricted commercial-use open-source license.
+Noncommercial use is a license restriction, not technical copy protection; it does not revoke third-party or prior grants.
+The unmodified English license controls authorization; this notice defines scope and preserves existing rights.
+Contact the maintainers listed in the published repository for commercial authorization; no company, personal identity or email is invented here.

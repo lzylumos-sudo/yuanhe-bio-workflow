@@ -51,6 +51,12 @@ class Capability:
         }
 
 
+def _engine_environment(ctx):
+ raw=getattr(ctx.config.host,'settings',None) or getattr(ctx.config.host,'raw',None) or {}
+ extra=((raw.get('tools') or {}).get('gnina_settings') or {}).get('environment') or {}
+ return {**os.environ,**{k:str(v) for k,v in extra.items() if k in {'LD_LIBRARY_PATH'}}}
+
+
 def detect_gnina(ctx) -> Capability:
     host = ctx.config.host
     settings = getattr(host, "settings", None) or getattr(host, "raw", None) or {}
@@ -76,7 +82,7 @@ def detect_gnina(ctx) -> Capability:
             try:
                 started = time.time()
                 probe = subprocess.run(
-                    [*command, flag], capture_output=True, text=True, timeout=120, check=False
+                    [*command, flag], capture_output=True, text=True, timeout=120, check=False, env=_engine_environment(ctx)
                 )
             except FileNotFoundError as exc:
                 last_detail = {"command": command, "error": f"FileNotFoundError: {exc}"}
@@ -135,6 +141,8 @@ def redock_argv(
     scoring: str = "vina",
     cnn: str = "rescore",
     cpu: int = 1,
+    cnn_model: str | None = None,
+    device: str | None = None,
 ) -> list[str]:
     translate = _is_wsl_command(command)
     receptor_arg = to_linux_path(receptor) if translate else receptor
@@ -158,6 +166,10 @@ def redock_argv(
         "--cpu", str(cpu),
         "--out", out_arg,
     ]
+    if cnn_model: argv.extend(["--cnn", cnn_model])
+    if device == "gpu": argv.extend(["--device", "0"])
+    elif device == "cpu": argv.append("--no_gpu")
+    elif device is not None: raise ValueError("Invalid GNINA device")
     return argv
 
 
@@ -193,13 +205,13 @@ def run_redock(ctx, plan: list[dict[str, Any]]) -> dict[str, Any]:
         summary["reason_code"] = str(Reason.RECEPTOR_UNBOUND)
         return summary
 
-    host_settings = getattr(ctx.config.host, "settings", None) or {}
+    host_settings = getattr(ctx.config.host, "settings", None) or getattr(ctx.config.host, "raw", None) or {}
     engine = ((host_settings.get("tools") or {}).get("gnina_settings", {})) if isinstance(host_settings, dict) else {}
     cluster_cutoff = float(getattr(ctx.config.budget, "cluster_rmsd_A", 2.0) or 2.0)
     workdir = ensure_dir(os.path.join(ctx.stage_dir("redock"), "runs"))
     support_note = (
         "a seed supports the imported pose when at least one of its modes is within "
-        f"{cluster_cutoff} A best-fit RMSD of the imported pose"
+        f"{cluster_cutoff} A symmetry-corrected RMSD in the unchanged receptor frame of the imported pose"
     )
 
     for item in plan:
@@ -258,11 +270,13 @@ def run_redock(ctx, plan: list[dict[str, Any]]) -> dict[str, Any]:
                 scoring=str(engine.get("scoring", "vina")),
                 cnn=str(engine.get("cnn_scoring", "rescore")),
                 cpu=int(engine.get("cpu", 1)),
+                cnn_model=engine.get("cnn_model"),
+                device=engine.get("device"),
             )
             started = time.time()
             try:
                 probe = subprocess.run(
-                    argv, capture_output=True, text=True, timeout=int(engine.get("timeout_seconds", 3600))
+                    argv, capture_output=True, text=True, timeout=int(engine.get("timeout_seconds", 3600)), env=_engine_environment(ctx)
                 )
                 payload = {
                     "argv": argv,

@@ -9,6 +9,7 @@ import sys
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, ROOT)
+DATA_ROOT = os.path.join(os.path.dirname(ROOT), 'data', 'structures')
 
 import numpy as np
 
@@ -26,11 +27,13 @@ def check(name, cond, detail=''):
     else:
         print(f'  FAIL {name} {detail}')
         FAILED.append(name)
+        raise AssertionError(name + ": " + detail)
+        raise AssertionError(f"{name}: {detail}")
 
 
 def test_structures():
     print('[structures]')
-    cxs = {t: load_complex(os.path.join(ROOT, f), t) for t, f in COMPLEXES.items()}
+    cxs = {t: load_complex(os.path.join(DATA_ROOT, f), t) for t, f in COMPLEXES.items()}
     for tag, cx in cxs.items():
         n_rec, n_lig = len(cx.receptor), len(cx.ligand)
         check(f'{tag} chains', n_rec > 300 and 10 < n_lig < 60, f'{n_rec} MurJ / {n_lig} peptide')
@@ -68,7 +71,7 @@ def test_enumeration():
 
 def test_pharmacophore_and_pocket():
     print('[pharmacophore / pocket]')
-    cxs = {t: load_complex(os.path.join(ROOT, f), t) for t, f in COMPLEXES.items()}
+    cxs = {t: load_complex(os.path.join(DATA_ROOT, f), t) for t, f in COMPLEXES.items()}
     feats = consensus_features(cxs, min_structures=1, max_features=12)
     check('feature count', 8 <= len(feats) <= 12, f'{len(feats)}')
     anions = [f for f in feats if f.ftype == 'anion']
@@ -86,7 +89,7 @@ def test_end_to_end():
     from pepwedge.pipeline import run
     out = os.path.join(ROOT, 'results', '_smoke')
     shutil.rmtree(out, ignore_errors=True)
-    res = run(ROOT, out, verbose=False, figdir=os.path.join(out, 'figures'))
+    res = run(DATA_ROOT, out, verbose=False, figdir=os.path.join(out, 'figures'))
     check('scaffolds scored', len(res['results']) > 500, f'{len(res["results"])}')
     check('csv written', os.path.exists(os.path.join(out, 'scaffolds_ranked.csv')))
     check('sdf written', os.path.exists(os.path.join(out, 'top_scaffold_poses.sdf')))
@@ -143,7 +146,7 @@ def test_priors():
 
 def test_construct_filter():
     print('[construct filter]')
-    cxs = {t: load_complex(os.path.join(ROOT, f), t) for t, f in COMPLEXES.items()}
+    cxs = {t: load_complex(os.path.join(DATA_ROOT, f), t) for t, f in COMPLEXES.items()}
     for tag, cx in cxs.items():
         nums = sorted(cx.receptor)
         check(f'{tag} MurJ range', nums[0] >= 5 and nums[-1] <= 500, f'{nums[0]}-{nums[-1]}')
@@ -160,7 +163,7 @@ def test_evidence_chain():
     from pepwedge.verify import run_checks, summarize
     from pepwedge import priors as P
 
-    cxs = {t: load_complex(os.path.join(ROOT, f), t) for t, f in COMPLEXES.items()}
+    cxs = {t: load_complex(os.path.join(DATA_ROOT, f), t) for t, f in COMPLEXES.items()}
     dsasa, ic = {}, {}
     for tag, cx in cxs.items():
         dsasa[tag] = dsasa_both(cx)
@@ -200,8 +203,11 @@ def test_docs_match_data():
     import csv
     import json
     import re
-    doc_path = os.path.join(ROOT, 'docs', '01_分子骨架设计算法.md')
+    doc_path = os.path.join(ROOT, 'README.historical.md')
     res = os.path.join(ROOT, 'results')
+    if not os.path.isfile(os.path.join(res, 'summary.json')):
+        import unittest
+        raise unittest.SkipTest('Historical generated results are not distributed')
     doc = open(doc_path, encoding='utf-8').read()
     ph = json.load(open(os.path.join(res, 'pharmacophore.json'), encoding='utf-8'))
     pk = json.load(open(os.path.join(res, 'pocket.json'), encoding='utf-8'))
@@ -235,7 +241,7 @@ def test_docs_match_data():
         if f"{su['funnel'][key]:,}" not in doc:
             bad.append('funnel ' + label)
 
-    vol_m = re.search(r'\*\*([\d,]+) Å³\*\* 的埋藏腔体', doc)
+    vol_m = re.search(r'\*\*([\d,]+) Å³\*\* buried cavity', doc)
     vol_doc = float(vol_m.group(1).replace(',', '')) if vol_m else -1.0
     if abs(vol_doc - pk['total_volume_A3']) > 1.0:
         bad.append(f'pocket volume {vol_doc} vs {pk["total_volume_A3"]:.1f}')
@@ -250,8 +256,10 @@ def test_filters():
     print('[filters]')
     import json
     from pepwedge import filters as F
-    cxs = {t: load_complex(os.path.join(ROOT, f), t) for t, f in COMPLEXES.items()}
-    pocket = json.load(open(os.path.join(ROOT, 'results', 'pocket.json'), encoding='utf-8'))
+    cxs = {t: load_complex(os.path.join(DATA_ROOT, f), t) for t, f in COMPLEXES.items()}
+    from pepwedge.pocket import pocket_report
+    pk = build_pocket(cxs['SglCJ3'])
+    pocket = {'subpockets': pocket_report(pk, cxs['SglCJ3'])}
     cal = F.calibration_report(cxs, pocket)
     check('calibration has 3 entries', len(cal) == 3, str(len(cal)))
     # the peptides must satisfy the thresholds the filters use -- that is the

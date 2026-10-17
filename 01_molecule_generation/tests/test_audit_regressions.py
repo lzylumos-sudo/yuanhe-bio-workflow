@@ -12,7 +12,7 @@ def test_disconnected_candidates_rejected():
  assert reinvent4._core_retained('c1ccc([*:1])cc1','Cc1ccccc1.C')[1]=='disconnected_molecule'
 
 def test_hydra_path_quoted():
- path='/tmp/中文 项目/a=b/model.ckpt'
+ path='/tmp/English Project/a=b/model.ckpt'
  assert json.loads(peptide2mol.hydra_string(path))==path
 
 def test_existing_model_outputs_cannot_be_reused(tmp_path):

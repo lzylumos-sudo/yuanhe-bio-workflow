@@ -1,3 +1,3 @@
-# 早期原型
+# Historical prototypes
 
-`docking_prototype` 是原 02_GNINA_SBVS_v2 独立源码，按开发历史归档。主工作台使用 `02_docking`。目录名中的旧 v2 不能被理解为比主适配器更新或能力更完整。历史运行数据不随仓库发布。
+`docking_prototype/` preserves an earlier standalone docking implementation for reference. It is not the main workbench backend. Use the root setup guide and numbered active modules for current execution; historical status reports do not validate the current release.

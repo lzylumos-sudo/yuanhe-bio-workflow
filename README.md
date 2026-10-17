@@ -1,73 +1,62 @@
-# Yuanhe Bio Workflow · 元核生物
+# Yuanhe Bio Workflow
 
-**English** | [简体中文](README.zh-CN.md)
+A traceable research workbench connecting protein-peptide complexes to Peptide2Mol seeds, reviewed molecular cores, REINVENT4 expansion, GNINA docking, virtual screening and membrane molecular dynamics.
 
-A research workflow for small-molecule design, docking, screening, and downstream simulation based on protein–peptide complexes. The project connects molecular design and analysis tools through traceable computational stages, supporting ongoing development, method review, and reproducible research.
-
-**Current status: engineering integration candidate.** Stage execution and artifact checks are connected, but the complete target-specific workflow—from model inference through GNINA docking and screening to membrane molecular dynamics—has not yet been validated end to end. Test doubles do not establish real model inference, and historical computation records do not validate the current code revision.
-
-## Workflow and repository structure
+**Release 0.3.0-rc1: engineering integration candidate.** The interface and adapters are implemented. Real end-to-end model, GNINA and membrane simulation acceptance on Windows/WSL2 with RTX 5070 remains pending. Engineering tests are not biological validation.
 
 ```mermaid
 flowchart LR
- A[Complex and chain/residue review] --> B[Peptide2Mol seeds]
- B --> C[Manual core review]
- C --> D[REINVENT4 / LibInvent expansion]
- D --> E[GNINA docking]
+ A[Complex and construct review] --> B[Peptide2Mol seeds]
+ B --> C[Interactive core review]
+ C --> D[REINVENT4 expansion]
+ D --> E[GNINA batch docking]
  E --> F[Virtual screening]
- F --> G[Candidate molecules]
- G --> H[GROMACS with a prepared system]
- E -.Independent analysis.-> I[Interaction visualization]
- G -.Standalone tool.-> J[OpenMM automation]
+ F --> G[Candidate and membrane review]
+ G --> H[Build membrane system]
+ H --> I[GROMACS and checkpoint recovery]
+ I --> J[Trajectory analysis and export]
 ```
 
-| Order | Directory | Purpose |
-|---|---|---|
-| 00 | `00_workbench/` | Unified web interface, stage scheduling, logs, artifacts, and failed-stage retries |
-| 01 | `01_molecule_generation/` | Structure preparation, Peptide2Mol / REINVENT4 adapters, chemistry checks, and core validation |
-| 02 | `02_docking/` | Main GNINA adapter, docking protocols, and task and result records |
-| 03 | `03_virtual_screening/` | Pose import, quality control, identity tracking, diversity analysis, and candidate ranking |
-| 04 | `04_interaction_analysis/` | Standalone ZLIS interaction analysis and visualization |
-| 05 | `05_molecular_dynamics/` | Standalone OpenMM automation; does not prepare membrane systems for GROMACS |
-| — | `data/structures/` | Centralized PDB inputs and provenance manifest |
-| — | `deployment/` | Environment checks, configuration templates, and third-party dependency restoration |
-| — | `docs/` | Setup, architecture guide, validation records, and path migration mapping |
-| — | `archive/docking_prototype/` | Earlier standalone docking prototype, not used as the main workflow backend |
+| Directory | Purpose |
+|---|---|
+| `00_workbench` | Unified UI, guided review, scheduling, membrane builder, GROMACS and analysis |
+| `01_molecule_generation` | Preparation, model adapters, core and chemistry checks |
+| `02_docking` | GNINA protocols, docking records and standalone tools |
+| `03_virtual_screening` | Pose QC, evidence, diversity, qualification and ranking |
+| `04_interaction_analysis` | Optional ZLIS interaction visualization |
+| `05_molecular_dynamics` | Optional standalone OpenMM workflow |
+| `data/structures` | Original structural inputs and provenance |
+| `deployment` | Installation, runtime configuration and validation tools |
+| `docs` | Architecture, setup and validation records |
+| `archive` | Historical docking prototype |
 
-The numeric prefixes indicate the reading and working order; modules 04 and 05 are optional downstream tools. The GROMACS execution adapter is in `00_workbench/pipeline_bridge.py`.
+## Start
 
-## Quick preview
-
-With Python 3.11 or later, run from the repository root:
+After initial dependency installation, double-click `start_windows.cmd` and select the configured WSL distribution. On Linux use `bash start_linux.sh`. For a UI-only preview with Python 3.11+, run:
 
 ```bash
 python3 00_workbench/run_webui.py --no-browser
-# Open http://127.0.0.1:8777 in your browser.
 ```
 
-Starting the web interface does not launch scientific calculations. On Linux/WSL, you can also run `bash start_linux.sh`. On Windows, use `start_windows.cmd` and select an existing WSL distribution.
+Open the displayed local address, normally http://127.0.0.1:8777. The UI starts without launching calculations. Configure environments once, then prepare, review, execute, stop, resume, inspect trajectories and export records through the interface.
 
-Before running calculations, read [Setup and configuration](docs/01_SETUP.md) and configure your local `deployment/runtime.json`. Models, weights, GNINA, GROMACS, and scientific computing environments must be installed separately. Missing dependencies must block the relevant stage rather than produce substitute results.
+- [Setup](docs/01_SETUP.md)
+- [UI workflow](USER_GUIDE.txt)
+- [RTX 5070 installation and MurJ validation](deployment/validation_5070/INSTALL_AND_VALIDATE.txt)
+- [Architecture](docs/02_PROJECT_GUIDE.md)
+- [Validation scope](docs/04_VALIDATION.md)
+- [Third-party sources](THIRD_PARTY_NOTICES.md)
 
-## Project documentation
+## Scientific boundaries
 
-The detailed documents below are currently primarily in Chinese.
+The current input is MurJ / 9NU4. Review chains, construct mutations, residue ranges, protonation and the docking box. Peptide2Mol uses the peptide-defined receptor pocket; explicit peptide-pharmacophore retention is not claimed. REINVENT4 expands a reviewed molecular core, not a protein backbone.
 
-1. [Project scope and contributions](docs/02_PROJECT_GUIDE.md)
-2. [Naming and migration rules](docs/03_MIGRATION.md) / [File mapping](docs/FILE_MAP.csv)
-3. [Validation record](docs/04_VALIDATION.md)
-4. [Third-party sources](THIRD_PARTY_NOTICES.md)
+Counts distinguish requested samples, valid unique molecules, docking poses, preliminary candidates and formally qualified candidates. Unperformed checks never become passes. The screening membrane orientation is still a geometric proxy; the separate membrane builder requires a sourced and reviewed orientation. Idealized single-lipid membranes are not full bacterial membrane models.
 
-This repository contains code, configurations, tests, and small structural examples. It excludes model weights, WSL images, Conda environments, trajectories, historical run outputs, full-text papers, private configurations, and tokens.
+The built-in MD path includes parameterization, minimization, staged equilibration, production, checkpoint guards and analysis. It has not been executed on the target Windows machine in this release. Short trajectories and docking scores do not establish affinity, activity or convergence.
 
-## Scope and limitations
+Weights, installed environments, VHDX images and historical run outputs are excluded from GitHub. Restore pinned models separately. An external disk does not remove host driver, WSL, environment or target-machine acceptance requirements.
 
-- The main workflow retains both the full receptor and the model input pocket, and checks artifact hashes between stages. Molecular cores, docking receptors and boxes, and membrane systems require review.
-- The GROMACS entry point executes an already prepared TPR. Automated membrane system construction, ligand parameterization, and comprehensive trajectory analysis are not yet implemented in this workflow.
-- The OpenMM module and historical tests have their own scope; they do not validate GROMACS execution or operation on a new platform.
-- Candidate rankings, computational scores, and simulation results do not constitute experimental evidence of activity, affinity, or mechanism.
-- Historical documents describe earlier development work and may reference data not included in this repository or previous machines. Use this README and `docs/01_SETUP.md` for current entry points.
+## License
 
-## Usage and licensing
-
-This repository does not yet have a unified project-level open-source license. Public access does not grant unrestricted redistribution rights. Existing component license declarations and third-party licenses remain applicable. The team will specify the licensing scope of its original code separately; third-party software and model weights retain their original attribution and ownership.
+Original project contributions in this release use the unmodified [PolyForm Noncommercial License 1.0.0](LICENSE), subject to [scope and existing rights](LICENSE_SCOPE.txt). This is source-available software, not an unrestricted commercial-use open-source license. Commercial uses outside the license's permitted purposes require separate authorization. Third-party materials and prior grants retain their own terms; see [notices](THIRD_PARTY_NOTICES.txt).

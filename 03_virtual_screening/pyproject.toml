@@ -8,7 +8,7 @@ version = "0.9.0"
 description = "ZVSS - Zhiyu Virtual Screening Studio: GNINA batch results to membrane-MD-ready candidates"
 readme = "README.md"
 requires-python = ">=3.11"
-license = { text = "MIT (project code). Third-party components keep their own licenses." }
+license = { text = "PolyForm-Noncommercial-1.0.0 for new original contributions; pre-existing MIT and third-party grants remain. See LICENSE_SCOPE.txt." }
 authors = [{ name = "ZVSS build" }]
 dependencies = [
   "numpy>=1.26",

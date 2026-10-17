@@ -36,7 +36,7 @@ export async function viewerPanel({ ligandHint = true, peptides = true, tip } = 
   const host = div({ class: 'vbox' });
   const over = div({ class: 'v-over' });
   host.appendChild(over);
-  host.appendChild(div({ class: 'v-hint', text: '拖动旋转 · 滚轮缩放 · Shift 拖动平移 · 双击复位' }));
+  host.appendChild(div({ class: 'v-hint', text: 'Drag to rotate · Scroll to zoom · Shift Drag to pan · Double-click to reset' }));
   const viewer = new StructureViewer(host, {
     onHover: (item, ev) => {
       if (!tip) return;
@@ -58,15 +58,15 @@ export async function viewerPanel({ ligandHint = true, peptides = true, tip } = 
       label);
   };
   const bar = div({ class: 'vbar' },
-    mk('showPocket', '口袋', true),
-    mk('showPeptides', '三条肽', peptides),
-    mk('showFeatures', '药效团', false),
-    mk('showHotspots', '热点残基', false),
-    mk('spin', '自转', false),
-    el('button', { class: 'btn', text: '复位', onclick: () => viewer.fit() }),
+    mk('showPocket', 'Pocket', true),
+    mk('showPeptides', 'Three peptides', peptides),
+    mk('showFeatures', 'Pharmacophore', false),
+    mk('showHotspots', 'Hotspot residues', false),
+    mk('spin', 'Auto-rotate', false),
+    el('button', { class: 'btn', text: 'Reset', onclick: () => viewer.fit() }),
     div({ class: 'legend' },
       ...LEGEND.map(([c, t]) => span(null, el('i', { style: { background: c } }), t)),
-      ligandHint ? span(null, el('i', { style: { background: '#e0b64a' } }), '候选分子') : null));
+      ligandHint ? span(null, el('i', { style: { background: '#e0b64a' } }), 'Candidate molecules') : null));
   viewer.setOptions({ showPocket: true });
 
   // cavity voxels: computed on demand by the server, poll briefly
@@ -89,8 +89,8 @@ export async function viewerPanel({ ligandHint = true, peptides = true, tip } = 
       scene.ligand = lig || null;
       viewer.scene = scene;
       over.replaceChildren(
-        div({ text: `参考框架  ${scene.ref_pdbid} (SglCJ3)` }),
-        caption ? div(null, span({ text: '配体  ' }), el('b', { text: caption })) : null);
+        div({ text: `Reference frame  ${scene.ref_pdbid} (SglCJ3)` }),
+        caption ? div(null, span({ text: 'Ligand  ' }), el('b', { text: caption })) : null);
       viewer.requestRender();
     },
     destroy() { alive = false; viewer.destroy(); if (tip) tip.hidden = true; },
@@ -135,7 +135,7 @@ export function moleculeTable(data, { onSelect, limit = 200 } = {}) {
       tr.dataset.id = r.id;
       body.appendChild(tr);
     }
-    more.textContent = list.length > limit ? `仅显示前 ${limit} 行，共 ${nf(list.length)} 行，可搜索或排序` : `共 ${nf(list.length)} 行`;
+    more.textContent = list.length > limit ? `Showing the first ${limit} rows of ${nf(list.length)} rows; search and sort available` : `Total ${nf(list.length)} rows`;
     for (const th of head.children) {
       th.className = th.dataset.key === sortKey ? `sorted${asc ? ' asc' : ''}` : '';
     }
@@ -153,7 +153,7 @@ export function moleculeTable(data, { onSelect, limit = 200 } = {}) {
     }));
   }
   const search = el('input', {
-    type: 'search', placeholder: '搜索 ID / SMILES', 'aria-label': '搜索分子',
+    type: 'search', placeholder: 'Search ID / SMILES', 'aria-label': 'Search molecules',
     oninput: (e) => { q = e.target.value.trim().toLowerCase(); draw(); },
   });
   const root = div(null,
@@ -172,18 +172,18 @@ export function molCard() {
   return {
     root,
     async show(row) {
-      if (!row) { draw.textContent = '—'; info.replaceChildren(div({ class: 'note', text: '从列表中选择一个分子' })); return; }
+      if (!row) { draw.textContent = '—'; info.replaceChildren(div({ class: 'note', text: 'Select a molecule from the list' })); return; }
       const kv = el('dl', { class: 'kv' });
       for (const [k, v] of Object.entries(row)) {
         if (['id', 'smiles'].includes(k) || k.startsWith('_') || v === null || v === undefined || v === '') continue;
-        kv.append(el('dt', { text: k }), el('dd', { text: typeof v === 'boolean' ? (v ? '是' : '否') : (typeof v === 'number' && !Number.isInteger(v) ? v.toFixed(2) : v) }));
+        kv.append(el('dt', { text: k }), el('dd', { text: typeof v === 'boolean' ? (v ? 'represent' : 'No') : (typeof v === 'number' && !Number.isInteger(v) ? v.toFixed(2) : v) }));
       }
       info.replaceChildren(div({ class: 'id', text: row.id }), div({ class: 'smi', text: row.smiles || '' }), kv);
       draw.textContent = '…';
       try {
         const r = await get(`/api/mol2d?smiles=${encodeURIComponent(row.smiles || '')}`);
-        if (r.svg) draw.innerHTML = r.svg; else draw.textContent = r.reason || '无 2D 图';
-      } catch (e) { draw.textContent = '无 2D 图'; }
+        if (r.svg) draw.innerHTML = r.svg; else draw.textContent = r.reason || 'None 2D image';
+      } catch (e) { draw.textContent = 'None 2D image'; }
     },
   };
 }

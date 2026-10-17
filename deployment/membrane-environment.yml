@@ -1,0 +1,16 @@
+name: yuanhe-membrane
+channels:
+  - conda-forge
+  - nodefaults
+dependencies:
+  - python=3.11
+  - openmm=8.5.1
+  - openmmforcefields=0.15.1
+  - openff-toolkit=0.18.0
+  - ambertools=24
+  - parmed=4.3.0
+  - mdanalysis=2.9.0
+  - rdkit
+  - numpy
+  - pyyaml
+  - pip

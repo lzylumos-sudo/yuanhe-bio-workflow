@@ -11,7 +11,7 @@ export async function get(path, { force = false } = {}) {
   try {
     data = text ? JSON.parse(text) : null;
   } catch (err) {
-    throw new Error(`接口返回了非 JSON 内容 (${path}): ${text.slice(0, 160)}`);
+    throw new Error(`Endpoint returned non- JSON content (${path}): ${text.slice(0, 160)}`);
   }
   if (!res.ok) {
     const detail = data && data.error ? data.error : `${res.status} ${res.statusText}`;

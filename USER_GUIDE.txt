@@ -1,0 +1,28 @@
+Yuanhe Research Workbench: daily UI guide
+Version 0.3.0-rc1
+
+Complete initial installation using deployment/validation_5070/INSTALL_AND_VALIDATE.txt. Target-machine inference, docking and membrane dynamics remain untested by this release; do not label the candidate release fully accepted before those checks.
+
+1. Launch start_windows.cmd, choose the prepared WSL distribution and open the displayed local address. Use Environment and diagnostics to save chemistry, screening, model, receptor-preparation, membrane-analysis, GNINA and GROMACS paths. Changes apply to newly created runs. The membrane dependency installer is available here after base setup.
+
+2. Create a research run using data/structures/9nu4.pdb, receptor A, peptide B and the reviewed construct range (current default 3-500). Upload another PDB if required. Inspect the actual coordinates. The current construct mutations remain; no silent WT reversion occurs.
+
+3. Run Complex preparation. Inspect the full receptor, local pocket and peptide reference. In Receptor preparation and docking box, choose the pH assumption, inspect missing-atom/terminus reports and explicitly permit side-chain completion only when justified. Missing loops or nonstandard residues block automatic preparation. Generate a box from reviewed residues, rotate the preview, adjust and approve it.
+
+4. Run Peptide2Mol. In Select molecular core, choose an actual seed, select numbered heavy atoms and record the chemical rationale. Save the core and run REINVENT4. Budget is per selected core. Invalid chemistry and conformer failures remain separately counted.
+
+5. Run GNINA with the reviewed full receptor and box. Inspect actual engine logs, unique-molecule counts, failures and pose-level scores. Original first poses and screening-selected poses are labeled separately. GPU detection alone is not proof of GPU CNN execution.
+
+6. Choose Quick screening, Redocking trial or Full screening. Quick screening skips redocking; other plans use their declared caps and seeds. Review candidates, exclusions and qualification. Preliminary/exploratory candidates are counted separately from formally qualified ones. Computation complete does not mean all scientific requirements passed.
+
+7. Select a candidate in the membrane wizard. Supply the membrane normal, center and source/rationale, then preview and review. Default coordinates are editable starting values, not established orientation. Select an idealized POPC/POPE membrane and explicitly approve exploratory simulation for unqualified candidates. Build parameters, topology, coordinates and atom groups; failed parameterization is not success.
+
+8. Review the built system, candidate mapping and protocol. Select it for stage six or use Run and resume. The built-in path executes minimization, NVT, two NPT stages, production and analysis. Failed minimization, incomplete step counts, changed inputs or mismatched checkpoints block continuation. The default short production run is an engineering probe, not sufficient scientific sampling.
+
+9. Inspect trajectory frames, backbone-aligned protein/ligand RMSD, RMSF, temperature, pressure, energy, distance-contact occupancy and membrane thickness proxy. Distance contacts are not hydrogen bonds; a proxy does not establish complete membrane stability. Compare independent replicas separately.
+
+10. Export reproduction records. Review archives include input, frozen settings, reviews, logs and small results; full archives add large artifacts. Omitted files are listed with hashes. Neither archive includes installed environments or model weights, which need separate preservation.
+
+Recovery: stop requests allow checkpoint writing before forced termination. Do not unplug while stopping. Reopening the UI checks persistent Linux process identity. Failed stage directories are archived under attempts. Changed source code or frozen inputs require a new run. Interrupted MD resumes only from a matching checkpoint; partial output without one must not be overwritten.
+
+Validation order: environment/operator checks, small real model batch, reviewed-core expansion, actual GNINA docking, quick screening, fixed-set multiseed redocking, then one reviewed membrane system and a short complete trajectory. Use disposable runs for cancellation/tamper tests, followed by an independent same-settings reproduction. Record platform and GPU differences; reproducibility means traceable protocols and assessed agreement, not guaranteed bitwise equality.

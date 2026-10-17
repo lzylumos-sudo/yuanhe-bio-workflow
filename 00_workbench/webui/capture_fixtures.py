@@ -42,7 +42,7 @@ ENDPOINTS = {
     'scene_cj3': '/api/scene?ref=SglCJ3&ligand=0',
     'scene_m': '/api/scene?ref=SglM&ligand=1',
     'pocket_points': '/api/pocket/points',
-    'docs_01': '/api/docs/' + urllib.parse.quote('01_分子骨架设计算法.md'),
+    'docs_01': '/api/docs/' + urllib.parse.quote('01_Molecular scaffold design algorithm.md'),
 }
 
 

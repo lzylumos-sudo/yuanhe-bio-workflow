@@ -4,7 +4,7 @@ import { get } from '../api.js';
 import { el, div, span } from '../ui.js';
 import { funnel, viewerPanel, moleculeTable, molCard } from './widgets.js';
 
-const STATUS = { ready: '已接入', demo: '布局预览', pending: '等待数据' };
+const STATUS = { ready: 'Connected', demo: 'Layout preview', pending: 'Waiting for data' };
 const nf = (v) => (v === null || v === undefined ? '—' : Number(v).toLocaleString('en-US'));
 
 const card = (title, sub, ...kids) => div({ class: 'card' },
@@ -17,27 +17,27 @@ function head(stage, ctx) {
       el('h1', null, stage.title, ' ', span({ class: `badge ${stage.status}`, text: STATUS[stage.status] })),
       el('p', { text: stage.subtitle })),
     div({ class: 'nav' },
-      el('button', { class: 'btn', text: '← 上一步', disabled: stage.n === 1, onclick: () => ctx.go(stage.n - 1) }),
-      el('button', { class: 'btn primary', text: stage.n === 7 ? '回到第 1 步' : '下一步 →', onclick: () => ctx.go(stage.n === 7 ? 1 : stage.n + 1) })));
+      el('button', { class: 'btn', text: '← Previous step', disabled: stage.n === 1, onclick: () => ctx.go(stage.n - 1) }),
+      el('button', { class: 'btn primary', text: stage.n === 7 ? 'Return to step 1 step' : 'Next step →', onclick: () => ctx.go(stage.n === 7 ? 1 : stage.n + 1) })));
 }
 
 function banner(stage) {
   if (stage.status === 'demo') {
-    return div({ class: 'banner', text: '布局预览：此阶段尚未接入模型，下面的分子与数字取自第 2 步的真实骨架，仅用于检查版面，不是该阶段的计算结果。' });
+    return div({ class: 'banner', text: 'Layout preview: this stage has no model connection yet. Molecules and counts below come from step 2 and illustrate layout only; they are not outputs of this stage.' });
   }
   if (stage.status === 'pending') {
-    return div({ class: 'banner pending', text: '等待数据：模型接入后，把结果文件放到下方路径，本页会自动显示分子和计数。右上角“布局预览”可先看版面。' });
+    return div({ class: 'banner pending', text: 'Waiting for data: after connecting a model, place results at the paths below. Use Layout preview to inspect the page.' });
   }
   return null;
 }
 
 function filesCard(stage) {
   if (!stage.files?.length) return null;
-  return card('数据接口', stage.contract || '',
+  return card('Data interface', stage.contract || '',
     div({ class: 'files' }, ...stage.files.map((f) => div(null,
       span({ class: f.exists ? 'ok' : 'miss', text: f.exists ? '●' : '○' }),
       el('code', { text: f.path }), span({ class: 'miss', text: f.role })))),
-    el('p', { class: 'note', text: '约定：分子表至少含 id、smiles 两列，可选 keep 列；漏斗文件为 {"funnel":[{"label":"…","count":N}]}；3D 位姿 SDF 的标题行写分子 id。' }));
+    el('p', { class: 'note', text: 'Contract: molecule tables must include id, smiles two columns; optional keep columns; funnel file format: {"funnel":[{"label":"…","count":N}]}; 3D Pose SDF title line contains molecule id. ' }));
 }
 
 /* ---------------- step 1: complexes ---------------- */
@@ -58,8 +58,8 @@ async function mountComplex(root, ctx) {
       },
     },
     el('span', { class: 'sw', style: { background: p.color } }),
-    div(null, el('b', { text: p.tag }), ' ', el('small', { text: `${p.pdbid} · ${p.n_residues} 残基` })),
-    span({ class: shown[p.tag] ? 'yes' : 'no', text: shown[p.tag] ? '显示' : '隐藏' }),
+    div(null, el('b', { text: p.tag }), ' ', el('small', { text: `${p.pdbid} · ${p.n_residues} Residue` })),
+    span({ class: shown[p.tag] ? 'yes' : 'no', text: shown[p.tag] ? 'Show' : 'Hide' }),
     div({ class: 'seq', text: p.seq }))));
   };
   draw();
@@ -73,11 +73,11 @@ async function mountComplex(root, ctx) {
     div({ class: 'grid' },
       div({ class: 'col' }, div({ class: 'card flush' }, panel.root)),
       div({ class: 'col' },
-        card('筛选数量变化', '界面 → 口袋 → 药效团', funnel(stage.funnel), chips),
-        card('复合物', '点击切换显示', list),
-        card('导入文件', '结构来自 PDB 坐标文件', div({ class: 'files' },
+        card('Screening counts', 'Interface → Pocket → Pharmacophore', funnel(stage.funnel), chips),
+        card('Complex', 'Click to toggle', list),
+        card('Import file', 'Structures from PDB coordinate files', div({ class: 'files' },
           ...pep.map((p) => div(null, span({ class: 'ok', text: '●' }), el('code', { text: `${p.pdbid.toLowerCase()}.pdb` }), span({ class: 'miss', text: p.tag })))),
-        el('p', { class: 'note', text: '三个复合物按共享 CA 叠合到 9NU8 坐标系；绿/橙/黄为三条裂解肽，彩色点云为口袋。' })))));
+        el('p', { class: 'note', text: 'Three complexes aligned through shared CA onto the 9NU8 coordinate frame; green,/orange/and yellow denote the three peptides; colored point clouds show the pocket.' })))));
   return () => panel.destroy();
 }
 
@@ -86,12 +86,12 @@ function pipelineFunnel(wf) {
   const [, s2] = wf.stages;
   const f2 = s2.funnel;
   const rows = [
-    { label: '枚举骨架', count: f2[0]?.count, note: '第 2 步' },
-    { label: '类药骨架', count: f2[2]?.count },
-    { label: '结构过滤存活', count: f2[3]?.count },
+    { label: 'Enumerated scaffolds', count: f2[0]?.count, note: 'Number 2 step' },
+    { label: 'Drug-like scaffolds', count: f2[2]?.count },
+    { label: 'Structure filters passed', count: f2[3]?.count },
   ];
   for (const s of wf.stages.slice(2)) {
-    rows.push({ label: `${s.n}. ${s.title}`, count: s.out, note: s.status === 'pending' ? '等待数据' : s.status === 'demo' ? '布局预览' : null });
+    rows.push({ label: `${s.n}. ${s.title}`, count: s.out, note: s.status === 'pending' ? 'Waiting for data' : s.status === 'demo' ? 'Layout preview' : null });
   }
   return rows;
 }
@@ -122,8 +122,8 @@ async function mountMolecules(root, ctx) {
   }
 
   const rightTop = stage.n === 7
-    ? card('全流程漏斗', '各阶段保留的分子数', funnel(pipelineFunnel(ctx.wf)))
-    : card('筛选数量变化', stage.status === 'demo' ? '版面示意' : null, funnel(stage.funnel),
+    ? card('Workflow funnel', 'Molecules retained at each stage', funnel(pipelineFunnel(ctx.wf)))
+    : card('Screening counts', stage.status === 'demo' ? 'Layout illustration' : null, funnel(stage.funnel),
       stage.extras?.independent
         ? div({ class: 'chips' }, ...stage.extras.independent.map((c) => span({ class: 'chip' }, c.label, el('b', { text: nf(c.count) }))))
         : null);
@@ -134,17 +134,17 @@ async function mountMolecules(root, ctx) {
     table = moleculeTable(mols, { onSelect: pick });
     listBody = table.root;
   } else {
-    listBody = div({ class: 'empty', text: '暂无分子。接入后在此显示列表，选中一行即可在左侧 3D 视图中查看。' });
+    listBody = div({ class: 'empty', text: 'No molecules yet. Select a row to view its structure in the left-hand 3D viewer.' });
   }
 
   const grid = div({ class: 'grid' },
     div({ class: 'col' },
       div({ class: 'card flush' }, panel.root),
-      card('分子', stage.status === 'pending' ? null : '2D 结构与属性', mcard.root, caption)),
+      card('Molecule', stage.status === 'pending' ? null : '2D Structure and properties', mcard.root, caption)),
     div({ class: 'col' },
       banner(stage),
       rightTop,
-      card('分子列表', `${nf(mols.n)} 个 · 点击行查看`, listBody),
+      card('Molecule list', `${nf(mols.n)} items · Click a row to view`, listBody),
       filesCard(stage)));
   root.append(head(stage, ctx), grid);
 

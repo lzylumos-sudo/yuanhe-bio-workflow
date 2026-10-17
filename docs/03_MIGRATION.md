@@ -1,20 +1,19 @@
-# 目录与命名迁移
+# Naming and migration
 
-主流程使用两位数字加英文功能名；Python 包名、CLI 参数、科学产物文件名和第三方模型名保持原接口。改名同步修改桥接路径、启动脚本、结构选择与生成模块配置，避免只改外层文件夹导致断链。
+The repository uses numbered English module directories. Package names, command-line arguments, scientific artifact identifiers and upstream model names retain their interfaces. Runtime references, launchers, structure selectors and model configuration are updated together with paths.
 
-| 原目录/入口 | 新目录/入口 |
+| Area | Repository path |
 |---|---|
-| 元核生物_UI | 00_workbench |
-| 元核生物_对接前分子生成/v2 | 01_molecule_generation |
-| 01_GNINA_SBVS | 02_docking |
-| 元核生物_虚拟筛选方案/06_Virtual_Screening_Studio | 03_virtual_screening |
-| 05_Ligand_Interaction_Studio | 04_interaction_analysis |
-| 04_Universal_MD_Simulation | 05_molecular_dynamics |
-| 02_GNINA_SBVS_v2 | archive/docking_prototype |
-| 根目录 PDB | data/structures/，文件名统一小写 |
-| START_LINUX.sh | start_linux.sh |
-| START_PROJECT.cmd / .ps1 | start_windows.cmd / .ps1 |
+| Unified interface | `00_workbench` |
+| Generation v2 | `01_molecule_generation` |
+| Main GNINA backend | `02_docking` |
+| Virtual screening | `03_virtual_screening` |
+| ZLIS | `04_interaction_analysis` |
+| Standalone OpenMM | `05_molecular_dynamics` |
+| Earlier docking prototype | `archive/docking_prototype` |
+| Structural inputs | `data/structures`, lowercase filenames |
+| Launchers | `start_linux.sh`, `start_windows.cmd`, `start_windows.ps1` |
 
-`FILE_MAP.csv` 保存复制文件与原始 SHA-256；改名后修改的源码哈希自然不同。旧根目录的开发提示词、临时诊断脚本、论文全文、重复 v1 生成副本、历史结果不纳入发布。工作台仍保留历史页面依赖的 pepwedge 包，但历史生成入口不是主流程模型后端。
+`FILE_MAP.csv` retains original file SHA-256 values and repository destinations. Source path labels are normalized to English; they are descriptive labels, not byte-exact historic filenames. Edited files naturally have different hashes. Old development prompts, temporary diagnostics, full-text papers, duplicate v1 generation copies and historical run outputs are excluded.
 
-本次整理在独立副本完成，原外置盘内容保持原状。旧运行记录的绝对路径及哈希不批量重写，避免伪造可恢复性；需要继续旧运行时使用原项目。
+The historical `pepwedge` package supports legacy analysis pages; it is not the production model backend. This release is prepared in a separate checkout. Existing external-disk run records are not rewritten to suggest they can resume under changed source hashes. Resume old runs with their original code, or create new runs using this release.

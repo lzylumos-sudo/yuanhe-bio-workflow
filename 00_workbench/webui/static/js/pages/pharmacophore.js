@@ -10,12 +10,12 @@ const TYPE_COLOR = {
   anion: '#e55353', cation: '#4f8ef7', aromatic: '#c99a3a', donor: '#38a169', hydrophobic: '#8b97a8',
 };
 const TYPE_LABEL = {
-  anion: '阴离子（羧酸/磷酸）', cation: '阳离子（碱性胺）', aromatic: '芳香/π',
-  donor: '氢键给体', hydrophobic: '疏水',
+  anion: 'Anion (carboxylate//phosphate)', cation: 'Cation (basic amine)', aromatic: 'Aromatic/π',
+  donor: 'Hydrogen-bond donor', hydrophobic: 'Hydrophobic',
 };
 
 export async function mount(root, ctx) {
-  root.appendChild(loadingPane('正在读取药效团与设计轴…'));
+  root.appendChild(loadingPane('Loading pharmacophores and design axes...'));
   const data = await api.pharmacophore();
   const features = data.features || [];
   const pairs = data.pairs || [];
@@ -24,24 +24,24 @@ export async function mount(root, ctx) {
   root.replaceChildren();
   root.appendChild(div({ class: 'page-head' },
     div(null,
-      el('h1', { text: '共识药效团与设计轴' }),
-      div({ class: 'sub', text: '每条肽的功能原子（丙氨酸扫描 + 自发耐药突变 + 三肽趋同接触所定义）被投到同一 MurJ 坐标系里聚类；特征之间的两两距离就是骨架必须满足的几何约束。' })),
+      el('h1', { text: 'Consensus pharmacophores and design axes' }),
+      div({ class: 'sub', text: 'Peptide functional atoms defined by alanine scanning, + spontaneous resistance mutations, + and convergent contacts are clustered in a shared MurJ coordinate frame; pairwise feature distances define scaffold constraints.' })),
     div({ class: 'actions' },
-      el('a', { class: 'btn', href: '/files/results/pharmacophore.json?download=1', text: '下载 JSON' }),
-      el('button', { class: 'btn', text: '在 3D 中查看特征', onclick: () => ctx.navigate('structure', { ligand: '0' }) }))));
+      el('a', { class: 'btn', href: '/files/results/pharmacophore.json?download=1', text: 'Download JSON' }),
+      el('button', { class: 'btn', text: 'in 3D view features', onclick: () => ctx.navigate('structure', { ligand: '0' }) }))));
 
   /* ---- explanation ---- */
-  root.appendChild(card({ class: 'section', title: '为什么是“轴”而不是“形状匹配”' },
+  root.appendChild(card({ class: 'section', title: 'Why axes instead of shape matching?' },
     div({ class: 'grid cols-3', style: { gap: '12px' } },
       div(null,
-        div({ class: 'tiny muted', text: '1 · 药效团对' }),
-        div({ class: 'tiny', text: '任取两个权重足够高的特征，得到一条有方向、有长度的设计轴（9–18 Å）。' })),
+        div({ class: 'tiny muted', text: '1 · Pharmacophore pair' }),
+        div({ class: 'tiny', text: 'Two sufficiently weighted features define a directed design axis with a length (9–18 Å). ' })),
       div(null,
-        div({ class: 'tiny muted', text: '2 · 一维长度约束' }),
-        div({ class: 'tiny', text: '骨架是“头帽–桥–环–桥–…–尾帽”的刚性单元链，每个单元跨距固定；能否同时够到两端，变成一个一维区间问题。' })),
+        div({ class: 'tiny muted', text: '2 · One-dimensional length constraint' }),
+        div({ class: 'tiny', text: 'Scaffolds form rigid chains of head cap,–bridge,–Ring–bridge,–…–and tail cap units; fixed spans reduce endpoint reachability to an interval problem.' })),
       div(null,
-        div({ class: 'tiny muted', text: '3 · 确定性求解' }),
-        div({ class: 'tiny', text: '区间查找精确求解，因此 20,307 个骨架可穷举、可复现、可归因——不是随机采样。' })))));
+        div({ class: 'tiny muted', text: '3 · Deterministic solution' }),
+        div({ class: 'tiny', text: 'Interval lookup solves the constraint exactly, making 20,307 scaffolds enumerable, reproducible and attributable rather than randomly sampled.' })))));
 
   /* ---- feature cards ---- */
   const cards = div({ class: 'grid cols-auto', style: { gap: '10px' } },
@@ -51,15 +51,15 @@ export async function mount(root, ctx) {
         span({ class: 'tiny muted', text: `${f.type}` }),
         span({ class: 'right chip mono', style: { marginLeft: 'auto' }, text: `w ${fmt(f.weight, 2)}` })),
       div({ class: 'split tiny muted', style: { marginTop: '6px' } },
-        span({ text: `趋同 ${fmt(f.convergence, 2)}` }),
-        span({ text: `容差 ±${fmt(f.tol, 1)} Å` }),
+        span({ text: `Convergence ${fmt(f.convergence, 2)}` }),
+        span({ text: `Tolerance ±${fmt(f.tol, 1)} Å` }),
         span({ text: `spread ${fmt(f.spread, 2)}` })),
       div({ class: 'chips', style: { marginTop: '6px' } },
         ...(f.murj_contacts || []).slice(0, 6).map((c) => span({ class: 'resid', text: c })),
         (f.murj_contacts || []).length > 6 ? span({ class: 'tiny muted', text: `+${f.murj_contacts.length - 6}` }) : null),
       div({ class: 'tiny muted', style: { marginTop: '6px' }, text: (f.sources || []).join(' · ') }))));
 
-  root.appendChild(card({ title: `共识特征（${features.length}）`, class: 'section' }, cards,
+  root.appendChild(card({ title: `Consensus features (${features.length})`, class: 'section' }, cards,
     div({ class: 'hr' }),
     div({ class: 'legend' },
       ...Object.entries(TYPE_LABEL).map(([key, label]) => div({ class: 'item' },
@@ -67,18 +67,18 @@ export async function mount(root, ctx) {
 
   /* ---- distance vs weight scatter ---- */
   const scatter = buildScatter(pairs, axes);
-  root.appendChild(card({ title: '特征对的距离—权重分布', class: 'section' },
-    div({ class: 'tiny muted', style: { marginBottom: '6px' }, text: '灰点：全部特征对；彩色点：被 14 条设计轴采用的（阴离子–X，距离 9–18 Å，权重 ≥ 0.45）。' }),
+  root.appendChild(card({ title: 'Feature-pair distance versus weight', class: 'section' },
+    div({ class: 'tiny muted', style: { marginBottom: '6px' }, text: 'Gray: all feature pairs; colored: pairs selected for 14 design axes (anionic–X, Distance 9–18 Å, Weight ≥ 0.45). ' }),
     scatter));
 
   /* ---- pairs table ---- */
   const pairTable = new DataTable({
     columns: [
-      { key: 'a', label: '特征 A', width: '70px' },
-      { key: 'b', label: '特征 B', width: '70px' },
-      { key: 'types', label: '类型', mono: true },
-      { key: 'distance', label: '距离 Å', num: true, render: (r) => fmt(r.distance, 2) },
-      { key: 'weight', label: '权重', num: true, render: (r) => fmt(r.weight, 2) },
+      { key: 'a', label: 'Feature A', width: '70px' },
+      { key: 'b', label: 'Feature B', width: '70px' },
+      { key: 'types', label: 'Type', mono: true },
+      { key: 'distance', label: 'Distance Å', num: true, render: (r) => fmt(r.distance, 2) },
+      { key: 'weight', label: 'Weight', num: true, render: (r) => fmt(r.weight, 2) },
     ],
     rows: pairs,
     pageSize: 12,
@@ -87,16 +87,16 @@ export async function mount(root, ctx) {
 
   const axisTable = new DataTable({
     columns: [
-      { key: 'axis', label: '设计轴', width: '90px' },
-      { key: 'types', label: '类型', mono: true },
-      { key: 'distance', label: '轴长 Å', num: true, render: (r) => fmt(r.distance, 2) },
-      { key: 'weight', label: '权重', num: true, render: (r) => fmt(r.weight, 2) },
+      { key: 'axis', label: 'Design axis', width: '90px' },
+      { key: 'types', label: 'Type', mono: true },
+      { key: 'distance', label: 'Axis length Å', num: true, render: (r) => fmt(r.distance, 2) },
+      { key: 'weight', label: 'Weight', num: true, render: (r) => fmt(r.weight, 2) },
       {
-        key: 'candidates', label: '枚举骨架', num: true,
-        render: (r) => (r.candidates ? String(r.candidates) : span({ class: 'chip weak sm', text: '无候选' })),
+        key: 'candidates', label: 'Enumerated scaffolds', num: true,
+        render: (r) => (r.candidates ? String(r.candidates) : span({ class: 'chip weak sm', text: 'No candidates' })),
       },
-      { key: 'scored', label: '性质内打分', num: true },
-      { key: 'seconds', label: '耗时 s', num: true, render: (r) => fmt(r.seconds, 1) },
+      { key: 'scored', label: 'Scored within property envelope', num: true },
+      { key: 'seconds', label: 'Elapsed time s', num: true, render: (r) => fmt(r.seconds, 1) },
     ],
     rows: axes,
     pageSize: 20,
@@ -106,11 +106,11 @@ export async function mount(root, ctx) {
   const deadAxes = axes.filter((a) => !a.candidates);
 
   root.appendChild(div({ class: 'section grid cols-2' },
-    card({ title: `特征对（${pairs.length}）` }, pairTable.el),
-    card({ title: `设计轴（${axes.length} 条，${withCandidates} 条有候选）` },
+    card({ title: `Feature pairs (${pairs.length})` }, pairTable.el),
+    card({ title: `Design axes (${axes.length} entries,${withCandidates} with candidates)` },
       axisTable.el,
       deadAxes.length
-        ? div({ class: 'card-note', style: { marginTop: '8px' }, text: `${deadAxes.map((a) => a.axis).join('、')} 在现有刚性单元库下没有候选：它要求的跨距落在可枚举区间之外。这是负结果，保留在表里而不是删除——说明“哪些几何是被骨架库本身排除的”。` })
+        ? div({ class: 'card-note', style: { marginTop: '8px' }, text: `${deadAxes.map((a) => a.axis).join(', ')} No candidate in the current rigid-unit library: the requested span lies outside the enumerable intervals. This negative result is retained to show geometries excluded by the library.` })
         : null)));
 
   return null;
@@ -120,7 +120,7 @@ function buildScatter(pairs, axes) {
   const W = 720;
   const H = 260;
   const pad = { l: 44, r: 16, t: 14, b: 30 };
-  if (!pairs.length) return div({ class: 'empty-state', text: '无特征对数据' });
+  if (!pairs.length) return div({ class: 'empty-state', text: 'No feature-pair data' });
   const xs = pairs.map((p) => Number(p.distance));
   const ys = pairs.map((p) => Number(p.weight));
   const xmin = Math.min(...xs);
@@ -154,11 +154,11 @@ function buildScatter(pairs, axes) {
 
   return svg('svg', { viewBox: `0 0 ${W} ${H}`, style: 'width:100%;height:auto;display:block' },
     svg('rect', { x: x(9), y: pad.t, width: Math.max(4, x(18) - x(9)), height: H - pad.t - pad.b, fill: 'rgba(56,189,248,.06)' }),
-    svg('text', { x: (x(9) + x(18)) / 2, y: pad.t + 11, fill: '#38bdf8', 'font-size': 9, 'text-anchor': 'middle', text: '设计窗口 9–18 Å' }),
+    svg('text', { x: (x(9) + x(18)) / 2, y: pad.t + 11, fill: '#38bdf8', 'font-size': 9, 'text-anchor': 'middle', text: 'Design window 9–18 Å' }),
     ...ticks, ...gridY,
     svg('line', { x1: pad.l, y1: H - pad.b, x2: W - pad.r, y2: H - pad.b, stroke: '#2a3a4c' }),
     svg('line', { x1: pad.l, y1: pad.t, x2: pad.l, y2: H - pad.b, stroke: '#2a3a4c' }),
     ...dots,
-    svg('text', { x: W / 2, y: H - 3, fill: '#67788c', 'font-size': 10, 'text-anchor': 'middle', text: '特征对距离 (Å)' }),
-    svg('text', { x: 12, y: H / 2, fill: '#67788c', 'font-size': 10, transform: `rotate(-90 12 ${H / 2})`, 'text-anchor': 'middle', text: '权重' }));
+    svg('text', { x: W / 2, y: H - 3, fill: '#67788c', 'font-size': 10, 'text-anchor': 'middle', text: 'Feature-pair distance (Å)' }),
+    svg('text', { x: 12, y: H / 2, fill: '#67788c', 'font-size': 10, transform: `rotate(-90 12 ${H / 2})`, 'text-anchor': 'middle', text: 'Weight' }));
 }

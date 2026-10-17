@@ -326,20 +326,20 @@ def _write_csv(path: str, fields: list[str], rows: Iterable[dict[str, Any]]) -> 
 
 
 def render_markdown(report: dict[str, Any]) -> str:
-    lines = ["# 受体审计", ""]
+    lines = ["# Receptor audit", ""]
     original = report["original"]
     receptor = report["receptor"]
     lines += [
-        f"- 链: `{report['chain']}` · 天然区间: `{report['native_range']}`",
-        f"- 处理前文件: `{os.path.basename(original['path'])}` sha256 `{original['sha256'][:16]}` · {original['atoms']} 原子",
-        f"- 实际下游受体: `{os.path.basename(receptor['path'])}` sha256 `{receptor['sha256'][:16]}` · "
-        f"{receptor['atoms']} 原子 / {receptor['residues']} 残基 / auth {receptor['auth_first']}..{receptor['auth_last']}",
-        f"- 机制参考复合物: `{os.path.basename(report['reference_complex']['path'])}` "
+        f"- Chain: `{report['chain']}` · Native interval: `{report['native_range']}`",
+        f"- Input before processing: `{os.path.basename(original['path'])}` sha256 `{original['sha256'][:16]}` · {original['atoms']} Atom",
+        f"- Actual downstream receptor: `{os.path.basename(receptor['path'])}` sha256 `{receptor['sha256'][:16]}` · "
+        f"{receptor['atoms']} Atom / {receptor['residues']} Residue / auth {receptor['auth_first']}..{receptor['auth_last']}",
+        f"- Mechanistic reference complex: `{os.path.basename(report['reference_complex']['path'])}` "
         f"sha256 `{(report['reference_complex']['sha256'] or '')[:16]}`",
         "",
-        "## 处理前构成",
+        "## Composition before processing",
         "",
-        "| 链 | 蛋白原子 | 蛋白残基 | auth 范围 | 非蛋白原子 |",
+        "| Chain | Protein atoms | Protein residues | auth Range | Nonprotein atoms |",
         "| --- | --- | --- | --- | --- |",
     ]
     for row in original["chains"]:
@@ -347,29 +347,29 @@ def render_markdown(report: dict[str, Any]) -> str:
             f"| {row['chain']} | {row['protein_atoms']} | {row['protein_residues']} | "
             f"{row['auth_first']}..{row['auth_last']} | {row['hetero_atoms']} |"
         )
-    lines += ["", "## 分段（主链）", "", "| 段 | 残基数 | 原子数 | auth 范围 |", "| --- | --- | --- | --- |"]
+    lines += ["", "## Backbone segments", "", "| Segment | Residue count | Atom count | auth Range |", "| --- | --- | --- | --- |"]
     for name, slot in sorted(report["original"]["segments"].items()):
         lines.append(f"| {name} | {slot['residues']} | {slot['atoms']} | {slot['first']}..{slot['last']} |")
     lines += [
         "",
-        "## 实际受体构成",
+        "## Actual receptor composition",
         "",
-        "| 链 | 蛋白原子 | 蛋白残基 | auth 范围 |",
+        "| Chain | Protein atoms | Protein residues | auth Range |",
         "| --- | --- | --- | --- |",
     ]
     for row in receptor["chains"]:
         lines.append(
             f"| {row['chain']} | {row['protein_atoms']} | {row['protein_residues']} | {row['auth_first']}..{row['auth_last']} |"
         )
-    lines += ["", "## 检查", "", "| 检查 | 状态 | 说明 |", "| --- | --- | --- |"]
+    lines += ["", "## Check", "", "| Check | Status | Description |", "| --- | --- | --- |"]
     for check in report["checks"]:
         lines.append(f"| {check['check']} | {check['status']} | {check['detail']} |")
     if report.get("mutations"):
         lines += [
             "",
-            "## 突变位点",
+            "## Mutation sites",
             "",
-            "| auth | 声明的 construct | 仓库存放残基 | 处理后 | WT 恢复 | 状态 |",
+            "| auth | Declared construct | Repository residues | After processing | WT Resume | Status |",
             "| --- | --- | --- | --- | --- | --- |",
         ]
         for row in report["mutations"]:
@@ -377,5 +377,5 @@ def render_markdown(report: dict[str, Any]) -> str:
                 f"| {row['auth_seq_id']} | {row['declared_construct_resname']} | {row['observed_resname_before']} | "
                 f"{row['observed_resname_after']} | {row['wt_restored']} | {row['status']} |"
             )
-    lines += ["", "## 说明", ""] + [f"- {note}" for note in report.get("notes", [])]
+    lines += ["", "## Description", ""] + [f"- {note}" for note in report.get("notes", [])]
     return "\n".join(lines) + "\n"

@@ -19,7 +19,13 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--source-root', required=True, type=Path)
     args = parser.parse_args()
-    source = args.source_root / '元核生物_对接前分子生成/v2'
+    candidates = [args.source_root, args.source_root / '01_molecule_generation']
+    candidates += list(args.source_root.glob('*/v2'))
+    matches = [p for p in candidates if (p / 'vendor/Peptide2Mol').is_dir()
+               and (p / 'vendor/REINVENT4').is_dir()]
+    if len(matches) != 1:
+        raise SystemExit('Provide a source root containing exactly one generation directory with both vendor models')
+    source = matches[0]
     target = ROOT / '01_molecule_generation'
     config = json.loads((ROOT / 'deployment/model_dependencies.json').read_text())
     entries = [('peptide2mol', 'Peptide2Mol', 'checkpoint', 'checkpoint_sha256'),

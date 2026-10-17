@@ -15,8 +15,8 @@ paths:
 # zvss.redock.gnina before the adapter builds a command line.
 tools:
   gnina: ["wsl", "-d", "Ubuntu-22.04", "-u", "root", "env",
-          "LD_LIBRARY_PATH=/usr/lib/wsl/lib:/mnt/c/Users/user/Desktop/元核生物/06_Virtual_Screening_Studio/vendor/cudnn/lib:/mnt/c/Users/user/Desktop/元核生物/06_Virtual_Screening_Studio/vendor/nvidia-cuda-runtime-cu12/lib:/mnt/c/Users/user/Desktop/元核生物/06_Virtual_Screening_Studio/vendor/nvidia-cublas-cu12/lib",
-          "/mnt/c/Users/user/Desktop/元核生物/06_Virtual_Screening_Studio/vendor/gnina"]
+          "LD_LIBRARY_PATH=/usr/lib/wsl/lib:/mnt/c/Users/user/Desktop/Yuanhe Bio/06_Virtual_Screening_Studio/vendor/cudnn/lib:/mnt/c/Users/user/Desktop/Yuanhe Bio/06_Virtual_Screening_Studio/vendor/nvidia-cuda-runtime-cu12/lib:/mnt/c/Users/user/Desktop/Yuanhe Bio/06_Virtual_Screening_Studio/vendor/nvidia-cublas-cu12/lib",
+          "/mnt/c/Users/user/Desktop/Yuanhe Bio/06_Virtual_Screening_Studio/vendor/gnina"]
   gnina_settings:
     exhaustiveness: 8
     num_modes: 3
@@ -30,8 +30,8 @@ executors:
   gnina:
     mode: auto
     command: ["wsl", "-d", "Ubuntu-22.04", "-u", "root", "env",
-              "LD_LIBRARY_PATH=/usr/lib/wsl/lib:/mnt/c/Users/user/Desktop/元核生物/06_Virtual_Screening_Studio/vendor/cudnn/lib:/mnt/c/Users/user/Desktop/元核生物/06_Virtual_Screening_Studio/vendor/nvidia-cuda-runtime-cu12/lib:/mnt/c/Users/user/Desktop/元核生物/06_Virtual_Screening_Studio/vendor/nvidia-cublas-cu12/lib",
-              "/mnt/c/Users/user/Desktop/元核生物/06_Virtual_Screening_Studio/vendor/gnina"]
+              "LD_LIBRARY_PATH=/usr/lib/wsl/lib:/mnt/c/Users/user/Desktop/Yuanhe Bio/06_Virtual_Screening_Studio/vendor/cudnn/lib:/mnt/c/Users/user/Desktop/Yuanhe Bio/06_Virtual_Screening_Studio/vendor/nvidia-cuda-runtime-cu12/lib:/mnt/c/Users/user/Desktop/Yuanhe Bio/06_Virtual_Screening_Studio/vendor/nvidia-cublas-cu12/lib",
+              "/mnt/c/Users/user/Desktop/Yuanhe Bio/06_Virtual_Screening_Studio/vendor/gnina"]
   md_openmm_linux:
     mode: disabled
     note: "downstream MD project is Linux-only and has no membrane protocol"

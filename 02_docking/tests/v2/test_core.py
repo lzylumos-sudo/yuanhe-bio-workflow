@@ -10,7 +10,7 @@ from sbvs2.analysis.ranking import rank_states, parent_summary
 
 
 def test_paths_chinese_space(tmp_path):
-    rp = RuntimePaths.resolve(tmp_path / "含 空格 目录")
+    rp = RuntimePaths.resolve(tmp_path / "containing Space Contents")
     p = init_project(rp, "proj1"); r = init_run(rp, "proj1", "run1")
     assert r.is_dir() and (r / "00_run_record").is_dir()
     with pytest.raises(FileExistsError): init_run(rp, "proj1", "run1")     # never overwrite

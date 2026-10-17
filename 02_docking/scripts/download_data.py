@@ -51,7 +51,7 @@ def main():
    if s not in demo and Chem.MolFromSmiles(s):demo.append(s)
    if len(demo)>=100:break
   if len(demo)>=100:break
- for n in (20,100):(ROOT/f'data/demo/ligands_{n}.smi').write_text('# 流程演示库；无活性标签\n'+''.join(f'{s} demo_{i:03d}\n' for i,s in enumerate(demo[:n],1)),encoding='utf-8')
+ for n in (20,100):(ROOT/f'data/demo/ligands_{n}.smi').write_text('# Workflow demonstration library; no activity labels\n'+''.join(f'{s} demo_{i:03d}\n' for i,s in enumerate(demo[:n],1)),encoding='utf-8')
  write_json(ROOT/'data/sources.json',sources)
  print(json.dumps({'FOL_instance':instance,'heavy_atoms':m.GetNumAtoms(),'demo_count':len(demo)}))
 if __name__=='__main__':main()

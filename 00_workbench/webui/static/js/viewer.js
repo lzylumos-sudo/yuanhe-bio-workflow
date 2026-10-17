@@ -447,7 +447,7 @@ export class StructureViewer {
           kind: 'sphere', x, y, z, r: Math.max(2.4, this.options.ligandRadius * s),
           color: shade(atom.rgb, bright(z) * 1.08), ligand: true,
         });
-        this._pickables.push({ x, y, z, r: 8, label: `配体 ${atom.e}`, kind: 'ligand' });
+        this._pickables.push({ x, y, z, r: 8, label: `Ligand ${atom.e}`, kind: 'ligand' });
       }
     }
 
@@ -461,7 +461,7 @@ export class StructureViewer {
           color: shade(h.evidence ? '#ff8a5b' : '#5b7fa6', bright(z) * (0.85 + score * 0.4)),
         });
         this._pickables.push({
-          x, y, z, r: 9, label: `${h.one}${h.resid} 热点 ${h.score}`, kind: 'hotspot', hotspot: h,
+          x, y, z, r: 9, label: `${h.one}${h.resid} Hotspot ${h.score}`, kind: 'hotspot', hotspot: h,
         });
       }
     }

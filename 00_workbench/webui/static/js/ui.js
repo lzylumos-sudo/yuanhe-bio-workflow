@@ -93,10 +93,10 @@ export function timeAgo(seconds) {
   if (!seconds) return '—';
   const diff = Date.now() / 1000 - Number(seconds);
   if (!Number.isFinite(diff)) return '—';
-  if (diff < 60) return '刚刚';
-  if (diff < 3600) return `${Math.floor(diff / 60)} 分钟前`;
-  if (diff < 86400) return `${Math.floor(diff / 3600)} 小时前`;
-  return `${Math.floor(diff / 86400)} 天前`;
+  if (diff < 60) return 'Just now';
+  if (diff < 3600) return `${Math.floor(diff / 60)} minutes ago`;
+  if (diff < 86400) return `${Math.floor(diff / 3600)} hours ago`;
+  return `${Math.floor(diff / 86400)} days ago`;
 }
 
 export function fmtDate(seconds) {
@@ -204,7 +204,7 @@ export function emptyState(text) {
   return div({ class: 'empty-state', text });
 }
 
-export function loadingPane(text = '正在载入…') {
+export function loadingPane(text = 'Loading...') {
   return div({ class: 'loading-pane' }, span({ class: 'spinner' }), text);
 }
 
@@ -225,7 +225,7 @@ export function toast(message, type = 'info', ms = 3600) {
 /* ---------------- data table ---------------- */
 export class DataTable {
   constructor({
-    columns, rows = [], pageSize = 50, empty = '没有匹配的记录',
+    columns, rows = [], pageSize = 50, empty = 'No matching records',
     onRowClick = null, initialSort = null, keyField = null, pageSizes = [25, 50, 100, 250],
   }) {
     this.columns = columns;
@@ -338,7 +338,7 @@ export class DataTable {
       span({ class: 'mono-sm', text: `${this.page + 1} / ${pages}` }),
       el('button', { class: 'btn sm ghost', text: '›', disabled: this.page >= pages - 1, onclick: () => { this.page = Math.min(pages - 1, this.page + 1); this._render(); } }));
     const sizeSel = el('select', { class: 'sm', onchange: (e) => { this.pageSize = Number(e.target.value); this.page = 0; this._render(); } },
-      ...this.pageSizes.map((n) => el('option', { value: n, selected: n === this.pageSize }, `${n} 条/页`)));
+      ...this.pageSizes.map((n) => el('option', { value: n, selected: n === this.pageSize }, `${n} entries/page`)));
     this.foot.replaceChildren(
       span({ class: 'grow', text: range }),
       pager,
@@ -496,7 +496,7 @@ export function openDrawer({ title, sub, body, footer, width } = {}) {
       div({ style: { flex: '1', minWidth: '0' } },
         el('h2', { text: title || '' }),
         sub ? div({ class: 'sub' }, sub) : null),
-      el('button', { class: 'icon-btn', title: '关闭', text: '✕', onclick: () => close() })),
+      el('button', { class: 'icon-btn', title: 'Close', text: '✕', onclick: () => close() })),
     div({ class: 'drawer-body' }, body),
     footer ? div({ class: 'drawer-foot' }, footer) : null);
   document.body.append(backdrop, drawer);

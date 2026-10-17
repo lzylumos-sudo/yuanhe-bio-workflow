@@ -23,7 +23,7 @@ sys.path.insert(0, str(ROOT))
 # internal disk (the project may live on an exFAT drive). Override with MURJ_ENV_ROOT.
 import os
 ENV_ROOT = Path(os.environ.get("MURJ_ENV_ROOT",
-                               Path.home() / ".local/share/yuanhe/envs"))
+                               Path.home() / "Desktop/01_molecule_generation/envs"))
 
 STAGES = ["prepare", "hypotheses", "generate-seeds", "select-cores", "expand",
           "synthesis-check", "geometry-check", "select", "export", "validate"]

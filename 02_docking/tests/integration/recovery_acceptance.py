@@ -15,7 +15,7 @@ def wait(rid,limit=180):
  raise TimeoutError(rid)
 # Partial failure, duplicate names, Unicode and blank validation.
 r=requests.post(BASE+'/api/jobs',headers=HEAD,data={'smiles':'  '},timeout=10);assert r.status_code==400
-rid=submit('CCO 重复 名字\nINVALID bad\nCCCO 重复 名字\n[Fe] unsupported','class_quick');d=wait(rid)
+rid=submit('CCO Duplicate Name\nINVALID bad\nCCCO Duplicate Name\n[Fe] unsupported','class_quick');d=wait(rid)
 assert d['status']=='partial_failed' and len(d['ranking'])==2 and len(d['failures'])==2
 results['mixed_batch']={'status':'passed','run_id':rid,'successful':2,'failed':2}
 # Actual cancellation, not a mocked process.

@@ -6,7 +6,7 @@ import json
 import os
 import sqlite3
 
-PROJECT = r"C:\Users\user\Desktop\元核生物\06_Virtual_Screening_Studio"
+PROJECT = r"C:\Users\user\Desktop\Yuanhe Bio\06_Virtual_Screening_Studio"
 DB = os.path.join(PROJECT, "runtime", "zvss.sqlite3")
 
 con = sqlite3.connect(DB)

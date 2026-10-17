@@ -25,9 +25,9 @@ CACHE = os.path.join(WEBUI, 'cache')
 STRUCTURES = {
     'SglM': dict(pdb='9nu4.pdb', pdbid='9NU4', title='MurJ in complex with SglM',
                  resolution=3.60, peptide='SglM', color='#ecc94b'),
-    'SglPP7': dict(pdb='9NU5.pdb', pdbid='9NU5', title='MurJ in complex with SglPP7',
+    'SglPP7': dict(pdb='9nu5.pdb', pdbid='9NU5', title='MurJ in complex with SglPP7',
                    resolution=3.70, peptide='SglPP7', color='#dd6b20'),
-    'SglCJ3': dict(pdb='9NU8.pdb', pdbid='9NU8', title='MurJ in complex with SglCJ3',
+    'SglCJ3': dict(pdb='9nu8.pdb', pdbid='9NU8', title='MurJ in complex with SglCJ3',
                    resolution=3.60, peptide='SglCJ3', color='#38a169'),
 }
 REF_TAG = 'SglCJ3'          # frame in which poses / pharmacophore / pocket live
