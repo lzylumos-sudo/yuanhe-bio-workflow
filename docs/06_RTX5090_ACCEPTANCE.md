@@ -1,6 +1,6 @@
 # RTX 5090 D acceptance, 2026-10-18
 
-Status: partial real computational acceptance. Membrane MD remains unexecuted.
+Historical round-one status: partial real computational acceptance; MD had not yet been executed at this checkpoint. **The subsequent MD run is completed and documented in [08_MEMBRANE_MD_ACCEPTANCE.md](08_MEMBRANE_MD_ACCEPTANCE.md).** The statements below preserve the earlier evidence boundary.
 
 The authorized small run used one 9NU4 MurJ construct, one generated core and one GPU. Peptide2Mol started 16 attempts: 12 completed (one valid, eleven failed decoding) and four were interrupted at the attempt ceiling. The valid molecule was recovered by validating receptor, pocket, model and SDF hashes. It was not regenerated or replaced by historical output. LibInvent sampled eight records, producing five unique molecules. These five and the original seed yielded six GNINA jobs and 54 poses. Screening displayed three preliminary candidates and zero formally qualified candidates. No ligand parameterization, bilayer, equilibration, production trajectory or MD analysis was produced. The requested 20 ns was a maximum authorization, not a completed or finalized production length.
 
