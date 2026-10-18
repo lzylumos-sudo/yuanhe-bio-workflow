@@ -72,10 +72,21 @@ def validate_scaffold(smiles: str) -> dict[str, Any]:
 def render_sampling_toml(*, checkpoint: Path, scaffold_file: Path, output_csv: Path, budget: int, device: str) -> str:
     """Generate a REINVENT4 v4 sampling configuration for LibInvent."""
     return "\n".join([
-        f'version = {CONFIG_VERSION}', 'run_type = "sampling"', f'device = {_toml_string(device)}', "",
+        'run_type = "sampling"', f'device = {_toml_string(device)}', "",
         "[parameters]", f'model_file = {_toml_string(checkpoint)}', f'smiles_file = {_toml_string(scaffold_file)}',
         f'output_file = {_toml_string(output_csv)}', f"num_smiles = {budget}",
         "unique_molecules = false", "randomize_smiles = false", "",])
+
+
+def _bracket_dummy_smiles(smiles):
+    """Rewrite each attachment dummy to the single bracket token "[*]"."""
+    chem = _rdkit()
+    mol = chem.MolFromSmiles(smiles)
+    for atom in mol.GetAtoms():
+        if atom.GetAtomicNum() == 0:
+            atom.SetAtomMapNum(0)
+            atom.SetIsotope(0)
+    return chem.MolToSmiles(mol, isomericSmiles=True, canonical=False).replace("*", "[*]")
 
 
 def scaffold_identity(smiles):
@@ -140,8 +151,13 @@ def run(
         from .provenance import source_fingerprint
         manifest["source_provenance"] = source_fingerprint(repo_path, REPO_COMMIT)
         scaffold = validate_scaffold(scaffold_smiles); manifest["inputs"]["validated_scaffold"] = scaffold
+        # The CLI only knows the bracket token "[*]" (chemistry/tokens.py +
+        # libinvent vocabulary), so the dummy is written without map numbers;
+        # the original traversal order is kept.
+        scaffold_for_model = _bracket_dummy_smiles(scaffold_smiles)
+        manifest["inputs"]["model_scaffold"] = scaffold_for_model
         scaffold_file, raw_csv = out / "scaffold.smi", out / "raw_sampling.csv"
-        scaffold_file.write_text(scaffold_smiles + "\n", encoding="utf-8")
+        scaffold_file.write_text(scaffold_for_model + "\n", encoding="utf-8")
         config = out / "sampling.toml"
         config.write_text(render_sampling_toml(checkpoint=ckpt, scaffold_file=scaffold_file, output_csv=raw_csv, budget=budget, device=device), encoding="utf-8")
         command = [str(exe), "--seed", str(seed), str(config)]

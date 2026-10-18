@@ -99,6 +99,9 @@ def resolve_receptor(ctx, bundle: InputBundle, hint: dict[str, Any] | None = Non
     from ..ids import sha256_file
 
     digest = sha256_file(candidate)
+    declared = hint.get("receptor_sha256")
+    if declared and declared != digest:
+        raise ValueError("declared docking receptor sha256 does not match the file")
     recipe = str(hint.get("preparation") or "as_provided")
     frame = str(hint.get("coordinate_frame") or "receptor_input_frame")
     version = receptor_version(digest, recipe, frame, str(hint.get("mutant_recipe") or ""))
@@ -289,7 +292,8 @@ def import_inputs(
     report.box = resolve_box(bundle, hints, log_texts)
 
     pose_files = [item for item in bundle.files if item.kind in {"pose_sdf", "pose_pdb"}]
-    collected = pose_io.collect_poses(pose_files, table=table, selector=selector)
+    collected = pose_io.collect_poses(pose_files, table=table, selector=selector,
+                                     titles={str(k): str(v) for k, v in (hints.get("pose_titles") or {}).items()})
     raw_poses: list[pose_io.RawPose] = collected["poses"]
     report.poses_seen = len(raw_poses)
     report.table_binding = table_report
@@ -413,6 +417,9 @@ def import_inputs(
     }
     atomic_write_json(os.path.join(ctx.stage_dir("import"), "recovery_index.json"), payload)
     atomic_write_json(os.path.join(ctx.stage_dir("import"), "import_report.json"), report.to_dict())
+    # The receptor the poses were docked against is stage-import state; the
+    # re-dock stage (data.receptor_record) reads exactly this file.
+    atomic_write_json(os.path.join(ctx.stage_dir("import"), "receptor.json"), report.receptor)
     ctx.db.upsert_run(ctx.run_id, status="imported")
     return report
 

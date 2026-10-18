@@ -158,6 +158,19 @@ def _collect_sdfs(search_root: Path, archive: Path, requested: int) -> tuple[lis
     return rows, reasons
 
 
+def sampling_audit(path: Path, budget: int) -> dict[str, int]:
+    """Require a completed bounded model run, including rejected attempts."""
+    data = json.loads(path.read_text())
+    keys = ("requested_attempts", "started_attempts", "valid", "failed")
+    if any(type(data.get(k)) is not int or data[k] < 0 for k in keys):
+        raise ValueError("Invalid model attempt accounting")
+    if data.get("status") != "finished" or data["requested_attempts"] != budget or data["started_attempts"] != budget:
+        raise ValueError("Model sampling did not complete its declared attempt budget")
+    if data["valid"] + data["failed"] != budget:
+        raise ValueError("Unaccounted model attempts; decoding or separation failure")
+    return data
+
+
 def run(
     *, pocket_pdb: str | Path, checkpoint: str | Path, checkpoint_sha256: str,
     output_dir: str | Path, budget: int, seed: int, executable: str | Path = sys.executable,
@@ -237,9 +250,15 @@ def run(
             raise RuntimeError(f"Peptide2Mol completed without expected SDF directory: {generated_sdf_dir}")
         rows, reasons = _collect_sdfs(generated_sdf_dir, out / "raw_sdf", budget)
         valid = [row for row in rows if row["valid"]]
-        if not valid:
-            raise RuntimeError("Peptide2Mol produced zero valid unique molecules")
-        report = {"requested": budget, "completed": len(rows), "valid": len(valid), "unique": len({r["smiles"] for r in valid}), "failure_reasons": reasons}
+        audit = sampling_audit(generated_sdf_dir / "attempt_budget.json", budget)
+        if len(rows) != audit["valid"]:
+            raise ValueError("Saved model outputs do not match successful sampling attempts")
+        reasons.pop("model_produced_fewer_than_requested", None)
+        if audit["failed"]:
+            reasons["model_reconstruction_rejected"] = audit["failed"]
+        report = {"requested": budget, "completed": audit["started_attempts"], "sdf_outputs": len(rows), "valid": len(valid), "unique": len({r["smiles"] for r in valid}), "failure_reasons": reasons}
+        manifest["sampling_audit"] = audit
+        manifest["outcome"] = "valid_outputs" if valid else "no_valid_outputs"
         _write_json(out / "candidates.json", {"candidates": rows, "report": report})
         manifest.update({"report": report, "status": "completed"})
     except Exception as exc:

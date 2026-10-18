@@ -39,6 +39,7 @@ def test_peptide2mol_contract_runs_official_prepare_and_inference(tmp_path, monk
         "import pathlib,sys,json\n"
         "arg=lambda p: next(x.split('=',1)[1] for x in sys.argv if x.startswith(p+'='))\n"
         "out=pathlib.Path(json.loads(arg('++model.net.sample.log_dir'))+'_SDF'); out.mkdir(parents=True)\n"
+        "(out/'attempt_budget.json').write_text(json.dumps({'requested_attempts':2,'started_attempts':2,'valid':1,'failed':1,'status':'finished'}))\n"
         "(out/'generated_0.sdf').write_text('generated\\n  contract\\n\\n  1  0  0  0  0  0  0  0  0  0999 V2000\\n    0.0000    0.0000    0.0000 C   0  0  0  0  0  0  0  0  0  0  0  0\\nM  END\\n$$$$\\n')\n",
         encoding="utf-8",
     )
@@ -59,7 +60,7 @@ def test_peptide2mol_contract_runs_official_prepare_and_inference(tmp_path, monk
     assert result["commands"][1]["command"][1].endswith("src/eval.py")
     assert "++model.net.sample.num_mols=2" in result["commands"][1]["command"]
     assert "++seed=19" in result["commands"][1]["command"]
-    assert result["report"] == {"requested": 2, "completed": 1, "valid": 1, "unique": 1, "failure_reasons": {"model_produced_fewer_than_requested": 1}}
+    assert result["report"] == {"requested": 2, "completed": 2, "sdf_outputs": 1, "valid": 1, "unique": 1, "failure_reasons": {"model_reconstruction_rejected": 1}}
     assert list((tmp_path / "run" / "raw_sdf").glob("*.sdf"))
 
 
@@ -104,11 +105,13 @@ print('fake adapter contract invocation')
     config = (out / "sampling.toml").read_text()
     candidates = json.loads((out / "candidates.json").read_text())
     assert result["status"] == "completed"
-    assert 'version = 4' in config and 'run_type = "sampling"' in config
+    assert 'run_type = "sampling"' in config and 'version =' not in config
     assert "num_smiles = 7" in config and "unique_molecules = false" in config
     assert result["commands"][0]["command"] == [str(fake.resolve()), "--seed", "123", str((out / "sampling.toml").resolve())]
     assert candidates["candidates"][0]["SMILES"] == "Cc1ccccc1"
-    assert candidates["candidates"][0]["Input_SMILES"] == "c1ccc([*:1])cc1"
+    assert reinvent4.scaffold_identity(candidates["candidates"][0]["Input_SMILES"]) == reinvent4.scaffold_identity("c1ccc([*:1])cc1")
+    assert "[*]" in (out / "scaffold.smi").read_text()
+    assert "[*:1]" not in (out / "scaffold.smi").read_text()
     assert candidates["candidates"][0]["NLL"] == "1.25"
     assert (out / "raw" / "raw_sampling.csv").is_file()
 

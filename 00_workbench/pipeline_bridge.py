@@ -81,6 +81,8 @@ def stage_peptide2mol(d,cfg,out):
  rows=[];seen=set();rejected=[];sampled=0
  for i,result in enumerate(results):
   candidates=read(out/f'model_{i:02d}/candidates.json')['candidates'];sampled+=result['report']['completed']
+  for reason,count in result['report'].get('failure_reasons',{}).items():
+   rejected.append({'source_batch':i,'reason':reason,'count':count})
   for n,x in enumerate(candidates):
    cid=f'seed_{i:02d}_{n:05d}'
    if x['valid'] and x['smiles'] not in seen:
@@ -88,7 +90,7 @@ def stage_peptide2mol(d,cfg,out):
    else:rejected.append({'id':cid,'reason':x.get('failure_reason') or 'duplicate_across_batches','raw_sdf':x['raw_sdf']})
  atomic(out/'rejected.json',rejected);atomic(out/'seeds.json',rows);csv_write(out/'molecules.csv',rows,['id','smiles','raw_sdf'])
  if not rows:raise RuntimeError('No valid unique generated molecules')
- return {'requested':cfg['budget'],'sampled':sampled,'remaining':len(rows)}
+ return {'requested':cfg['budget'],'sampled':sampled,'rejected':sampled-len(rows),'remaining':len(rows)}
 
 def stage_reinvent4(d,cfg,out):
  from src.adapters import reinvent4

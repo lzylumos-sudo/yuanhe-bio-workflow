@@ -438,7 +438,7 @@ def _mol_name(mol: Chem.Mol) -> str:
         return ""
 
 
-def read_sdf_poses(discovered, *, table: Table | None = None) -> tuple[list[RawPose], dict[str, Any]]:
+def read_sdf_poses(discovered, *, table: Table | None = None, title: str | None = None) -> tuple[list[RawPose], dict[str, Any]]:
     """Read every record of an SD file as a pose candidate."""
     poses: list[RawPose] = []
     report: dict[str, Any] = {"file": discovered.path, "records": 0, "parse_failures": [], "score_bound": 0}
@@ -468,7 +468,7 @@ def read_sdf_poses(discovered, *, table: Table | None = None) -> tuple[list[RawP
             props=clean_props,
             scores=scores,
             score_provenance=provenance,
-            parent_label=_mol_name(mol),
+            parent_label=(title or _mol_name(mol)),
             extras={"record_index": record_index},
         )
         if not any(value is not None for value in scores.values()):
@@ -635,7 +635,8 @@ def _ligand_block_from_atoms(atoms: list) -> str:
     return "\n".join(lines) + "\n"
 
 
-def collect_poses(discovered_files: Iterable, *, table: Table | None = None, selector: dict | None = None) -> dict[str, Any]:
+def collect_poses(discovered_files: Iterable, *, table: Table | None = None, selector: dict | None = None,
+                  titles: dict[str, str] | None = None) -> dict[str, Any]:
     """Turn discovered pose files into pose candidates plus a provenance report.
 
     A directory that exposes both ``poses.sdf`` (all modes) and per-mode
@@ -657,7 +658,8 @@ def collect_poses(discovered_files: Iterable, *, table: Table | None = None, sel
             skipped.append(item.path)
             continue
         if item.kind == "pose_sdf":
-            file_poses, report = read_sdf_poses(item, table=table if len(poses) == 0 else None)
+            file_poses, report = read_sdf_poses(item, table=table if len(poses) == 0 else None,
+                                                 title=(titles or {}).get(os.path.abspath(item.path)) or (titles or {}).get(os.path.basename(item.path)))
             poses.extend(file_poses)
             reports.append(report)
         elif item.kind == "pose_pdb":

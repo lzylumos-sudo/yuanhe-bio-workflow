@@ -11,6 +11,7 @@ from __future__ import annotations
 import copy
 import hashlib
 import json
+import math
 import os
 from dataclasses import dataclass, field
 from typing import Any
@@ -229,6 +230,14 @@ class RegionConfig:
     box_min_size_A: float
     box_max_size_A: float
     raw: dict[str, Any]
+
+    @property
+    def usable(self) -> bool:
+        """A local contact region needs explicit residues and a finite cutoff."""
+        return bool(
+            math.isfinite(self.contact_cutoff_A) and self.contact_cutoff_A > 0
+            and any(side.native_residues for side in self.sides)
+        )
 
     @classmethod
     def from_dict(cls, payload: dict[str, Any] | None) -> "RegionConfig | None":
