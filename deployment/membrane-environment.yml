@@ -4,6 +4,8 @@ channels:
   - nodefaults
 dependencies:
   - python=3.11
+  - cuda-version=13.1
+  - cuda-nvrtc=13.1
   - openmm=8.5.1
   - openmmforcefields=0.15.1
   - openff-toolkit=0.18.0
@@ -13,4 +15,5 @@ dependencies:
   - rdkit
   - numpy
   - pyyaml
+  - matplotlib
   - pip

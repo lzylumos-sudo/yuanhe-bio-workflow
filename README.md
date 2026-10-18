@@ -2,9 +2,9 @@
 
 A traceable research workbench connecting protein-peptide complexes to Peptide2Mol seeds, reviewed molecular cores, REINVENT4 expansion, GNINA docking, virtual screening and membrane molecular dynamics.
 
-**Release 0.3.0-rc1: engineering integration candidate.** The interface and adapters are implemented. Real end-to-end model, GNINA and membrane simulation acceptance on Windows/WSL2 with RTX 5070 remains pending. Engineering tests are not biological validation.
+**Release 0.3.0-rc2: single-case Ubuntu / RTX 5090 D integration tested.** The real UI now connects screened poses to membrane construction, equilibration, 1 ns production MD, checkpoint testing, trajectory analysis and full export. Upstream results were reused with hash verification; Peptide2Mol remains a verified partial-output run. Windows/WSL2 with RTX 5070 remains untested.
 
-**RTX 5090 D update (2026-10-18):** real generation, GNINA and screening were exercised through the UI. Six molecules produced 54 poses, with three preliminary display candidates and zero formal candidates. Membrane MD was not started. See [actual acceptance and limitations](docs/06_RTX5090_ACCEPTANCE.md).
+**Results:** six molecules / 54 docking poses upstream, three preliminary display candidates, **zero formal candidates**; one exploratory molecule completed MD, with **zero scientifically validated molecules**. See [upstream acceptance](docs/06_RTX5090_ACCEPTANCE.md), [actual membrane MD acceptance and limitations](docs/08_MEMBRANE_MD_ACCEPTANCE.md), and [reusable docking, screening and MD modules](docs/07_MODULE_CONTRACTS.md).
 
 ```mermaid
 flowchart LR

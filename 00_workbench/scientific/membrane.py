@@ -6,8 +6,8 @@ ParmEd exports the same System to GROMACS. No surrogate energies or trajectories
 from __future__ import annotations
 import json,math,os,re,subprocess,time,uuid,hashlib
 from pathlib import Path
-from webui import workflow as w
-from webui.studio import within
+from . import artifacts as w
+from .artifacts import within
 
 AMINO={'ALA','ARG','ASN','ASP','ASH','CYS','CYX','GLN','GLU','GLH','GLY','HIS','HID','HIE','HIP','ILE','LEU','LYS','LYN','MET','PHE','PRO','SER','THR','TRP','TYR','VAL'}
 def number(p,key,default,lo,hi):
@@ -53,7 +53,55 @@ def add_restraints(top):
   result.append(line)
  flush();top.write_text('\n'.join(result)+'\n')
 
+def normalize_lipid_rounding(topology,system,lipid):
+ """Correct only tiny residue charge rounding in nominally neutral lipids."""
+ from openmm import unit
+ force=next(f for f in system.getForces() if type(f).__name__=='NonbondedForce')
+ original_charges=[float(force.getParticleParameters(i)[0].value_in_unit(unit.elementary_charge)) for i in range(force.getNumParticles())]
+ edits=[];lipid_count=0
+ for residue in topology.residues():
+  if residue.name not in {lipid,lipid[:3]}:continue
+  lipid_count+=1
+  atoms=list(residue.atoms());charge=sum(float(force.getParticleParameters(a.index)[0].value_in_unit(unit.elementary_charge)) for a in atoms)
+  if abs(charge)>1e-5:raise ValueError('Lipid charge differs materially from neutral; automatic rounding correction refused')
+  if abs(charge)<1e-12:continue
+  atom=next((a for a in atoms if a.name=='P'),None)
+  if atom is None:raise ValueError('Lipid phosphate atom missing')
+  q,sigma,epsilon=force.getParticleParameters(atom.index)
+  force.setParticleParameters(atom.index,q-charge*unit.elementary_charge,sigma,epsilon)
+  edits.append({'residue_index':residue.index,'residue_name':residue.name,'atom_index':atom.index,'atom_name':atom.name,'original_residue_charge_e':charge,'delta_charge_e':-charge})
+ if not lipid_count:raise ValueError('No lipid residues matched the selected membrane model')
+ # Coulomb exceptions store charge products, not references to particle
+ # charges. Update those products to preserve their original 1-4 scaling.
+ updated={e['atom_index'] for e in edits};exception_count=0
+ for i in range(force.getNumExceptions()):
+  a,b,qprod,sigma,epsilon=force.getExceptionParameters(i)
+  if a not in updated and b not in updated:continue
+  old=original_charges[a]*original_charges[b]
+  new=float(force.getParticleParameters(a)[0].value_in_unit(unit.elementary_charge))*float(force.getParticleParameters(b)[0].value_in_unit(unit.elementary_charge))
+  if old==0:
+   if new!=0:raise ValueError('Cannot infer zero-charge exception scaling')
+   continue
+  force.setExceptionParameters(i,a,b,qprod*(new/old),sigma,epsilon);exception_count+=1
+ return {'updated_coulomb_exceptions':exception_count,'lipid_residue_count':lipid_count,'policy':'Neutral-lipid rounding only, absolute residue charge <=1e-5 e; residual assigned to phosphorus; other parameters unchanged','edits':edits,'total_delta_e':sum(e['delta_charge_e'] for e in edits)}
+
 def build(d,c,p,out):
+ """Thin UI adapter: verify stage artifacts, then use the standalone engine."""
+ from webui import workflow
+ workflow.require(d,'screening');workflow.require(d,'docking')
+ rows=w.read(d/'screening/candidates.json',[])
+ row=next((r for r in rows if r['compound_id']==p.get('compound_id')),None)
+ if not row or not row.get('sdf'):raise ValueError('Candidate has no traceable screening pose')
+ row=dict(row)
+ matches=[x for x in w.read(d/'docking/input_molecules.json',[]) if x.get('smiles')==row.get('smiles')]
+ if len(matches)!=1:raise ValueError('Screening candidate must map to exactly one upstream molecule')
+ row['molecule_id']=matches[0]['id']
+ from .md_cli import export_bundle
+ bundle=export_bundle(d/'md_handoffs'/('H_'+uuid.uuid4().hex[:12]),row,d/'docking/receptor.pdb',within(d,row['sdf']),p,{'gmx':c['gmx'],'seed':c['seed'],'timeout_seconds':c.get('timeout_seconds',86400)}, {'run_id':d.name,'source_revision':w.read(d/'active_source_revision.json'),'screening_stage_sha256':w.digest(d/'screening/stage.json'),'docking_stage_sha256':w.digest(d/'docking/stage.json')})
+ return build_prepared(d,c,{**p,'handoff_bundle':str(bundle.relative_to(d))},out,row,within(d,row['sdf']),d/'docking/receptor.pdb',w.read(d/'active_source_revision.json'))
+
+def build_prepared(d,c,p,out,row,ligand_path,receptor,source_revision=None):
+ """Build from explicit screened pose/receptor files; no UI service required."""
  import numpy as np
  from rdkit import Chem
  from openff.toolkit import Molecule
@@ -62,12 +110,7 @@ def build(d,c,p,out):
  from openmm.app import PDBFile,Modeller,ForceField,PME,HBonds
  from openmmforcefields.generators import GAFFTemplateGenerator
  import parmed
- w.require(d,'screening')
- rows=w.read(d/'screening/candidates.json',[])
- row=next((r for r in rows if r['compound_id']==p.get('compound_id')),None)
- w.require(d,'docking')
- if not row or not row.get('sdf'):raise ValueError('Candidate has no traceable screening pose')
- if row.get('qualification')!='formal' and not p.get('exploratory_ack'):raise ValueError('This is a preliminary candidate; explicitly enable exploratory simulation')
+ if row.get('qualification')!='formal' and not p.get('exploratory_ack'):raise ValueError('Exploratory acknowledgement required')
  if not p.get('orientation_reviewed') or not p.get('orientation_source','').strip():raise ValueError('Review membrane orientation and provide its source or selection rationale')
  center=np.asarray(p.get('center'),dtype=float)
  if center.shape!=(3,) or not np.isfinite(center).all():raise ValueError('Invalid membrane center')
@@ -78,18 +121,25 @@ def build(d,c,p,out):
  temp=number(p,'temperature_K',310,273,350)
  production=number(p,'production_ns',1,.01,1000);equil=number(p,'equilibration_ns',1,.1,100)
  ident='MD_'+uuid.uuid4().hex[:12];folder=system_dir(d,ident);folder.mkdir(parents=True)
- ligand_path=within(d,row['sdf']);receptor=d/'docking/receptor.pdb'
  import shutil
  shutil.copyfile(ligand_path,folder/'ligand.sdf');shutil.copyfile(receptor,folder/'receptor.pdb')
- meta={'id':ident,'compound_id':row['compound_id'],'pose_id':row.get('pose_id'),'qualification':row.get('qualification'),'status':'building','source_hashes':{'receptor':w.digest(receptor),'ligand':w.digest(ligand_path)},'parameters':{**p,'temperature_K':temp,'production_ns':production,'equilibration_ns':equil},'force_fields':['amber14-all.xml','amber14/tip3p.xml','gaff-2.11'],'membrane_model':lipid+' single-lipid idealised bilayer','orientation_rotation':rot.tolist(),'orientation_center_A':center.tolist(),'scientific_validation':'requires_review'}
+ meta={'source_revision':source_revision,'molecule_id':row.get('molecule_id'),'id':ident,'compound_id':row['compound_id'],'pose_id':row.get('pose_id'),'qualification':row.get('qualification'),'status':'building','source_hashes':{'receptor':w.digest(receptor),'ligand':w.digest(ligand_path)},'parameters':{**p,'temperature_K':temp,'production_ns':production,'equilibration_ns':equil},'force_fields':['amber14-all.xml','amber14/tip3p.xml','gaff-2.11'],'membrane_model':lipid+' single-lipid idealised bilayer','orientation_rotation':rot.tolist(),'orientation_center_A':center.tolist(),'scientific_validation':'requires_review'}
  w.atomic(folder/'system.json',meta);w.atomic(out/'result.json',{'system_id':ident})
  mol=Chem.SDMolSupplier(str(ligand_path),removeHs=False)[0]
  if mol is None:raise ValueError('Ligand SDF cannot be read')
+ canonical=Chem.MolToSmiles(Chem.RemoveHs(mol),isomericSmiles=True)
+ expected=Chem.MolToSmiles(Chem.MolFromSmiles(row['smiles']),isomericSmiles=True)
+ if canonical!=expected:raise ValueError('Screening identity and selected SDF chemistry differ')
  mol=Chem.AddHs(mol,addCoords=True)
  off=Molecule.from_rdkit(mol,allow_undefined_stereo=False)
  off.name='LIG'
  for atom in off.atoms:atom.metadata['residue_name']='LIG'
+ print('MD_BUILD: AM1-BCC ligand charges',flush=True)
  off.assign_partial_charges('am1bcc')
+ charges=off.partial_charges.m_as(offunit.elementary_charge)
+ if not np.isfinite(charges).all() or abs(float(sum(charges))-Chem.GetFormalCharge(mol))>1e-4:raise ValueError('Ligand partial charges do not match its formal charge')
+ meta['ligand_chemistry']={'isomeric_smiles':Chem.MolToSmiles(Chem.RemoveHs(mol),isomericSmiles=True),'formal_charge':Chem.GetFormalCharge(mol),'partial_charge_sum':float(sum(charges)),'charge_method':'AM1-BCC','protonation':'as screened; no pH state enumeration','exploratory':row.get('qualification')!='formal'}
+ w.atomic(folder/'system.json',meta)
  off.to_file(str(folder/'parameterized_ligand.sdf'),file_format='sdf')
  gaff=GAFFTemplateGenerator(molecules=off,forcefield='gaff-2.11',cache=str(folder/'gaff-cache.json'))
  ff=ForceField('amber14-all.xml','amber14/tip3p.xml');ff.registerTemplateGenerator(gaff.generator)
@@ -103,9 +153,37 @@ def build(d,c,p,out):
  model.add(lt,lcoords*unit.angstrom)
  import random
  random.seed(c['seed']);np.random.seed(c['seed'])
- model.addMembrane(ff,lipidType=lipid,minimumPadding=padding*unit.nanometer,ionicStrength=salt*unit.molar,membraneCenterZ=0*unit.nanometer,platform=Platform.getPlatformByName('CPU'))
- system=ff.createSystem(model.topology,nonbondedMethod=PME,nonbondedCutoff=1*unit.nanometer,constraints=HBonds,rigidWater=True)
+ print('MD_BUILD: adding lipid bilayer, solvent and ions',flush=True)
+ # OpenMM's insertion relaxation uses a short minimization and an unseeded
+ # 1 fs integrator. Use a reproducible, more conservative 0.5 fs relaxation
+ # with the same elapsed relaxation time, and retain this policy in metadata.
+ import openmm.app.modeller as modeller_module
+ old_integrator=modeller_module.LangevinIntegrator;old_minimizer=modeller_module.LocalEnergyMinimizer
+ class InsertionIntegrator(old_integrator):
+  def __init__(self,temperature,friction,step):
+   super().__init__(temperature,friction,step/2);self.setRandomNumberSeed(int(c['seed']))
+  def step(self,n):return super().step(n*2)
+ class InsertionMinimizer:
+  @staticmethod
+  def minimize(context,tolerance,maxIterations):return old_minimizer.minimize(context,tolerance,max(300,maxIterations))
+ platform=Platform.getPlatformByName('CUDA');platform.setPropertyDefaultValue('Precision','double')
+ meta['membrane_builder']={'platform':'CUDA','precision':'double','seed':c['seed'],'insertion_timestep_fs':0.5,'initial_minimization_max_iterations':300,'insertion_elapsed_time':'same as OpenMM 8.5.1 default; twice as many integration steps'}
+ w.atomic(folder/'system.json',meta)
+ try:
+  modeller_module.LangevinIntegrator=InsertionIntegrator;modeller_module.LocalEnergyMinimizer=InsertionMinimizer
+  model.addMembrane(ff,lipidType=lipid,minimumPadding=padding*unit.nanometer,ionicStrength=salt*unit.molar,membraneCenterZ=0*unit.nanometer,platform=platform)
+ finally:
+  modeller_module.LangevinIntegrator=old_integrator;modeller_module.LocalEnergyMinimizer=old_minimizer
+ print('MD_BUILD: exporting parameterized system',flush=True)
+ # Preserve bond/angle terms for ParmEd. GROMACS applies H-bond constraints
+ # and SETTLE from the exported topology at runtime.
+ system=ff.createSystem(model.topology,nonbondedMethod=PME,nonbondedCutoff=1*unit.nanometer,constraints=None,rigidWater=False)
+ meta['lipid_charge_rounding']=normalize_lipid_rounding(model.topology,system,lipid)
+ w.atomic(folder/'system.json',meta)
  structure=parmed.openmm.load_topology(model.topology,system,xyz=model.positions)
+ # Save the complete pre-export model so converter failures retain evidence.
+ (folder/'system.xml').write_text(XmlSerializer.serialize(system))
+ with (folder/'system.pdb').open('w') as f:PDBFile.writeFile(model.topology,model.positions,f,keepIds=True)
  structure.save(str(folder/'system.top'),overwrite=False);structure.save(str(folder/'system.gro'),overwrite=False)
  add_restraints(folder/'system.top')
  (folder/'system.xml').write_text(XmlSerializer.serialize(system))
@@ -126,6 +204,11 @@ def build(d,c,p,out):
   try:versions[package]=im.version(package)
   except im.PackageNotFoundError:versions[package]='unknown'
  meta['software_versions']=versions
+ from collections import Counter
+ meta['residue_counts']=dict(Counter(r.name for r in model.topology.residues()))
+ meta['net_charge_e']=sum(float(system.getForce(i).getParticleParameters(j)[0].value_in_unit(unit.elementary_charge)) for i in range(system.getNumForces()) if system.getForce(i).__class__.__name__=='NonbondedForce' for j in range(system.getNumParticles()))
+ if abs(meta['net_charge_e'])>1e-3:raise ValueError('Built system is not neutral')
+ if meta['residue_counts'].get('LIG')!=1:raise ValueError('Exactly one ligand required')
  meta.update(status='built',atom_count=system.getNumParticles(),groups=groups,files={name:w.digest(folder/name) for name in ['system.top','system.gro','system.xml','system.pdb','index.ndx','ligand.sdf','receptor.pdb']})
  w.atomic(folder/'system.json',meta)
  return {'system_id':ident,'atom_count':system.getNumParticles(),'note':'Membrane and topology built; review the system before minimization/Equilibration'}
@@ -155,16 +238,51 @@ def check_completion(folder,phase,recipe):
  if phase=='production' and not (folder/'production.xtc').is_file():raise RuntimeError('Production trajectory missing')
 
 
+def checkpoint_probe(folder,c,meta):
+ """Independent 20 ps test after equilibration; production is not interrupted."""
+ import shutil
+ probe=folder/'checkpoint_acceptance';probe.mkdir(exist_ok=True)
+ evidence=probe/'acceptance.json'
+ if evidence.exists():
+  rec=w.read(evidence)
+  if rec.get('status')=='passed' and all(w.digest(probe/n)==v for n,v in rec['files'].items()):return rec
+  raise ValueError('Existing checkpoint acceptance evidence is inconsistent')
+ gmx=c['gmx'];recipe=mdp('production',meta['parameters'],c['seed'])
+ recipe=re.sub(r'^nsteps = \d+', 'nsteps = 10000',recipe,flags=re.M)
+ (probe/'probe.mdp').write_text(recipe)
+ if not (probe/'probe.tpr').exists():
+  execute([gmx,'grompp','-f','probe.mdp','-c','../npt_soft.gro','-t','../npt_soft.cpt','-p','../system.top','-n','../index.ndx','-o','probe.tpr'],probe)
+ args=[gmx,'mdrun','-deffnm','probe','-ntmpi','1','-ntomp',str(int(os.environ.get('YUANHE_MD_THREADS','12'))),'-nb','gpu','-pme','gpu','-bonded','gpu','-cpt','1']
+ if not (probe/'first_checkpoint.json').exists():
+  execute(args+['-nsteps','5000'],probe)
+  if not (probe/'probe.cpt').exists():raise ValueError('Checkpoint not produced')
+  dump=subprocess.run([gmx,'dump','-cp','probe.cpt'],cwd=probe,capture_output=True,text=True,check=True)
+  (probe/'first_checkpoint.txt').write_text(dump.stdout+dump.stderr)
+  if not re.search(r'step\s*=\s*5000\b',dump.stdout):raise ValueError('Unexpected first checkpoint step')
+  shutil.copyfile(probe/'probe.cpt',probe/'step5000.cpt')
+  w.atomic(probe/'first_checkpoint.json',{'step':5000,'sha256':w.digest(probe/'step5000.cpt'),'tpr_sha256':w.digest(probe/'probe.tpr')})
+ first=w.read(probe/'first_checkpoint.json')
+ if w.digest(probe/'probe.tpr')!=first['tpr_sha256']:raise ValueError('Probe TPR changed')
+ execute(args+['-cpi','probe.cpt','-append'],probe)
+ check_completion(probe,'probe',recipe)
+ log=(probe/'probe.log').read_text(errors='replace')
+ if re.search(r'LINCS WARNING|Fatal error',log):raise ValueError('Checkpoint test has constraint warnings')
+ rec={'status':'passed','scope':'independent 20 ps checkpoint continuity test; not production or biological validation','first_step':5000,'planned_final_step':10000,'production_trajectory_interrupted':False,'files':{n:w.digest(probe/n) for n in ['probe.tpr','probe.cpt','probe.log','probe.gro','probe.edr','probe.xtc','first_checkpoint.json','step5000.cpt']}}
+ w.atomic(evidence,rec);return rec
+
 def run(d,c,p,out):
  folder=system_dir(d,p.get('system_id'));meta=w.read(folder/'system.json')
  if not meta or meta.get('status') not in {'built','completed'}:raise ValueError('System construction has not succeeded')
  if not p.get('system_reviewed'):raise ValueError('Review the membrane system and ligand correspondence')
  for name,sha in meta['files'].items():
   if w.digest(folder/name)!=sha:raise ValueError('System inputs changed; resume blocked')
- gmx=c['gmx'];progress=w.read(folder/'progress.json',{'phases':{}})
- fingerprint=hashlib.sha256(json.dumps({'files':meta['files'],'parameters':meta['parameters'],'gmx':gmx},sort_keys=True).encode()).hexdigest()
+ import shutil
+ gmx=shutil.which(c['gmx']) or str(Path(c['gmx']).resolve());progress=w.read(folder/'progress.json',{'phases':{}})
+ fingerprint=hashlib.sha256(json.dumps({'files':meta['files'],'parameters':meta['parameters'],'gmx':gmx,'gmx_sha256':w.digest(gmx)},sort_keys=True).encode()).hexdigest()
  if progress.get('fingerprint',fingerprint)!=fingerprint:raise ValueError('Simulation protocol changed; resume blocked')
  progress['fingerprint']=fingerprint
+ progress['execution_source_revision']=w.read(d/'active_source_revision.json',meta.get('source_revision'))
+ progress['engine_sha256']=w.digest(gmx)
  execute([gmx,'--version'],folder,60)
  phases=['em','nvt','npt','npt_soft','production'];previous='system.gro'
  for phase in phases:
@@ -173,6 +291,10 @@ def run(d,c,p,out):
    for name,sha in record['files'].items():
     if w.digest(folder/name)!=sha:raise ValueError('Completed simulation artifact validation failed')
    previous=phase+'.gro';continue
+  if phase=='production':
+   print('MD: validating independent checkpoint continuation before production',flush=True)
+   checkpoint_probe(folder,c,meta)
+  print('MD_PHASE: '+phase,flush=True)
   recipe=mdp(phase,meta['parameters'],c['seed']);recipe_path=folder/(phase+'.mdp')
   if recipe_path.exists() and recipe_path.read_text()!=recipe:raise ValueError('MDP changed; cannot resume')
   recipe_path.write_text(recipe)
@@ -215,20 +337,26 @@ def analyze(d,c,p,out):
  from MDAnalysis.lib.distances import distance_array,minimize_vectors
  folder=system_dir(d,p.get('system_id'));meta=w.read(folder/'system.json',{})
  if meta.get('status')!='completed':raise ValueError('Production simulation incomplete')
+ for name,sha in meta['files'].items():
+  if w.digest(folder/name)!=sha:raise ValueError('Analysis input validation failed')
  progress=w.read(folder/'progress.json',{})
  for record in progress.get('phases',{}).values():
   for name,sha in record.get('files',{}).items():
    if w.digest(folder/name)!=sha:raise ValueError('Simulation output changed; analysis refused')
  dest=folder/'analysis';dest.mkdir(exist_ok=True)
  execute([c['gmx'],'trjconv','-s','production.tpr','-f','production.xtc','-o','analysis/whole.xtc','-n','index.ndx','-pbc','mol','-center'],folder,input_text='Protein\nSystem\n')
- u=mda.Universe(str(folder/'production.tpr'),str(dest/'whole.xtc'))
+ # Preserved PDB avoids TPR-version coupling and retains construct residue IDs.
+ u=mda.Universe(str(folder/'system.pdb'),str(dest/'whole.xtc'))
+ if len(u.atoms)!=meta['atom_count']:raise ValueError('Trajectory/topology atom count mismatch')
  protein=u.atoms[np.array(meta['groups']['Protein'])-1];back=u.atoms[np.array(meta['groups']['Backbone'])-1];ligand=u.atoms[np.array(meta['groups']['Ligand'])-1]
  ligheavy=ligand.select_atoms('not name H*');ca=protein.select_atoms('name CA')
  if len(back)<3 or not len(ligheavy):raise ValueError('Analysis selection is empty')
  u.trajectory[0];reference=back.positions.copy();ref_center=reference.mean(0);q=reference-ref_center
  ref_lig=ligheavy.positions.copy();ref_lig=ref_center+minimize_vectors(ref_lig-ref_center,u.dimensions)
- stride=max(1,len(u.trajectory)//200);series=[];frames=[];aligned=[];contact={};lipid_p=u.select_atoms('resname POPE POPC DPPC DOPC and name P')
- for ts in u.trajectory[::stride]:
+ stride=max(1,len(u.trajectory)//200);series=[];frames=[];aligned=[];contact={};lipid_p=u.select_atoms('resname POPE POPC DPPC DOPC POP DPP DOP and name P')
+ frame_ids=sorted(set(range(0,len(u.trajectory),stride))|{len(u.trajectory)-1})
+ for frame_id in frame_ids:
+  ts=u.trajectory[frame_id]
   b=back.positions.copy();center=b.mean(0);P=b-center;U,S,V=np.linalg.svd(P.T@q);R=U@V
   if np.linalg.det(R)<0:U[:,-1]*=-1;R=U@V
   bx=P@R+ref_center;l=center+minimize_vectors(ligheavy.positions-center,ts.dimensions);lx=(l-center)@R+ref_center
@@ -242,11 +370,33 @@ def analyze(d,c,p,out):
   series.append({'time_ns':float(ts.time/1000),'backbone_rmsd_A':float(np.sqrt(np.mean(np.sum((bx-reference)**2,axis=1)))),'ligand_rmsd_A':float(np.sqrt(np.mean(np.sum((lx-ref_lig)**2,axis=1)))),'minimum_contact_A':float(dist.min()),'membrane_thickness_proxy_A':thickness})
   frames.append({'time_ns':float(ts.time/1000),'positions':np.concatenate([cap,lx]).round(3).tolist()})
  arr=np.asarray(aligned);rmsf=np.sqrt(np.mean(np.sum((arr-arr.mean(0))**2,axis=2),axis=0))
- summary={'system_id':meta['id'],'compound_id':meta['compound_id'],'sampled_frames':len(series),'trajectory_frames':len(u.trajectory),'alignment':'protein backbone least squares; ligand not independently fitted','rmsf':[{'resid':int(a.resid),'rmsf_A':float(v)} for a,v in zip(ca,rmsf)],'contact_occupancy_4_5A':{r:n/len(series) for r,n in contact.items()},'limitations':['Contact occupancy uses a 4.5 Å distance cutoff, not a hydrogen-bond definition','Membrane thickness is a phosphorus-layer separation proxy','Analysis references the first production frame; compare replicas separately'],'source_hashes':{x:w.digest(folder/x) for x in ['production.tpr','production.xtc']}}
+ summary={'molecule_id':meta.get('molecule_id'),'pose_id':meta.get('pose_id'),'qualification':meta['qualification'],'formal_qualification_changed':False,'production_span_ns':series[-1]['time_ns']-series[0]['time_ns'],'system_id':meta['id'],'compound_id':meta['compound_id'],'sampled_frames':len(series),'trajectory_frames':len(u.trajectory),'alignment':'protein backbone least squares; ligand not independently fitted','rmsf':[{'resid':int(a.resid),'rmsf_A':float(v)} for a,v in zip(ca,rmsf)],'contact_occupancy_4_5A':{r:n/len(series) for r,n in contact.items()},'limitations':['Contact occupancy uses a 4.5 Å distance cutoff, not a hydrogen-bond definition','Membrane thickness is a phosphorus-layer separation proxy','Analysis references the first production frame; compare replicas separately'],'source_hashes':{x:w.digest(folder/x) for x in ['production.tpr','production.xtc','system.pdb']}}
  execute([c['gmx'],'energy','-f','production.edr','-o','analysis/thermodynamics.xvg'],folder,input_text='Temperature\nPressure\nPotential\nTotal-Energy\nDensity\nBox-X\nBox-Y\nBox-Z\n0\n')
  thermo=energy_series(dest/'thermodynamics.xvg')
  summary['thermodynamics']={key:{'mean':float(np.mean([r[key] for r in thermo])),'std':float(np.std([r[key] for r in thermo])),'min':min(r[key] for r in thermo),'max':max(r[key] for r in thermo)} for key in thermo[0] if key!='time_ns'}
  summary['limitations'].append('Review temperature, pressure and energy time series; finite values and means do not establish equilibration or convergence')
+ summary['units']={'time':'ns','RMSD_RMSF_distance':'angstrom','Temperature':'K','Pressure':'bar','Potential':'kJ/mol','Density':'kg/m3','Box':'nm'}
+ summary['checkpoint_acceptance']=w.read(folder/'checkpoint_acceptance/acceptance.json',{})
+ summary['quality_observations']={'finite_trajectory':bool(np.isfinite(np.asarray([f['positions'] for f in frames])).all()),'expected_duration_ns':meta['parameters']['production_ns'],'actual_duration_ns':series[-1]['time_ns']-series[0]['time_ns'],'constraint_warnings':bool(re.search(r'LINCS WARNING|Fatal error',(folder/'production.log').read_text(errors='replace'))),'last_backbone_rmsd_A':series[-1]['backbone_rmsd_A'],'last_ligand_rmsd_A':series[-1]['ligand_rmsd_A'],'interpretation':'Descriptive engineering checks; no activity or binding validation is inferred'}
+ import csv
+ for name,rows in [('trajectory_metrics',series),('thermodynamics',thermo),('residue_rmsf',summary['rmsf'])]:
+  with (dest/(name+'.csv')).open('w',newline='') as f:
+   writer=csv.DictWriter(f,fieldnames=list(rows[0]));writer.writeheader();writer.writerows(rows)
+ for name,index in [('first',0),('last',len(u.trajectory)-1)]:
+  u.trajectory[index]
+  with mda.Writer(str(dest/(name+'_production.pdb')),n_atoms=len(u.atoms)) as writer:writer.write(u.atoms)
+ import matplotlib
+ matplotlib.use('Agg')
+ import matplotlib.pyplot as plt
+ fig,axes=plt.subplots(3,2,figsize=(11,10),layout='constrained')
+ for key,label in [('backbone_rmsd_A','Backbone'),('ligand_rmsd_A','Ligand')]:axes[0,0].plot([r['time_ns'] for r in series],[r[key] for r in series],label=label)
+ axes[0,0].set(xlabel='Time (ns)',ylabel='RMSD (angstrom)');axes[0,0].legend()
+ axes[0,1].plot([r['resid'] for r in summary['rmsf']],[r['rmsf_A'] for r in summary['rmsf']]);axes[0,1].set(xlabel='Residue',ylabel='CA RMSF (angstrom)')
+ for ax,key,label in [(axes[1,0],'Temperature','Temperature (K)'),(axes[1,1],'Pressure','Pressure (bar)'),(axes[2,0],'Potential','Potential energy (kJ/mol)')]:
+  ax.plot([r['time_ns'] for r in thermo],[r[key] for r in thermo],lw=.8);ax.set(xlabel='Time (ns)',ylabel=label)
+ axes[2,1].plot([r['time_ns'] for r in series],[r['minimum_contact_A'] for r in series]);axes[2,1].set(xlabel='Time (ns)',ylabel='Minimum protein-ligand distance (angstrom)')
+ fig.suptitle(meta['id']+' | Exploratory MD; qualification unchanged')
+ fig.savefig(dest/'analysis_panels.png',dpi=180);fig.savefig(dest/'analysis_panels.pdf');plt.close(fig)
  w.atomic(dest/'thermodynamics.json',thermo)
  w.atomic(dest/'summary.json',summary);w.atomic(dest/'series.json',series);w.atomic(dest/'frames.json',{'atoms':[{'chain':'REC','name':'CA','resid':int(a.resid)} for a in ca]+[{'chain':'LIG','name':a.name} for a in ligheavy],'frames':frames})
  return summary

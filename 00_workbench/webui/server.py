@@ -330,6 +330,7 @@ def api_studio(q,body,action):
     raise ValueError('Unknown operation')
 
 def api_studio_run(q,body,rid,action):
+    if action=='continue-md':return _json(workflow.continue_md(rid))
     if action=='export':return _json(studio.export_run(rid,body))
     if action=='core':return _json(studio.save_core(rid,body))
     if action=='box':return _json(studio.box(rid,body))
@@ -342,6 +343,7 @@ def api_studio_get(q,rid,action):
     if action=='seeds':return _json({'rows':workflow.read(workflow.run_dir(rid)/'peptide2mol/seeds.json',[])})
     if action=='core':return _json(studio.core(rid,q.get('id',[''])[0]))
     if action=='md':return _json({'systems':studio.md_list(rid)})
+    if action=='md-structure':return _json(studio.md_structure(rid,q.get('id',[''])[0]))
     if action=='trajectory':return _json(studio.md_data(rid,q.get('id',[''])[0]))
     if action=='candidates':
         import csv

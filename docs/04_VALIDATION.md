@@ -6,6 +6,10 @@ The UI/membrane integration candidate was subsequently checked on 2026-10-18: wo
 
 Current English-release results are recorded separately in `../deployment/english_validation.json`; do not add overlapping historical totals together.
 
-Not performed for this release: actual Peptide2Mol/REINVENT4 target inference, GNINA target batch docking, GROMACS membrane parameterization or dynamics, standalone OpenMM production, Windows launcher acceptance, or migration to a second computer. Adapter test doubles do not establish real inference. Dependency availability does not establish scientific validity.
+Not performed at the earlier integration-candidate checkpoint (superseded for the Ubuntu case below): actual Peptide2Mol/REINVENT4 target inference, GNINA target batch docking, GROMACS membrane parameterization or dynamics, standalone OpenMM production, Windows launcher acceptance, or migration to a second computer. Adapter test doubles do not establish real inference. Dependency availability does not establish scientific validity.
 
 The test interpreter uses an isolated local environment with RDKit, PyYAML and gemmi. Run suites separately because multiple modules use the same package names. Historical reports may reference artifacts excluded from GitHub; absence of those files is not evidence of a new successful run.
+
+## Current Ubuntu acceptance
+
+The subsequent real RTX 5090 D upstream run is recorded in [06_RTX5090_ACCEPTANCE.md](06_RTX5090_ACCEPTANCE.md). The completed real UI membrane MD, 57 targeted regressions, checkpoint/disconnection tests and limits are recorded in [08_MEMBRANE_MD_ACCEPTANCE.md](08_MEMBRANE_MD_ACCEPTANCE.md). Do not add overlapping test totals or turn the single-case acceptance into cross-platform or biological validation.

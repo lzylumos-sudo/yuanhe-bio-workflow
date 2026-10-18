@@ -48,3 +48,19 @@ def test_rescreen_route_binds_run_id(monkeypatch):
  monkeypatch.setattr(w,'rescreen',lambda rid:{'id':rid})
  status,_,payload=server.dispatch('POST','/api/project/run/case/rescreen',{}, {})
  assert status==202 and json.loads(payload)['id']=='case'
+
+def test_md_continuation_preserves_all_upstream(stopped):
+ d,current=stopped
+ current['00_workbench/scientific/membrane.py']='repaired'
+ before={k:w.digest(d/k/'stage.json') for k in ('prepare','peptide2mol','reinvent4','docking','screening')}
+ result=w.continue_md('case')
+ assert result['status']=='verified'
+ assert before=={k:w.digest(d/k/'stage.json') for k in before}
+ w.verify_source(d)
+ current['02_docking/src/engine.py']='changed'
+ with pytest.raises(ValueError):w.continue_md('case')
+
+def test_md_continuation_rejects_tampered_screening(stopped):
+ d,_=stopped
+ w.atomic(d/'screening/stage.json',{'status':'completed','config_sha256':'changed'})
+ with pytest.raises(RuntimeError):w.continue_md('case')

@@ -55,7 +55,7 @@ def structure(path):
  atoms=[]
  for l in path.read_text().splitlines():
   if l.startswith(('ATOM  ','HETATM')):
-   atoms.append({'p':[float(l[30:38]),float(l[38:46]),float(l[46:54])],'chain':l[21:22],'resid':int(l[22:26]),'resname':l[17:20].strip(),'name':l[12:16].strip(),'element':l[76:78].strip()})
+   atoms.append({'p':[float(l[30:38]),float(l[38:46]),float(l[46:54])],'chain':l[21:22],'resid':int(l[22:26]) if l[22:26].strip().lstrip('-').isdigit() else l[22:26].strip(),'resname':l[17:20].strip(),'name':l[12:16].strip(),'element':l[76:78].strip()})
  return atoms
 
 def box(rid,payload):
@@ -93,11 +93,11 @@ def launch(rid,kind,payload):
   if kind.startswith('md_') and not c.get('md_python'):raise ValueError('Select the membrane simulation environment in settings Python')
   lease=w.acquire_compute()
   ident=str(time.time_ns())+'_'+uuid.uuid4().hex[:8];out=d/'operations'/ident;out.mkdir(parents=True)
-  w.atomic(out/'request.json',{'kind':kind,'payload':payload,'config':c,'run_id':rid})
+  w.atomic(out/'request.json',{'kind':kind,'payload':payload,'config':c,'run_id':rid,'source_revision':w.read(d/'active_source_revision.json')})
   w.atomic(out/'operation.json',{'kind':kind,'status':'running','started':time.time()})
   py=(c.get('md_python') if kind.startswith('md_') else c.get('prep_python') if kind=='receptor' else c['chem_python']) or sys.executable
   log=(out/'process.log').open('w')
-  try:proc=subprocess.Popen([py,str(w.UI/'studio_worker.py'),'--run-id',rid,'--operation',ident],stdout=log,stderr=subprocess.STDOUT,cwd=w.UI,start_new_session=True,pass_fds=(lease.fileno(),),env={**os.environ,'YUANHE_COMPUTE_FD':str(lease.fileno())})
+  try:proc=subprocess.Popen([py,str(w.UI/'studio_worker.py'),'--run-id',rid,'--operation',ident],stdout=log,stderr=subprocess.STDOUT,cwd=w.UI,start_new_session=True,pass_fds=(lease.fileno(),),env={**os.environ,'PATH':str(Path(py).parent)+os.pathsep+os.environ.get('PATH',''),'OPENMM_CPU_THREADS':'12','OMP_NUM_THREADS':'12','YUANHE_COMPUTE_FD':str(lease.fileno())})
   except Exception as e:
    log.close();lease.close();w.atomic(out/'operation.json',{'kind':kind,'status':'failed','error':str(e)});raise
   w._active[rid]=proc
@@ -128,11 +128,17 @@ def apply_receptor(rid,payload):
 def system_summary(meta):
  meta=dict(meta);groups=meta.pop('groups',{})
  if groups:meta['group_atom_counts']={k:len(v) for k,v in groups.items()}
+ if 'lipid_charge_rounding' in meta:
+  rounding=meta['lipid_charge_rounding'];edits=rounding.get('edits',[])
+  meta['lipid_charge_rounding']={k:v for k,v in rounding.items() if k!='edits'}
+  meta['lipid_charge_rounding']['corrected_lipids']=len(edits)
+  meta['lipid_charge_rounding']['max_abs_correction_e']=max((abs(e['delta_charge_e']) for e in edits),default=0)
  return meta
 
 def md_list(rid):
  d,c=config(rid)
- return [{'id':p.parent.name,**system_summary(w.read(p)),'progress':w.read(p.parent/'progress.json',{})} for p in sorted((d/'md_systems').glob('*/system.json'))]
+ rows=[{'id':p.parent.name,**system_summary(w.read(p)),'progress':w.read(p.parent/'progress.json',{})} for p in sorted((d/'md_systems').glob('*/system.json'))]
+ return sorted(rows,key=lambda x:(x.get('status') not in {'built','completed'},x['id']))
 
 def membrane_preview(rid,payload):
  import numpy as np
@@ -157,6 +163,19 @@ def md_data(rid,system_id):
  thermo=w.read(folder/'analysis/thermodynamics.json',[])
  thermo=thermo[::max(1,math.ceil(len(thermo)/2000))]
  return {'system':system_summary(w.read(folder/'system.json',{})),'analysis':w.read(folder/'analysis/summary.json',{}),'trajectory':w.read(folder/'analysis/frames.json',{}),'series':w.read(folder/'analysis/series.json',{}),'thermodynamics':thermo}
+
+def md_structure(rid,system_id):
+ from scientific.membrane import system_dir
+ d,c=config(rid);folder=system_dir(d,system_id);meta=w.read(folder/'system.json',{})
+ if meta.get('status') not in {'built','completed'}:raise ValueError('System has not been built successfully')
+ if w.digest(folder/'system.pdb')!=meta['files']['system.pdb']:raise ValueError('System structure changed')
+ protein=set(meta['groups']['Protein']);ligand=set(meta['groups']['Ligand']);atoms=[]
+ for i,atom in enumerate(structure(folder/'system.pdb'),1):
+  if i in ligand and atom['element']!='H':atom['chain']='LIG';atoms.append(atom)
+  elif i in protein and atom['name']=='CA':atom['role']='protein';atoms.append(atom)
+  elif i not in protein and i not in ligand and atom['name']=='P':atom['role']='lipid';atoms.append(atom)
+  elif atom['resname'] in {'NA','CL','Na','Cl'}:atom['role']='ion';atoms.append(atom)
+ return {'atoms':atoms,'caption':'Actual built coordinates: protein CA (green), ligand heavy atoms (gold), lipid phosphorus (purple), ions (blue). Water and remaining atoms are omitted only from this preview. Full coordinates remain in system.pdb.','system_id':system_id,'source_sha256':meta['files']['system.pdb']}
 
 def environment_save(payload):
  allowed={'chem_python','screen_python','prep_python','md_python','peptide_python','reinvent_executable','gnina','gmx'}

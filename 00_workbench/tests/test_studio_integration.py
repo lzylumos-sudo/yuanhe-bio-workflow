@@ -112,8 +112,8 @@ def test_resumed_tpr_tamper_is_rejected(case,monkeypatch):
  w.atomic(folder/'system.json',{'status':'built','files':{'system.top':w.digest(folder/'system.top')},'parameters':{'temperature_K':310,'production_ns':1,'equilibration_ns':1}})
  w.atomic(folder/'progress.json',{'phases':{'em':{'status':'running','tpr_sha256':'different'}}})
  calls=[];monkeypatch.setattr(membrane,'execute',lambda argv,*a,**k:calls.append(argv))
- with pytest.raises(ValueError,match='TPR'):membrane.run(d,{'gmx':'gmx','seed':17},{'system_id':'MD_test','system_reviewed':True},d)
- assert calls==[['gmx','--version']]
+ with pytest.raises(ValueError,match='TPR'):membrane.run(d,{'gmx':sys.executable,'seed':17},{'system_id':'MD_test','system_reviewed':True},d)
+ assert calls==[[sys.executable,'--version']]
 
 def test_export_records_omissions_and_avoids_recursive_archives(case):
  import zipfile
@@ -185,7 +185,8 @@ def test_md_checkpoint_resume_skips_finished_phases(case,monkeypatch):
   (folder/(phase+'.gro')).write_text('final')
   if phase=='production':(folder/'production.xtc').write_text('trajectory')
  monkeypatch.setattr(membrane,'execute',engine)
- c={'gmx':'gmx','seed':17};p={'system_id':'MD_test','system_reviewed':True}
+ monkeypatch.setattr(membrane,'checkpoint_probe',lambda *a,**k:{'status':'mocked for orchestration only'})
+ c={'gmx':sys.executable,'seed':17};p={'system_id':'MD_test','system_reviewed':True}
  with pytest.raises(RuntimeError,match='simulated'):membrane.run(d,c,p,d)
  assert membrane.run(d,c,p,d)['status']=='completed'
  runs=[a for a in calls if 'mdrun' in a]
@@ -199,3 +200,8 @@ def test_energy_parser_preserves_units_and_rejects_nan(tmp_path):
  assert membrane.energy_series(x)==[{'time_ns':1,'Temperature':310,'Pressure':1,'Potential':-200}]
  x.write_text(header+'1000 nan 1 -200\n')
  with pytest.raises(ValueError,match='nonfinite'):membrane.energy_series(x)
+
+def test_structure_reader_accepts_overflow_residue_ids(tmp_path):
+ p=tmp_path/'large.pdb'
+ p.write_text('HETATM    1  O   HOH WA000       1.000   2.000   3.000  1.00  0.00           O\n')
+ assert studio.structure(p)[0]['resid']=='A000'

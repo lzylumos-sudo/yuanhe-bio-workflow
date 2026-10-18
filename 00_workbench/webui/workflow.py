@@ -44,6 +44,33 @@ def source_snapshot():
 def _screen_revision_allowed(name):
  return name.startswith('03_virtual_screening/src/') or name in {'00_workbench/webui/server.py', '00_workbench/webui/workflow.py'}
 
+def _md_revision_allowed(name):
+ return _screen_revision_allowed(name) or name in {str(UI.relative_to(ROOT))+'/'+x for x in ('scientific/membrane.py','scientific/artifacts.py','scientific/md_cli.py','md_stage.py','studio_worker.py','webui/studio.py')}
+
+def continue_md(rid):
+ """Audit MD-only changes without recreating or relabeling upstream results."""
+ d=run_dir(rid)
+ with _lock:
+  if _active:raise RuntimeError('A calculation is still active')
+  lease=acquire_compute()
+  try:
+   upstream={k:require(d,k) for k in ('prepare','peptide2mol','reinvent4','docking','screening')}
+   initial=read(d/'source_snapshot.json');current=source_snapshot()
+   previous=read(d/'active_source_revision.json')
+   if previous:
+    prev=d/'source_revisions'/previous['file']
+    if prev.parent!=d/'source_revisions' or digest(prev)!=previous['sha256']:raise ValueError('Previous revision evidence changed')
+   changed={k for k in set(initial)|set(current) if initial.get(k)!=current.get(k)}
+   if any(not _md_revision_allowed(k) for k in changed):raise ValueError('Upstream generation or docking code changed; cannot reuse')
+   stamp=str(time.time_ns());proof={'scope':'md','reason':'UI-authorized MD continuation; original screening qualification retained',
+    'initial_source_sha256':digest(d/'source_snapshot.json'),'source':current,'previous_revision':previous,
+    'changes':{k:{'before':initial.get(k),'after':current.get(k)} for k in sorted(changed)},
+    'upstream_stage_records':{k:digest(d/k/'stage.json') for k in upstream},'recorded_at':time.time()}
+   record=d/'source_revisions'/(stamp+'.json');atomic(record,proof)
+   atomic(d/'active_source_revision.json',{'file':record.name,'sha256':digest(record)})
+   return {'status':'verified','upstream_stages':list(upstream),'source_revision':record.name,'qualification':'unchanged'}
+  finally:lease.close()
+
 def verify_source(d):
  frozen=read(d/'source_snapshot.json')
  revision=read(d/'active_source_revision.json')
@@ -53,7 +80,7 @@ def verify_source(d):
   proof=read(path)
   if proof['initial_source_sha256']!=digest(d/'source_snapshot.json'):raise ValueError('Original source record changed')
   changed={k for k in set(frozen)|set(proof['source']) if frozen.get(k)!=proof['source'].get(k)}
-  if any(not _screen_revision_allowed(k) for k in changed):raise ValueError('Revision changes an upstream calculation')
+  if any(not (_md_revision_allowed(k) if proof.get('scope')=='md' else _screen_revision_allowed(k)) for k in changed):raise ValueError('Revision changes an upstream calculation')
   frozen=proof['source']
  if frozen is not None and frozen!=source_snapshot():raise ValueError('Code differs from the recorded run version; preserve outputs and explicitly revise the affected stage')
 
@@ -158,7 +185,7 @@ def inventory():
  'REINVENT4':'01_molecule_generation/vendor/REINVENT4/priors/libinvent.prior',
  'GNINA adapter':'02_docking/src/sbvs2/docking/run_gnina.py',
  'Virtual screening':'03_virtual_screening/src/zvss/stages.py',
- 'OpenMM':'05_molecular_dynamics/modules/md/openmm_engine.py'}
+ 'Membrane MD':str(UI.relative_to(ROOT)/'scientific/membrane.py')}
  modules=[{'name':n,'present':(ROOT/p).is_file(),'path':p} for n,p in paths.items()]
  return {'modules':modules,'structures':[str(p.relative_to(ROOT)) for p in sorted(list((ROOT/'data/structures').glob('*.pdb'))+list((ROOT/'inputs').glob('*.pdb')))],
  'runs':[p.name for p in sorted(RUNS.glob('*'),reverse=True) if (p/'run.json').is_file()],
