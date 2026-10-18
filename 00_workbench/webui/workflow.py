@@ -184,6 +184,16 @@ def status(rid):
    rows=effective_candidates(d)
    if any(r.get('qualification_provenance') for r in rows):
     rec={**rec,'counts':{**rec.get('counts',{}),'formal':sum(r['qualification']=='formal' for r in rows),'preliminary':sum(r['qualification']!='formal' for r in rows)},'qualification_reassessment':rows[0]['qualification_provenance']}
+  if key=='gromacs' and rec.get('status')=='completed':
+   for path in sorted((d/'operations').glob('*/replicate_comparison.json'),reverse=True):
+    if read(path.parent/'operation.json',{}).get('status')!='completed':continue
+    proof=read(path)
+    if read(path.parent/'result.json')!=proof or proof.get('gromacs_records_sha256')!=digest(d/'gromacs/systems.json'):raise ValueError('MD quality evidence changed')
+    for row in proof['replicas']:
+     folder=d/'md_systems'/row['system_id']/'analysis'
+     if digest(folder/'summary.json')!=row['analysis_sha256'] or digest(folder/'series.json')!=row['series_sha256']:raise ValueError('MD analysis evidence changed')
+    rec={**rec,'counts':{**rec.get('counts',{}),'md_quality_passed':len(proof['short_md_quality_passed_compounds'])},'md_quality_evidence':{'artifact':str(path.relative_to(d)),'sha256':digest(path)}}
+    break
   stages.append({'key':key,'label':label,'description':desc,**rec,'status':rec.get('status','pending')})
  return {'id':rid,'config':cfg,'stages':stages,'reviews':{k:read(d/'reviews'/f'{k}.json',{}) for k,_,_ in STAGES}}
 

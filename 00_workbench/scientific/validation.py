@@ -35,6 +35,8 @@ def summarize_replicas(d,c,p,out):
   folder=system_dir(d,ident);meta=a.read(folder/'system.json',{});rep=meta.get('replica',{})
   if meta.get('status')!='completed' or not rep:raise ValueError('Only completed recorded replicas can be compared')
   recorded=completed.get(ident,{}).get('files',{})
+  for relative,sha in recorded.items():
+   if a.digest(a.within(d,relative))!=sha:raise ValueError('Recorded simulation provenance mismatch')
   for name in ('analysis/summary.json','analysis/series.json','system.json'):
    path=folder/name;relative=str(path.relative_to(d))
    if not recorded.get(relative) or a.digest(path)!=recorded[relative]:raise ValueError('Recorded analysis provenance mismatch')
@@ -68,6 +70,7 @@ def summarize_replicas(d,c,p,out):
  dispersion=result['between_replica_mean_std']['ligand_rmsd_A']
  criterion('between_replica_ligand_dispersion',dispersion<=protocol['max_between_replica_ligand_mean_std_A'],dispersion)
  result['quality_protocol']=protocol;result['quality_criteria']=criteria
+ result['gromacs_records_sha256']=a.digest(d/'gromacs/systems.json')
  result['provisional_md_quality_accepted']=all(x['passed'] for x in criteria)
  result['short_md_quality_passed_compounds']=sorted({r['compound_id'] for r in rows if r['compound_id']}) if result['provisional_md_quality_accepted'] else []
  result['scientific_claim']='Short-run quality gate only; convergence and peptide-function replacement remain unestablished'

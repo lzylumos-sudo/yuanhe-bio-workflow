@@ -89,3 +89,20 @@ def test_quality_gate_rejects_unstable_repeat_and_modified_raw_input(tmp_path):
  assert any(not r['passed'] and 'ligand_pose_retention' in r['criterion'] for r in result['quality_criteria'])
  (folder/'production.xtc').write_bytes(b'modified')
  with pytest.raises(ValueError,match='provenance'):summarize_replicas(tmp_path,{},dict(system_ids=ids),tmp_path/'out2')
+
+
+def test_ui_distinguishes_md_quality_from_experimental_validation(tmp_path,monkeypatch):
+ from scientific.validation import summarize_replicas
+ from webui import workflow
+ ids=completed_replicas(tmp_path);op=tmp_path/'operations/comparison'
+ result=summarize_replicas(tmp_path,{},dict(system_ids=ids),op)
+ a.atomic(op/'result.json',result);a.atomic(op/'operation.json',{'status':'completed'})
+ a.atomic(tmp_path/'config.json',{})
+ a.atomic(tmp_path/'gromacs/stage.json',{'status':'completed','counts':{'scientifically_validated':0}})
+ monkeypatch.setattr(workflow,'RUNS',tmp_path.parent)
+ current=next(s for s in workflow.status(tmp_path.name)['stages'] if s['key']=='gromacs')
+ assert current['counts']['md_quality_passed']==1
+ assert current['counts']['scientifically_validated']==0
+ assert 'md_quality_passed' not in a.read(tmp_path/'gromacs/stage.json')['counts']
+ a.atomic(op/'result.json',{})
+ with pytest.raises(ValueError,match='quality evidence'):workflow.status(tmp_path.name)
