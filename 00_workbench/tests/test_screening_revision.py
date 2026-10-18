@@ -7,6 +7,8 @@ from webui import workflow as w
 @pytest.fixture
 def stopped(tmp_path,monkeypatch):
  monkeypatch.setattr(w,'RUNS',tmp_path)
+ monkeypatch.setattr(w,'ROOT',tmp_path)
+ monkeypatch.setattr(w,'UI',tmp_path/'00_workbench')
  d=tmp_path/'case';d.mkdir()
  w.atomic(d/'config.json',{'fixed':True})
  for name in ('prepare','peptide2mol','reinvent4','docking','screening'):
@@ -64,3 +66,13 @@ def test_md_continuation_rejects_tampered_screening(stopped):
  d,_=stopped
  w.atomic(d/'screening/stage.json',{'status':'completed','config_sha256':'changed'})
  with pytest.raises(RuntimeError):w.continue_md('case')
+
+
+def test_revision_before_first_screen_preserves_upstream(stopped):
+ import shutil
+ d,current=stopped
+ shutil.rmtree(d/'screening')
+ assert w.rescreen('case')['stage']=='screening'
+ proof=w.read(next((d/'source_revisions').glob('*.json')))
+ assert proof['previous_screening_stage_sha256'] is None
+ w.verify_source(d)

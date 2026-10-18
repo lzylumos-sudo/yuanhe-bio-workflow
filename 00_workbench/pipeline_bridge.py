@@ -186,6 +186,9 @@ def stage_screening(d,cfg,out):
  workspace=out/'workspace';workspace.mkdir();shutil.copytree(SCREEN/'configs',workspace/'configs')
  host={'paths':{'structures_dir':str(ROOT)},'tools':{'gnina':[executable(cfg['gnina'],'GNINA')], 'gnina_settings':{'cnn_model':'crossdock_default2018_1_3','device':cfg['gnina_device'],'exhaustiveness':16,'num_modes':9,'cpu':4,'cnn_scoring':'rescore','environment':gnina_environment()}},
  'executors':{'md_openmm_linux':{'mode':'disabled','note':'GROMACS used separately; membrane system not auto-prepared'}}}
+ if cfg['target_profile']=='generic':
+  from scientific.target_profile import bind_generic
+  host['paths']['structures_dir']=str(bind_generic(workspace,d,cfg))
  atomic(workspace/'host.json',host)
  handoff=out/'docking_input';handoff.mkdir()
  shutil.copyfile(d/'docking/receptor.pdb',handoff/'receptor.pdb')
@@ -219,6 +222,10 @@ def stage_screening(d,cfg,out):
   row['sdf']=str(target.relative_to(d));row['smiles']=Chem.MolToSmiles(Chem.RemoveHs(mol),isomericSmiles=True)
  atomic(out/'candidates.json',rows)
  csv_write(out/'molecules.csv',rows,list(dict.fromkeys(k for row in rows for k in row)))
+ if rows:
+  from scientific.peptide_contacts import calculate
+  evidence_dir=out/'peptide_evidence';evidence_dir.mkdir()
+  calculate(d,cfg,{},evidence_dir)
  return {'input':read(d/'docking/stage.json')['counts']['remaining'],'remaining':len({x.get('compound_id') for x in rows if x.get('compound_id')}),'formal':len({x.get('compound_id') for x in rows if x.get('qualification')=='formal'}),'preliminary':len({x.get('compound_id') for x in rows if x.get('qualification')!='formal'})}
 
 def stage_gromacs(d,cfg,out):

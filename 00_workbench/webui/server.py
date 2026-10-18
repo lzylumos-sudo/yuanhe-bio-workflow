@@ -277,6 +277,9 @@ def api_project_rows(q, rid, key):
     path=workflow.run_dir(rid)/key/'molecules.csv'
     if not path.exists():return _json({'rows':[],'total':0})
     with path.open(encoding='utf-8-sig',newline='') as f:rows=list(csv.DictReader(f))
+    if key=='screening':
+        from scientific.validation import effective_candidates
+        rows=effective_candidates(workflow.run_dir(rid))
     query=q.get('search',[''])[0].lower()
     if query:rows=[r for r in rows if query in str(r).lower()]
     offset=max(0,int(q.get('offset',['0'])[0]))
@@ -349,7 +352,10 @@ def api_studio_get(q,rid,action):
         import csv
         path=workflow.run_dir(rid)/'screening/molecules.csv'
         if not path.exists():return _json({'rows':[]})
-        with path.open() as f:return _json({'rows':list(csv.DictReader(f))})
+        workflow.require(workflow.run_dir(rid),'screening')
+        orientation=workflow.read(workflow.run_dir(rid)/'screening/workspace/runs/screen/stages/membrane/summary.json',{})
+        from scientific.validation import effective_candidates
+        return _json({'rows':effective_candidates(workflow.run_dir(rid)), 'orientation':orientation.get('plane') if orientation.get('orientation_verified') else None})
     raise ValueError('Unknown read operation')
 
 ROUTES = [

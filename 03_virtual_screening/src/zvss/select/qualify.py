@@ -20,6 +20,7 @@ membrane-orientation data or of re-dock support is never rounded up to a pass.
 from __future__ import annotations
 
 import os
+import math
 from typing import Any
 
 from ..constants import AssessmentStatus, Reason
@@ -126,7 +127,7 @@ def _target_region(ctx, entry) -> dict[str, Any]:
             source="mechanism stage",
             reason_code=str(Reason.RESIDUE_MAPPING_MISSING),
         )
-    if float(contacts) <= 0:
+    if not math.isfinite(float(contacts)) or float(contacts) <= 0:
         return _requirement(
             "target_region",
             status=FAIL,
@@ -211,7 +212,7 @@ def _strain(ctx, entry) -> dict[str, Any]:
     metrics = _metric(ctx, "compound", entry["compound_id"], "strain")
     value = metrics.get("strain_kcal_mol")
     force_field = metrics.get("force_field")
-    if value is None:
+    if value is None or not math.isfinite(float(value)):
         reason = "strain was not measured; either no force field parameterises the molecule or the geometry is degenerate"
         return _requirement(
             "strain",
@@ -226,7 +227,7 @@ def _strain(ctx, entry) -> dict[str, Any]:
         return _requirement(
             "strain",
             status=FAIL,
-            observed={"strain_kcal_mol": float(value), "force_field": force_field, "limit": flag_limit},
+            observed={"strain_kcal_mol": float(value), "force_field": force_field, "warning_limit": flag_limit, "failure_limit": 2 * flag_limit},
             detail="strain is above the failure threshold; the pose is not a usable starting structure",
             source="strain stage",
             reason_code=str(Reason.EXCESSIVE_STRAIN),
@@ -234,7 +235,7 @@ def _strain(ctx, entry) -> dict[str, Any]:
     return _requirement(
         "strain",
         status=PASS,
-        observed={"strain_kcal_mol": float(value), "force_field": force_field, "limit": flag_limit},
+        observed={"strain_kcal_mol": float(value), "force_field": force_field, "warning_limit": flag_limit, "failure_limit": 2 * flag_limit},
         detail="strain is measurable and below the failure threshold",
         source="strain stage",
     )
@@ -255,13 +256,17 @@ def _membrane(ctx, entry) -> dict[str, Any]:
             source="membrane stage",
             reason_code=str(Reason.MEMBRANE_ORIENTATION_UNSOURCED),
         )
-    sourced = stage_status == "sourced" and not capability_status.startswith("blocked")
+    depth = _metric(ctx, "pose", entry["pose_id"], "membrane").get("insertion_depth")
+    observed["insertion_depth_A"] = depth
+    observed["orientation_evidence"] = stage.get("plane")
+    sourced = (stage_status == "sourced" and stage.get("orientation_verified") is True
+               and isinstance(depth, (float, int)) and math.isfinite(depth))
     if sourced:
         return _requirement(
             "membrane",
             status=PASS,
             observed=observed,
-            detail="membrane orientation comes from a configured source",
+            detail="hashed computational membrane placement was verified in this docking receptor frame; this is not an MD or biological verdict",
             source="membrane stage",
         )
     return _requirement(
@@ -313,6 +318,8 @@ def qualification_rules(ctx) -> dict[str, Any]:
     raw = ctx.config.get("qualification.formal_requirements") or list(REQUIREMENT_ORDER)
     rules: dict[str, Any] = {}
     for name in raw:
+        if name not in DEFAULT_FORMAL:
+            raise ValueError("Unknown formal qualification requirement: " + str(name))
         if name == "redock_seeds":
             rules[name] = {
                 "seeds_required": int(ctx.config.get("qualification.redock_seeds_required", 3) or 3),

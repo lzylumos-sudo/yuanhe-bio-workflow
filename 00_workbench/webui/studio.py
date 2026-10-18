@@ -84,7 +84,7 @@ def operations(rid):
  return out[:30]
 
 def launch(rid,kind,payload):
- if kind not in {'receptor','environment','install_membrane','md_build','md_run','md_analyze'}:raise ValueError('Unknown operation')
+ if kind not in {'receptor','environment','install_membrane','md_build','md_run','md_analyze','md_validation'}:raise ValueError('Unknown operation')
  d,c=config(rid);w.verify_source(d)
  with w._lock:
   if w._active:raise ValueError('A task is running; finish or stop it first')

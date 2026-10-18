@@ -1,5 +1,5 @@
 Yuanhe Research Workbench: daily UI guide
-Version 0.3.0-rc1
+Version 0.4.0-rc1
 
 Complete initial installation using deployment/validation_5070/INSTALL_AND_VALIDATE.txt. Target-machine inference, docking and membrane dynamics remain untested by this release; do not label the candidate release fully accepted before those checks.
 
@@ -30,3 +30,8 @@ Validation order: environment/operator checks, small real model batch, reviewed-
 
 2026-10-18: screened pose to membrane MD
 Use Verify upstream and continue MD when continuing a preserved upstream run. Select the screened candidate; review membrane orientation and explicitly acknowledge exploratory status if formal qualification is absent. Build, preview and review the membrane system, then select it for stage six. Stage six runs minimization, staged equilibration, an independent checkpoint probe, production and analysis. Inspect first/last frames and analysis plots; export the full run including trajectories. Completed MD does not upgrade candidate qualification. See docs/07_MODULE_CONTRACTS.md and docs/08_MEMBRANE_MD_ACCEPTANCE.md.
+
+MODULES, CONTROLS AND REPEATS
+Open tool 7 for an independent 1DRF docking control, archived screening reassessment, peptide-contact evidence, or independent velocity replicas. Select a built reviewed system, acknowledge the shared starting coordinates, create repeats, select them and assign them to stage six. Run stage six through the main workflow. After all repeats complete, select the same systems and compare their trajectories. Preserve the reported criterion failures. A completed MD calculation is not an activity prediction.
+
+For 9NU4, an available hashed PPM3 orientation populates the membrane settings; review it before building. A different receptor does not inherit this orientation automatically. The full export preserves raw trajectories; the smaller review export supports inspection.

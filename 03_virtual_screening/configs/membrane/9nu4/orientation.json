@@ -1,0 +1,48 @@
+{
+  "method": "PPM 3.0 standalone, exact current 9NU4 receptor construct; Gram-negative inner membrane, forced planar, N-terminus in. Geometric transform reconstructed from matching all original heavy atoms.",
+  "source": "https://oprlm.org/ppm_server3_cgopm",
+  "input_sha256": "728ed4ae2b325a44190ff7aa95a1c396409447f7b3038b3ef9c0480523b12f79",
+  "output_sha256": "c6d2060e7b04b7b9e83ef6965c855b0ead3e99291f6178ea3b160337fc04dffd",
+  "matched_atoms": 3785,
+  "rigid_fit_rmsd_A": 0.0004982207373107288,
+  "max_atom_deviation_A": 0.0008457483691245077,
+  "center_A": [
+    166.2042503493889,
+    164.11886069466075,
+    138.85715195277874
+  ],
+  "normal": [
+    0.3434574946087956,
+    0.14688643067548426,
+    -0.9276105464474116
+  ],
+  "rotation_to_ppm": [
+    [
+      -0.0026878184795226406,
+      0.9391643759368601,
+      0.3434574946087956
+    ],
+    [
+      0.9878433992777859,
+      -0.05089002836239424,
+      0.14688643067548426
+    ],
+    [
+      0.15542906464085263,
+      0.3396770230445454,
+      -0.9276105464474116
+    ]
+  ],
+  "translation_to_ppm": [
+    -183.25944362545985,
+    -194.90768158564595,
+    47.6144295287484
+  ],
+  "membrane_half_thickness_A": 17.0,
+  "limitations": [
+    "PPM provides a computational membrane placement, not experimental orientation",
+    "POPE idealized membrane omits native mixed lipid composition",
+    "The selected 9NU4 observed construct retains deposited mutations"
+  ],
+  "parameters": "2\nno\nmurj.pdb\n1\nGnI\nplanar\nin\nA\n"
+}

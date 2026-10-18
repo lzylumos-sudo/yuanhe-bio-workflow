@@ -10,7 +10,7 @@ from zvss.receptor.sifts import build_mapping
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 PROJECT = os.path.dirname(HERE)
-CACHE = os.path.join(PROJECT, "runtime", "reference_cache")
+CACHE = os.environ.get("ZVSS_TEST_REFERENCE_CACHE", os.path.join(HERE, "data"))
 CIF = os.path.join(CACHE, "9nu4_updated.cif")
 FASTA = os.path.join(CACHE, "P0AF16.fasta")
 
@@ -41,9 +41,9 @@ def test_murj_mapping_matches_the_deposition() -> None:
 
 
 @pytest.mark.skipif(not os.path.exists(CIF), reason="9NU4 mmCIF not cached")
-def test_mapping_cli_artifact_matches_report_rows() -> None:
+def test_mapping_cli_artifact_matches_report_rows(tmp_path) -> None:
     from zvss.receptor.sifts import write_mapping
 
     report = build_mapping(CIF, pdb_id="9NU4", chain="A", accession="P0AF16", native_sequence=_sequence(FASTA))
-    paths = write_mapping(report, PROJECT)
+    paths = write_mapping(report, str(tmp_path))
     assert os.path.exists(paths["csv"]) or os.path.exists(paths["json"])

@@ -277,7 +277,7 @@ def _markdown(ctx, state, ranking, selection, md, target, imported, qa, mech, re
     else:
         lines.append("- No recorded blockers; this only means none were triggered in this run")
     lines += [
-        "- Membrane environment: Only a transmembrane helix-axis proxy; no membrane system constructed",
+        f"- Membrane orientation: {membrane.get('status', 'not_evaluated')}; source: {(membrane.get('plane') or {}).get('source', 'none')}. MD execution is assessed separately.",
         "- multiple seed Redocking: "
         + ("Completed" if (redock.get("status") == "completed") else "Blocked by GNINA availability; no redocking evidence produced"),
         "",

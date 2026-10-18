@@ -1,11 +1,4 @@
-"""Membrane context: orientation proxy, insertion depth, and MD capability.
-
-No membrane model is built here.  The module computes a transparent geometric
-proxy -- the principal axis of the reference transmembrane bundle -- and reports
-where a pose sits relative to that plane.  Membrane MD itself is reported as
-``blocked_missing_membrane_capability`` until a membrane builder and a
-membrane-capable MD engine are actually available.
-"""
+"""Sourced membrane placement with receptor-frame verification; PCA stays a proxy."""
 
 from __future__ import annotations
 
@@ -40,58 +33,55 @@ def _explained(xyz: np.ndarray, vt: np.ndarray) -> float:
 
 
 def run(ctx) -> dict[str, Any]:
+    from pathlib import Path
+    import shutil
+    from dataclasses import asdict
     from .. import data
+    from .orientation import transfer
 
     profile = ctx.config.target
     membrane = profile.membrane
-    summary: dict[str, Any] = {
-        "membrane_config": membrane.to_dict() if hasattr(membrane, "to_dict") else {},
-        "usable": bool(getattr(membrane, "usable", False)),
-        "status": "not_evaluated",
-        "md_capability": {
-            "status": "blocked_missing_membrane_capability",
-            "reason_code": str(Reason.MD_MEMBRANE_CAPABILITY_MISSING),
-            "note": (
-                "no membrane builder and no membrane-capable MD runner are available in this environment; "
-                "membrane MD is reported as blocked, not as passed"
-            ),
-        },
-    }
-    ref_atoms, record = data.reference_structure(ctx)
-    tm_residues = []
-    region = getattr(profile, "region", None)
-    for side in list(getattr(region, "sides", []) or []):
-        tm_residues.extend(getattr(side, "native_residues", []) or [])
-    mapping = record.get("native_to_auth") or {}
-    auth = {int(k) for k in mapping.values()} if mapping else set()
-    selected = [a for a in ref_atoms if a.resseq in auth and a.resname != "HOH"] if auth else ref_atoms
-    plane = _plane(selected)
-    if plane is None:
-        summary["reason"] = "reference structure missing or too few atoms"
-        summary["reason_code"] = str(Reason.REFERENCE_POSE_MISSING)
-        for pose in data.pose_rows(ctx):
-            ctx.db.record_assessment("pose", pose["pose_id"], "membrane", "insertion_depth", None,
-                                     AssessmentStatus.NEEDS_INPUT, Reason.REFERENCE_POSE_MISSING)
-        return summary
-
-    summary["plane"] = {
-        "center": [round(float(v), 3) for v in plane["center"]],
-        "normal": [round(float(v), 4) for v in plane["normal"]],
-        "atoms": plane["atoms"],
-        "source": "reference_structure_tm_bundle_pca",
-        "note": "geometric proxy for the membrane normal; not a built membrane model",
-    }
-    summary["status"] = "proxy_only"
-
+    summary = {"membrane_config": asdict(membrane), "usable": False,
+               "status": "not_evaluated", "md_capability": {
+                   "status": "separate_execution_required",
+                   "note": "Orientation assessment does not run MD; the standalone/workbench MD adapter validates its own environment and inputs."}}
+    evidence = membrane.raw.get("evidence_dir")
+    plane = None
+    if evidence:
+        folder = (Path(profile.source_path).parent / evidence).resolve()
+        receptor = data.receptor_record(ctx)
+        path = receptor.get("archived") or receptor.get("path") or receptor.get("output")
+        try:
+            plane = transfer(folder, path)
+            archive = Path(ctx.stage_dir("membrane")) / "orientation_evidence"
+            shutil.copytree(folder, archive, dirs_exist_ok=True)
+            summary.update(status="sourced", usable=True, orientation_verified=True)
+        except (ValueError, KeyError, TypeError, OSError) as exc:
+            summary.update(status="needs_input", reason=str(exc),
+                           reason_code=str(Reason.MEMBRANE_ORIENTATION_UNSOURCED))
+    else:
+        ref_atoms, record = data.reference_structure(ctx)
+        plane = _plane(ref_atoms)
+        if plane is not None:
+            plane = {"center": plane["center"].tolist(), "normal": plane["normal"].tolist(),
+                     "source": "reference_structure_pca", "atoms": plane["atoms"],
+                     "note": "Geometric proxy only; not sourced membrane placement"}
+            summary["status"] = "proxy_only"
+    if plane is not None:
+        summary["plane"] = plane
     for pose in data.pose_rows(ctx):
         mol = data.pose_mol(ctx, pose)
-        if mol is None:
+        valid = mol is not None and mol.GetNumConformers() > 0 and plane is not None
+        if valid and summary["status"] == "sourced":
+            valid = pose.get("receptor_sha256") == plane["receptor_sha256"]
+        if not valid:
             ctx.db.record_assessment("pose", pose["pose_id"], "membrane", "insertion_depth", None,
-                                     AssessmentStatus.NOT_EVALUATED, Reason.MISSING_COORDINATES)
+                                     AssessmentStatus.NEEDS_INPUT, Reason.MEMBRANE_ORIENTATION_UNSOURCED)
             continue
         xyz = np.asarray(mol.GetConformer().GetPositions(), dtype=float)
-        depth = float(np.mean((xyz - plane["center"]) @ plane["normal"]))
-        ctx.db.record_assessment("pose", pose["pose_id"], "membrane", "insertion_depth", round(depth, 4), AssessmentStatus.PASS)
-        ctx.db.record_assessment("pose", pose["pose_id"], "membrane", "orientation_proxy", "tm_bundle_pca",
-                                 AssessmentStatus.PASS)
+        depth = float(np.mean((xyz-np.asarray(plane["center"])) @ np.asarray(plane["normal"])))
+        if not np.isfinite(depth):
+            raise ValueError("Non-finite membrane depth")
+        ctx.db.record_assessment("pose", pose["pose_id"], "membrane", "insertion_depth", round(depth,4), AssessmentStatus.PASS)
+        ctx.db.record_assessment("pose", pose["pose_id"], "membrane", "orientation_source", plane["source"], AssessmentStatus.PASS)
     return summary

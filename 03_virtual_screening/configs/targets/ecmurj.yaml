@@ -59,16 +59,17 @@ region:
   box_max_size_A: 30.0
 
 membrane:
-  status: unavailable
-  method: not_built
-  source: ""
-  uncertainty: high
-  note: "no membrane orientation was transferred from OPM; only a TM-bundle geometric proxy is computed"
+  status: evidence_available
+  method: PPM3_rigid_construct_transfer
+  source: https://oprlm.org/ppm_server3_cgopm
+  evidence_dir: ../membrane/9nu4
+  uncertainty: computational_placement_not_experimental
+  note: "Hashed PPM3 evidence is transferred only after a rigid receptor-identity check."
 
 md_protocol:
-  engine: openmm
+  engine: gromacs
   membrane_required: true
-  note: "downstream MD project has no membrane protocol; membrane MD stays blocked"
+  note: "Standalone membrane module checks force fields, orientation and runtime before execution."
 
 analysis_selections:
   tv_region: "TM2/TM7 native residues listed above"

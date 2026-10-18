@@ -1,0 +1,8 @@
+Validated Linux x86_64 / Python 3.12 clean environment for workbench, docking and screening. This does not replace the separate generation-model and membrane environments.
+
+python3.12 -m venv /new/path/venv
+/new/path/venv/bin/python -m pip install -r pip-freeze.txt
+/new/path/venv/bin/python -m pip check
+
+For the recorded offline installation, download these versions from the official Python package registry into a wheelhouse; compare each filename and SHA256 to wheel_hashes.json, then install with --no-index --find-links. Wheel availability depends on platform. The recorded environment has include-system-site-packages=false.
+GNINA, GROMACS/CUDA and model weights are separately pinned dependencies. See docs/01_SETUP.md and deployment/membrane-environment.yml.

@@ -39,13 +39,14 @@ def source_snapshot():
  roots=['00_workbench/scientific','00_workbench/webui','01_molecule_generation/src','02_docking/src','03_virtual_screening/src']
  files=[ROOT/'00_workbench'/n for n in ['pipeline_bridge.py','studio_worker.py','md_stage.py']]
  for root in roots:files.extend((ROOT/root).rglob('*.py'))
+ files.extend((ROOT/'03_virtual_screening'/'configs').rglob('*'))
  return {str(p.relative_to(ROOT)):digest(p) for p in sorted(set(files)) if p.is_file()}
 
 def _screen_revision_allowed(name):
- return name.startswith('03_virtual_screening/src/') or name in {'00_workbench/webui/server.py', '00_workbench/webui/workflow.py'}
+ return name.startswith(('03_virtual_screening/src/','03_virtual_screening/configs/')) or name in {'00_workbench/webui/server.py', '00_workbench/webui/workflow.py'}
 
 def _md_revision_allowed(name):
- return _screen_revision_allowed(name) or name in {str(UI.relative_to(ROOT))+'/'+x for x in ('scientific/membrane.py','scientific/artifacts.py','scientific/md_cli.py','md_stage.py','studio_worker.py','webui/studio.py')}
+ return _screen_revision_allowed(name) or name in {str(UI.relative_to(ROOT))+'/'+x for x in ('scientific/membrane.py','scientific/artifacts.py','scientific/md_cli.py','scientific/validation.py','md_stage.py','studio_worker.py','webui/studio.py')}
 
 def continue_md(rid):
  """Audit MD-only changes without recreating or relabeling upstream results."""
@@ -94,7 +95,7 @@ def rescreen(rid):
    if (d/'gromacs').exists() or list((d/'md_systems').glob('*/system.json')):
     raise ValueError('Downstream MD exists; create a separate run instead')
    previous=read(d/'screening/stage.json',{})
-   if previous.get('status') not in {'completed','failed','cancelled','blocked'}:
+   if previous and previous.get('status') not in {'completed','failed','cancelled','blocked'}:
     raise ValueError('Screening must be stopped before revision')
    upstream={key:require(d,key) for key in ('prepare','peptide2mol','reinvent4','docking')}
    initial=read(d/'source_snapshot.json');current=source_snapshot()
@@ -105,9 +106,10 @@ def rescreen(rid):
           'initial_source_sha256':digest(d/'source_snapshot.json'),'source':current,
           'changes':{k:{'before':initial.get(k),'after':current.get(k)} for k in sorted(changed)},
           'upstream_stage_records':{k:digest(d/k/'stage.json') for k in upstream},
-          'previous_screening_stage_sha256':digest(d/'screening/stage.json'),
+          'previous_screening_stage_sha256':digest(d/'screening/stage.json') if (d/'screening/stage.json').is_file() else None,
           'archive':str(archive.relative_to(d)),'recorded_at':time.time()}
-   archive.parent.mkdir(exist_ok=True);(d/'screening').rename(archive)
+   archive.parent.mkdir(exist_ok=True)
+   if (d/'screening').exists():(d/'screening').rename(archive)
    record=d/'source_revisions'/(stamp+'.json');atomic(record,proof)
    atomic(d/'active_source_revision.json',{'file':record.name,'sha256':digest(record)})
   finally:lease.close()
@@ -177,6 +179,11 @@ def status(rid):
   if rec.get('status')=='running' and key=='screening':
    prog=read(d/key/'workspace/runs/screen/live_progress.json',{})
    if prog:rec={**rec,'counts':prog.get('counts',{}),'substage':prog.get('current_stage')}
+  if key=='screening' and rec.get('status')=='completed':
+   from scientific.validation import effective_candidates
+   rows=effective_candidates(d)
+   if any(r.get('qualification_provenance') for r in rows):
+    rec={**rec,'counts':{**rec.get('counts',{}),'formal':sum(r['qualification']=='formal' for r in rows),'preliminary':sum(r['qualification']!='formal' for r in rows)},'qualification_reassessment':rows[0]['qualification_provenance']}
   stages.append({'key':key,'label':label,'description':desc,**rec,'status':rec.get('status','pending')})
  return {'id':rid,'config':cfg,'stages':stages,'reviews':{k:read(d/'reviews'/f'{k}.json',{}) for k,_,_ in STAGES}}
 

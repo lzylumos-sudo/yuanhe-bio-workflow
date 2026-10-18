@@ -89,7 +89,8 @@ def build(d,c,p,out):
  """Thin UI adapter: verify stage artifacts, then use the standalone engine."""
  from webui import workflow
  workflow.require(d,'screening');workflow.require(d,'docking')
- rows=w.read(d/'screening/candidates.json',[])
+ from .validation import effective_candidates
+ rows=effective_candidates(d)
  row=next((r for r in rows if r['compound_id']==p.get('compound_id')),None)
  if not row or not row.get('sdf'):raise ValueError('Candidate has no traceable screening pose')
  row=dict(row)
@@ -123,7 +124,7 @@ def build_prepared(d,c,p,out,row,ligand_path,receptor,source_revision=None):
  ident='MD_'+uuid.uuid4().hex[:12];folder=system_dir(d,ident);folder.mkdir(parents=True)
  import shutil
  shutil.copyfile(ligand_path,folder/'ligand.sdf');shutil.copyfile(receptor,folder/'receptor.pdb')
- meta={'source_revision':source_revision,'molecule_id':row.get('molecule_id'),'id':ident,'compound_id':row['compound_id'],'pose_id':row.get('pose_id'),'qualification':row.get('qualification'),'status':'building','source_hashes':{'receptor':w.digest(receptor),'ligand':w.digest(ligand_path)},'parameters':{**p,'temperature_K':temp,'production_ns':production,'equilibration_ns':equil},'force_fields':['amber14-all.xml','amber14/tip3p.xml','gaff-2.11'],'membrane_model':lipid+' single-lipid idealised bilayer','orientation_rotation':rot.tolist(),'orientation_center_A':center.tolist(),'scientific_validation':'requires_review'}
+ meta={'source_revision':source_revision,'molecule_id':row.get('molecule_id'),'id':ident,'compound_id':row['compound_id'],'pose_id':row.get('pose_id'),'qualification':row.get('qualification'),'qualification_provenance':row.get('qualification_provenance'),'status':'building','source_hashes':{'receptor':w.digest(receptor),'ligand':w.digest(ligand_path)},'parameters':{**p,'temperature_K':temp,'production_ns':production,'equilibration_ns':equil},'force_fields':['amber14-all.xml','amber14/tip3p.xml','gaff-2.11'],'membrane_model':lipid+' single-lipid idealised bilayer','orientation_rotation':rot.tolist(),'orientation_center_A':center.tolist(),'scientific_validation':'requires_review'}
  w.atomic(folder/'system.json',meta);w.atomic(out/'result.json',{'system_id':ident})
  mol=Chem.SDMolSupplier(str(ligand_path),removeHs=False)[0]
  if mol is None:raise ValueError('Ligand SDF cannot be read')
@@ -276,6 +277,9 @@ def run(d,c,p,out):
  if not p.get('system_reviewed'):raise ValueError('Review the membrane system and ligand correspondence')
  for name,sha in meta['files'].items():
   if w.digest(folder/name)!=sha:raise ValueError('System inputs changed; resume blocked')
+ seed=meta['parameters'].get('replica_seed',c['seed'])
+ if type(seed)!=int or not 1<=seed<=2147483647:raise ValueError('Invalid MD velocity seed')
+ c={**c,'seed':seed}
  import shutil
  gmx=shutil.which(c['gmx']) or str(Path(c['gmx']).resolve());progress=w.read(folder/'progress.json',{'phases':{}})
  fingerprint=hashlib.sha256(json.dumps({'files':meta['files'],'parameters':meta['parameters'],'gmx':gmx,'gmx_sha256':w.digest(gmx)},sort_keys=True).encode()).hexdigest()

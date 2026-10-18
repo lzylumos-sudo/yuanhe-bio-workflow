@@ -338,9 +338,14 @@ def _redock_plan(ctx, selection) -> list[dict[str, Any]]:
 
     budget = ctx.config.budget
     poses = data.pose_rows(ctx)
-    by_state: dict[str, dict[str, Any]] = {}
+    from .scoring.aggregate import representative_pose
+    groups: dict[str, list[dict[str, Any]]] = {}
     for pose in poses:
-        by_state.setdefault(pose["state_id"], pose)
+        groups.setdefault(pose["compound_id"], []).append(pose)
+    # Compare the exact pose used by ranking, strain and the MD handoff.
+    # Lexicographic pose ids have no scientific meaning.
+    selected = [representative_pose(group) for group in groups.values()]
+    by_state = {pose["state_id"]: pose for pose in selected}
     plan = []
     for state_id in sorted(by_state)[: int(getattr(budget, "redock_max_parents", 200))]:
         pose = by_state[state_id]

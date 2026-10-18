@@ -1,0 +1,3 @@
+9nu4.cif and sequence fixtures preserve original structure inputs.
+GNINA log is an actual 1DRF seed17 output from UI operation 1792290499252531226_39d1552c. Only the non-ASCII workbench directory name in command paths was normalized to yuanhe_ui for repository distribution; scores and engine parameters are unchanged. Original SHA256: 39040f3cacae37d7d7dbb89461a241675fbfc32e8020f79d42c618d2d6847e0c
+The original unmodified log is retained in the full run archive.

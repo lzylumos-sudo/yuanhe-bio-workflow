@@ -60,6 +60,9 @@ def main():
  try:
   if kind=='receptor':result=receptor(d,c,p,out)
   elif kind=='environment':result=environment(d,c,p,out)
+  elif kind=='md_validation':
+   from scientific.validation import run
+   result=run(d,c,p,out,w.ROOT)
   elif kind=='install_membrane':
    subprocess.run(['bash',str(w.ROOT/'deployment/install_membrane.sh')],check=True,timeout=7200)
    result={'status':'installed','md_python':'/opt/yuanhe/envs/membrane/bin/python','scientific_validation':'not_run'}

@@ -1,0 +1,11 @@
+{
+  "operation": "1792290499252531226_39d1552c",
+  "seed": 17,
+  "selection": "first three SDF records, unchanged coordinates and properties",
+  "original_9pose_sha256": "d7b0aa9ffb582575dcb4bdc3a89bf33d65958d9401c0e2cb4358bc439bcbcd12",
+  "fixture_sha256": {
+    "poses.sdf": "c803e6caecb77d546e59465da26d4988b0d4d064871ce69162046f195a0fb006",
+    "box.json": "ca0f055747bc4ec723142680c4abc2d573846acb8678aed914708ccc27840441",
+    "receptor_prepared.pdb": "248293b266fdcf31ed8b32ceb175589004682a1c9aa9db746b8429f799801600"
+  }
+}

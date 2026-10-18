@@ -8,7 +8,7 @@ import pytest
 
 from zvss.ingest.poses import SCORE_SEMANTICS, normalise_scores, parse_gnina_log, read_gnina_log
 
-REAL_RUN = r"F:\MemPilot\runs\public20_engineering\entries\P000002_S01_C01_seed20261015\stdout.log"
+REAL_RUN = os.environ.get('ZVSS_TEST_GNINA_LOG', os.path.join(os.path.dirname(__file__), 'data', 'gnina_1drf_seed17.log'))
 
 
 def test_cnn_affinity_documented_as_pk() -> None:

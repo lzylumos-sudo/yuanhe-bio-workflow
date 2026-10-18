@@ -8,15 +8,15 @@ The proposed initial users are teams with a target structure, peptide-binding ev
 
 The MurJ example uses a phage lysis-protein complex, not a marketed peptide drug. It is an antibacterial discovery hypothesis. No experimentally validated MurJ small molecule has been produced by this project.
 
-## Evidence and unresolved gaps
+## Current evidence and remaining scientific questions
 
-- The previous RTX 5090 UI acceptance demonstrates one engineering path through membrane preparation and short MD. See `08_MEMBRANE_MD_ACCEPTANCE.md` for the exact conditions.
-- A fresh bounded generation run, `20261018_091310_dea50e56`, completed all 16 attempts with one accepted molecular structure and 15 rejected attempts. This is not a hit-rate estimate or a new full-pipeline acceptance.
-- Reconciliation found deployment-only REINVENT token/configuration fixes and screening identity handoff fixes absent from the repository. They are now included in source. Generation adapter checks passed (14 tests) on the compute environment.
-- A missing `RegionConfig.usable` property prevented evaluation of configured contact regions. The correction and receptor/title handoff checks passed 19 targeted tests. The broader non-integration screening suite passed 39 tests with three skipped tests. Real-data integration acceptance remains separate.
-- Historical zero formal candidates include missing evidence and an implementation defect. They must not be interpreted as proof that all candidates failed a complete scientific evaluation. Historical outputs remain preserved; corrected results require a new recorded evaluation.
-- The current de novo path uses a peptide-derived receptor pocket; it does not yet establish full transmission of peptide pharmacophore/functional constraints into candidate selection. Selection of generated scaffold atoms is not evidence of peptide-function retention.
-- Membrane-orientation qualification, additional targets, controlled comparisons, independent MD replicas and clean-environment reproducibility remain unfinished maturity workstreams. These corrections do not close them.
+The current engineering and computational evidence is in [integrated acceptance](10_INTEGRATED_ACCEPTANCE.md). It supersedes the earlier progress statements about unfinished membrane-orientation qualification, second-target docking controls, clean installation and repeat infrastructure. The historical records remain available.
+
+The fresh 9NU4 run completed 16/16 generation attempts, eight unique REINVENT candidates and nine successful docking jobs. Corrected archived-pose assessment yielded two formal screening candidates. The formal-to-membrane handoff preserves pose identity and qualification provenance. Independent modules, a clean installation, second-target crystal-pose recovery and prespecified MD-repeat quality checks are implemented and accompanied by execution records.
+
+Peptide-contact evidence is now explicit and reusable. In this run, every shortlisted molecule recovered only one of 22 peptide-contacting residues; contact-guided sorting did not change the ordering. This measured result does not support a peptide-function replacement claim or improved hit rate. Adding code around a metric cannot turn that negative result into biological evidence.
+
+A complete computational path is valuable for generating and reviewing hypotheses. Validated functional replacement still requires a relevant assay, appropriate controls, independent replication and comparison with existing approaches. The repository contains no customer interview, paid pilot or unit-economics validation. These are external scientific and commercial evidence requirements, not software tests that can legitimately be marked passed.
 
 ## Commercial and scientific differentiation
 

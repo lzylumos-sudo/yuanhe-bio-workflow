@@ -222,6 +222,7 @@ def run_redock(ctx, plan: list[dict[str, Any]]) -> dict[str, Any]:
         seeds = [int(seed) for seed in item.get("seeds", [])]
         record: dict[str, Any] = {
             "compound_id": compound_id,
+            "reference_pose_ids": item.get("pose_ids", []),
             "state_id": state_id,
             "seeds_planned": len(seeds),
             "seeds_attempted": 0,
@@ -251,7 +252,8 @@ def run_redock(ctx, plan: list[dict[str, Any]]) -> dict[str, Any]:
                     out_path, reference, seed, cluster_cutoff, cached=True, job=job, log_path=log_path
                 )
                 record["per_seed"].append(seed_record)
-                if seed_record["status"] == "ok":
+                if seed_record["status"] == "ok" and seed_record.get("returncode") == 0:
+                    record["supporting_seeds_same_cluster"] += int(seed_record.get("supports_imported_pose", False))
                     record["seeds_succeeded"] += 1
                     summary["completed"] += 1
                 else:
@@ -389,13 +391,13 @@ def _seed_record(
                 best_rmsd = rmsd
     payload = {
         "seed": seed,
-        "status": "ok" if scores else "empty",
+        "status": "ok" if scores and best_rmsd is not None else "comparison_unavailable" if scores else "empty",
         "modes": len(scores),
         "min_rmsd_to_imported_A": round(best_rmsd, 3) if best_rmsd is not None else None,
         "supports_imported_pose": bool(best_rmsd is not None and best_rmsd <= cluster_cutoff),
         "cached": cached,
         "file": out_path,
-        "sha256": sha256_text(out_path + str(os.path.getmtime(out_path))),
+        "sha256": __import__("hashlib").sha256(open(out_path, "rb").read()).hexdigest(),
         "best": scores[0] if scores else None,
         "returncode": int((job or {}).get("returncode", 0)),
     }
@@ -417,21 +419,17 @@ def _best_rmsd(mol, reference) -> float | None:
     for.
     """
     from rdkit import Chem
-
+    from rdkit.Chem import rdMolAlign
     try:
-        probe = Chem.RemoveHs(mol)
-        target = Chem.RemoveHs(reference)
+        probe, target = Chem.RemoveHs(mol), Chem.RemoveHs(reference)
         if probe.GetNumAtoms() != target.GetNumAtoms():
             return None
-        match = probe.GetSubstructMatch(target)
-        if match and len(match) == target.GetNumAtoms():
-            atom_map = [(int(match[index]), index) for index in range(target.GetNumAtoms())]
-        else:
-            atom_map = [(index, index) for index in range(target.GetNumAtoms())]
-        return float(
-            Chem.rdMolAlign.CalcRMS(probe, target, map=atom_map, symmetrizeConjugatedTerminalGroups=True)
-        )
-    except Exception:  # noqa: BLE001 - a failed comparison is not a docking failure
+        if Chem.MolToSmiles(probe, isomericSmiles=True) != Chem.MolToSmiles(target, isomericSmiles=True):
+            return None
+        # Let RDKit enumerate equivalent atom mappings. CalcRMS takes a list
+        # of mappings, not the flat atom-pair list formerly passed here.
+        return float(rdMolAlign.CalcRMS(probe, target, symmetrizeConjugatedTerminalGroups=True))
+    except (ValueError, RuntimeError):
         return None
 
 

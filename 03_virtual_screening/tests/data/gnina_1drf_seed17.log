@@ -1,0 +1,28 @@
+              _             
+             (_)            
+   __ _ _ __  _ _ __   __ _ 
+  / _` | '_ \| | '_ \ / _` |
+ | (_| | | | | | | | | (_| |
+  \__, |_| |_|_|_| |_|\__,_|
+   __/ |                    
+  |___/                     
+
+gnina v1.3.3 master:6fe1ce2   Built Jun 30 2026.
+gnina is based on smina and AutoDock Vina.
+Please cite appropriately.
+
+Commandline: /root/autodl-tmp/yuanhe_20261018_5090/tools/gnina -r /root/autodl-tmp/yuanhe_20261018_5090/project/yuanhe_ui/workflow_runs/20261018_091310_dea50e56/operations/1792290499252531226_39d1552c/standalone/data/prepared/demo_1drf/receptor_prepared.pdb -l /root/autodl-tmp/yuanhe_20261018_5090/project/yuanhe_ui/workflow_runs/20261018_091310_dea50e56/operations/1792290499252531226_39d1552c/standalone/jobs/17/ligand.sdf -o /root/autodl-tmp/yuanhe_20261018_5090/project/yuanhe_ui/workflow_runs/20261018_091310_dea50e56/operations/1792290499252531226_39d1552c/standalone/jobs/17/poses.sdf --center_x 30.228406250000003 --center_y 16.25209375 --center_z -1.92059375 --size_x 18.549187499999995 --size_y 22.2458125 --size_z 19.3268125 --cnn_scoring rescore --cnn crossdock_default2018_1_3 --cpu 4 --seed 17 --log /root/autodl-tmp/yuanhe_20261018_5090/project/yuanhe_ui/workflow_runs/20261018_091310_dea50e56/operations/1792290499252531226_39d1552c/standalone/jobs/17/gnina.log --exhaustiveness 16 --num_modes 9 --device 0
+Using random seed: 17
+
+mode |  affinity  |  intramol  |    CNN     |   CNN
+     | (kcal/mol) | (kcal/mol) | pose score | affinity
+-----+------------+------------+------------+----------
+    1       -9.81       -0.44       0.9867      7.425
+    2       -9.86       -0.18       0.9857      7.365
+    3      -10.71       -0.88       0.9778      7.360
+    4      -10.82       -0.86       0.9738      7.293
+    5      -10.24       -1.25       0.9669      7.293
+    6      -10.09       -1.18       0.9644      7.259
+    7       -9.94       -0.76       0.9331      7.001
+    8       -9.39       -1.26       0.8509      6.817
+    9       -9.92       -1.18       0.8362      6.934
