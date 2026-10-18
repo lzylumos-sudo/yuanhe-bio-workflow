@@ -2,6 +2,8 @@
 
 Run `20261018_091310_dea50e56` uses the original 9NU4 input, receptor chain A and peptide chain B, on the rented RTX 5090 D server. Research actions were initiated through the real browser UI. Shell access was used for implementation, installation, tests, artifact inspection and deployment. The execution source archive and versioned operation records distinguish the actual run from the subsequently packaged release.
 
+**Acceptance status at 11:18 China Standard Time:** two 5 ns velocity replicas and their analyses were complete; the third replica was in NVT equilibration. At approximately 11:21 the SSH endpoint began closing connections before authentication. Its subsequent simulation state has not been observed. Three-repeat quality acceptance, the final UI export and activation of the prepared release remain pending recovery of the existing server. This document is an interim evidence record, not a completed release certificate.
+
 ## Generation and screening
 
 | Step | Observed result |
@@ -26,7 +28,7 @@ An archived PPM3 result for this exact MurJ construct is transferred through mat
 
 The selected formal candidate is `CMP609F157C45053346`, pose `POS625B279EF1A5579B`, upstream molecule `CMPe9b9c2fbd82571bb3892`. The UI-built parent is `MD_29eb12b2b0c8`, with 125,887 atoms, a reviewed idealized POPE bilayer, TIP3P water, 0.15 M salt, 310 K and GAFF-2.11 / AM1-BCC ligand parameters. Protein and ligand undergo the same rigid transform; molecular identity and copied-input hashes are checked before parameterization. The exported independent MD package validated the actual formal-candidate handoff in a clean environment.
 
-Three UI-created velocity replicas use seeds 41, 97 and 17: `MD_258e6adedc11`, `MD_512d6c2c2c58`, `MD_a79cd96d2ad1`. Each has minimization, 0.1 ns NVT, 1 ns staged NPT, a separate 20 ps checkpoint continuity test and 5 ns production. Initial coordinates are shared; these are independent velocity repeats, not independent starting conformations. The prespecified `short-repeat-quality/1` protocol is frozen in each replica. The final per-replica results and quality verdict are recorded in the release evidence manifest.
+Three UI-created velocity replicas use seeds 41, 97 and 17: `MD_258e6adedc11`, `MD_512d6c2c2c58`, `MD_a79cd96d2ad1`. The protocol for each specifies minimization, 0.1 ns NVT, 1 ns staged NPT, a separate 20 ps checkpoint continuity test and 5 ns production. Initial coordinates are shared; these are independent velocity repeats, not independent starting conformations. The prespecified `short-repeat-quality/1` protocol is frozen in each replica. No aggregate three-repeat quality verdict is available yet.
 
 The first replica completed 5 ns / 501 stored trajectory frames, with mean temperature 310.004 K, final backbone RMSD 1.535 angstrom and final ligand RMSD 2.464 angstrom. Its checkpoint test passed and no constraint warning was found. RMSD references the first production frame, so it does not by itself measure displacement during equilibration from the original docking pose.
 
@@ -44,7 +46,7 @@ The peptide-contact module found 22 reference-contact residues at 4.5 angstrom. 
 - Screening suite: 55 passed, no skips after replacing an old machine-specific fixture with portable archived output. The offline test reproduces selection twice and verifies that excluded/zero-formal results do not silently create an MD handoff.
 - Repeat quality, input tampering, peptide coordinate-frame checks and generic input binding: 12 targeted tests passed.
 - The actual browser was disconnected from its local SSH tunnel and reconnected while production advanced from 2,244 to 2,478 ps. The remote computation continued. This is separate from each GROMACS checkpoint test.
-- The real trajectory viewer was operated from 0 to 5 ns, and browser error logs were empty after recovery. Full exports preserve raw data; a compact review export is separate.
+- The first replica's real trajectory viewer was operated from 0 to 5 ns, and browser error logs were empty after the earlier tunnel reconnection. The export implementation supports full raw-data and compact review archives; the final export for this run has not yet been generated through the UI.
 - Confirmed regenerable caches and unused website dependency installations were removed: 1,947 entries / 735,994,564 bytes. Lockfiles, unique environment images, weights, inputs, raw outputs and failures were preserved.
 
 ## Acceptance boundaries
