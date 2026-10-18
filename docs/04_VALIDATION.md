@@ -12,4 +12,6 @@ The test interpreter uses an isolated local environment with RDKit, PyYAML and g
 
 ## Current Ubuntu acceptance
 
+For the latest integrated run, use [10_INTEGRATED_ACCEPTANCE.md](10_INTEGRATED_ACCEPTANCE.md) and the [five-part release checklist](11_RELEASE_MAINTENANCE.md). The records below describe earlier checkpoints and do not supersede the current open acceptance status.
+
 The subsequent real RTX 5090 D upstream run is recorded in [06_RTX5090_ACCEPTANCE.md](06_RTX5090_ACCEPTANCE.md). The completed real UI membrane MD, 57 targeted regressions, checkpoint/disconnection tests and limits are recorded in [08_MEMBRANE_MD_ACCEPTANCE.md](08_MEMBRANE_MD_ACCEPTANCE.md). Do not add overlapping test totals or turn the single-case acceptance into cross-platform or biological validation.
