@@ -31,3 +31,9 @@ The original scan covered 15 commits/843 blobs at 841652e. The updated scan cove
 ## Patch scope
 
 README.md plus docs/commercialization/README.md, repository_audit.md, license_audit.md, historical_mit_scope.txt, public_private_boundary.md, technical_strategy.md, closed_loop_design.md, scientific_validation.md, roadmap_18_months.md, github_metadata.json and this file. No existing technical documentation is deleted. New reports cite only already-public repository evidence and generic research plans.
+
+## Remote delivery
+
+[Draft PR #1](https://github.com/lzylumos-sudo/yuanhe-bio-workflow/pull/1) contains the independent documentation branch; it has not been merged. The 146-character Description and ten Topics were applied and read back through the authenticated GitHub API. Public visibility and main as default branch remain unchanged. Repository settings are not branch-scoped.
+
+The branch README was opened in the real GitHub browser view: the Chinese brand name, subtitle, badges, Mermaid workflow and evidence tables render. The About section shows the new Description and ten Topics. No scientific calculation was started by this display check. Remote CI status is attached to the PR; inspect its final result before merging.

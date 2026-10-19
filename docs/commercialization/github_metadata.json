@@ -12,5 +12,5 @@
     "drug-design",
     "bioinformatics"
   ],
-  "status": "Prepared; remote application requires verified write access."
+  "status": "Applied and read back through GitHub API on 2026-10-19; visibility remains public, default branch main."
 }
