@@ -1,0 +1,16 @@
+{
+  "description": "\ud83e\uddec A source-available AIDD research workflow integrating AI-driven molecular generation, structure-based virtual screening, and molecular dynamics.",
+  "topics": [
+    "aidd",
+    "ai-drug-discovery",
+    "computational-drug-discovery",
+    "structure-based-drug-design",
+    "generative-ai",
+    "molecular-docking",
+    "virtual-screening",
+    "molecular-dynamics",
+    "drug-design",
+    "bioinformatics"
+  ],
+  "status": "Applied and read back through GitHub API on 2026-10-19; visibility remains public, default branch main."
+}
