@@ -1,0 +1,5 @@
+blank_issues_enabled: true
+contact_links:
+  - name: Usage questions and research discussions
+    url: https://github.com/lzylumos-sudo/yuanhe-bio-workflow/discussions
+    about: Ask how to use modules, discuss scope or explore collaboration.

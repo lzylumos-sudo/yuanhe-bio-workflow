@@ -1,6 +1,21 @@
 # Yuanhe Bio Workflow
 
-A traceable research workbench connecting protein-peptide complexes to Peptide2Mol seeds, reviewed molecular cores, REINVENT4 expansion, GNINA docking, virtual screening and membrane molecular dynamics.
+[![Engineering checks](https://github.com/lzylumos-sudo/yuanhe-bio-workflow/actions/workflows/engineering.yml/badge.svg?branch=main)](https://github.com/lzylumos-sudo/yuanhe-bio-workflow/actions/workflows/engineering.yml)
+
+A research workbench for molecular generation, structure-based virtual screening and membrane-protein modeling. Connect Peptide2Mol, REINVENT4, GNINA and molecular dynamics through reviewed inputs, traceable file handoffs and a local browser interface.
+
+[Quick start](#start) · [Installation](docs/01_SETUP.md) · [Supported platforms](docs/12_SUPPORT_MATRIX.md) · [Validation evidence](docs/10_INTEGRATED_ACCEPTANCE.md) · [Questions and ideas](https://github.com/lzylumos-sudo/yuanhe-bio-workflow/discussions)
+
+## What you can use it for
+
+- **Review and prioritize docking results:** import GNINA outputs, inspect pose quality, apply candidate qualification rules and export traceable selections.
+- **Connect molecular design stages:** review molecular cores, generate candidates through external model adapters, and preserve the relationship between structures, molecules and poses.
+- **Investigate membrane-protein workflows:** examine membrane orientation evidence, prepare reviewed membrane systems and connect screening to downstream dynamics. MurJ / 9NU4 is the recorded reference case; other targets need their own configuration and validation.
+- **Reuse individual components:** use docking, screening, interaction analysis or standalone OpenMM modules without adopting the entire workbench.
+
+The project's contribution is workflow integration, review checkpoints and evidence tracking. The underlying generation, docking and simulation methods belong to their respective upstream projects. This is research software with a noncommercial source-available license; it is not a validated predictor of binding affinity or biological activity.
+
+## Current evidence and release status
 
 **Release 0.4.0-rc1: reproducible research integration, with explicit scientific gates.** The browser workflow connects reviewed structures to generation, docking, screening, membrane construction, GROMACS, trajectory analysis and export. The fresh 9NU4 run completed all 16 generation attempts (one accepted), generated eight unique REINVENT molecules and docked nine molecules / 81 poses. Corrected, versioned reassessment of the archived three-seed redocking results yielded **two formally qualified screening candidates**. Qualification is distinct from MD quality and biological activity.
 
@@ -67,3 +82,19 @@ Weights, installed environments, VHDX images and historical run outputs are excl
 ## License
 
 Original project contributions in this release use the unmodified [PolyForm Noncommercial License 1.0.0](LICENSE), subject to [scope and existing rights](LICENSE_SCOPE.txt). This is source-available software, not an unrestricted commercial-use open-source license. Commercial uses outside the license's permitted purposes require separate authorization. Third-party materials and prior grants retain their own terms; see [notices](THIRD_PARTY_NOTICES.txt).
+
+## Use a component or contribute
+
+| Your starting point | Entry point |
+|---|---|
+| Existing GNINA batch outputs | [Virtual screening commands and target configuration](03_virtual_screening/README.md) |
+| Protein-ligand interaction inspection | [ZLIS analysis and visualization](04_interaction_analysis/README.md) |
+| Standalone docking preparation | [Docking module](02_docking/README.md) |
+| Standalone OpenMM simulation | [MD setup and scope](05_molecular_dynamics/README.md) |
+| Integrated browser workflow | [User guide](USER_GUIDE.txt) and [environment reconstruction](docs/14_ENVIRONMENTS.md) |
+
+Ask usage questions and propose collaborations in [Discussions](https://github.com/lzylumos-sudo/yuanhe-bio-workflow/discussions). Report reproducible defects or concrete feature requests through [Issues](https://github.com/lzylumos-sudo/yuanhe-bio-workflow/issues/new/choose). Contributions that improve reproducible examples, installation evidence and target-specific validation are welcome; see [CONTRIBUTING.md](CONTRIBUTING.md). Share only inputs and outputs you have permission to publish.
+
+## Cite and acknowledge
+
+If you use this workflow, identify the repository URL and exact commit or release in your methods. GitHub's **Cite this repository** entry provides software citation metadata from [CITATION.cff](CITATION.cff). Also cite the upstream methods you actually used, following [third-party notices](THIRD_PARTY_NOTICES.md). Repository citation does not substitute for those method citations or imply upstream endorsement.

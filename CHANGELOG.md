@@ -2,6 +2,8 @@
 
 ## Unreleased — repository maintenance, 2026-10-19
 
+- Clarify research use cases, independent module entrypoints, software citation and community contribution routes.
+
 - Normalize Linux Conda explicit locks without changing package URLs, remove the legacy YAML prefix, and prevent malformed future exports; document environment reconstruction limits.
 - Align UI/API version reporting and deployment guidance with the 0.4.0-rc1 record.
 - Remove remaining event-specific positioning from the target-machine guide.
