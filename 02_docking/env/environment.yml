@@ -1,4 +1,5 @@
-name: 
+# Historical Linux build snapshot, not a cross-platform minimal specification.
+name: sbvs-legacy
 channels:
   - conda-forge
 dependencies:
@@ -174,5 +175,3 @@ dependencies:
     - nvidia-nvjitlink-cu12==12.8.93
     - playwright==1.55.0
     - pyee==13.0.1
-
-prefix: "/opt/sbvs/env"

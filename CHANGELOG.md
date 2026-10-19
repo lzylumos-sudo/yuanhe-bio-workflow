@@ -2,6 +2,7 @@
 
 ## Unreleased — repository maintenance, 2026-10-19
 
+- Normalize Linux Conda explicit locks without changing package URLs, remove the legacy YAML prefix, and prevent malformed future exports; document environment reconstruction limits.
 - Align UI/API version reporting and deployment guidance with the 0.4.0-rc1 record.
 - Remove remaining event-specific positioning from the target-machine guide.
 - Separate target-only acceptance scripts from automatic test collection.

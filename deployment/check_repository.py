@@ -24,6 +24,15 @@ def check(root=ROOT):
             source = path.read_text(encoding='utf-8-sig')
         except UnicodeDecodeError:
             continue
+        if path.suffix == '.lock' and ('explicit' in path.name or path.name == 'conda-linux-64.lock'):
+            records = [line.strip() for line in source.splitlines()
+                       if line.strip() and not line.startswith('#')]
+            if len(records) < 2 or records[0] != '@EXPLICIT' or any(
+                    not line.startswith('https://') for line in records[1:]):
+                errors.append(f'{name}: malformed Conda explicit lock')
+        if path.name.endswith(('environment.yml', 'environment.yaml')):
+            if re.search(r'^prefix:', source, re.M):
+                errors.append(f'{name}: machine-specific environment prefix')
         if path.suffix == '.md':
             # Ignore code fences and inline code such as chemical SMILES.
             prose = re.sub(r'```.*?```|`[^`\n]*`', '', source, flags=re.S)

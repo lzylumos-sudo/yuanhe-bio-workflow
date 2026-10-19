@@ -25,8 +25,6 @@ fi
 export PIP_CACHE_DIR=/opt/sbvs/cache/pip PLAYWRIGHT_BROWSERS_PATH=/opt/sbvs/browsers
 /opt/sbvs/env/bin/python -m pip install playwright==1.55.0 molscrub==0.2.2
 /opt/sbvs/env/bin/python -m playwright install --with-deps chromium
-/opt/sbvs/vendor/micromamba list -p /opt/sbvs/env --explicit >"$ROOT/env/conda-linux-64.lock"
-/opt/sbvs/env/bin/python -m pip freeze >"$ROOT/env/requirements-pip.lock"
-/opt/sbvs/vendor/micromamba env export -p /opt/sbvs/env >"$ROOT/env/environment.yml"
+bash "$ROOT/scripts/refresh_locks.sh" "$ROOT"
 chown -R sbvs:sbvs /opt/sbvs
 /opt/sbvs/env/bin/python -c 'import rdkit,meeko,Bio; print(rdkit.__version__,meeko.__version__,Bio.__version__)'

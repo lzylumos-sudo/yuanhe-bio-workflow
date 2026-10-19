@@ -10,6 +10,8 @@ On Windows, use `start_windows.cmd` and select the WSL distribution. The launche
 
 ## Separate environments
 
+See [environment specifications and reconstruction](14_ENVIRONMENTS.md) for the purpose, platform and limitations of each specification and lock. Installed environments stay on the compute host; the repository stores reconstruction metadata.
+
 - Chemistry and screening: Python, RDKit, NumPy, PyYAML, gemmi and the screening package dependencies. See `02_docking/env/sbvs2.environment.yml` and `03_virtual_screening/pyproject.toml`.
 - Peptide2Mol: its own Python/PyTorch/CUDA and geometric-operator environment. RTX 5070 compatibility must be tested with the actual operators, not inferred from GPU detection.
 - REINVENT4: a separate environment with the pinned source and LibInvent prior.
