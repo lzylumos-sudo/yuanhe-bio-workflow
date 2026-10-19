@@ -29,3 +29,7 @@ md:
 
 filters:
   membrane_alert_burden_max: 3
+
+# Experimental Pareto-first selection is opt-in; qualification thresholds unchanged.
+selection:
+  strategy: evidence_diversity

@@ -181,6 +181,10 @@ def _redock_seeds(ctx, entry, rules: dict[str, Any]) -> dict[str, Any]:
             source="redock stage",
             reason_code=str(Reason.REDOCK_SEED_INCOMPLETE),
         )
+    if not per_compound or per_compound.get("reference_pose_ids") != [entry["pose_id"]]:
+        return _requirement("redock_seeds", status=NOT_EVALUATED, observed=observed,
+                            detail="re-docking reference pose is absent or differs from selected pose",
+                            source="redock stage")
     if succeeded < planned:
         return _requirement(
             "redock_seeds",
@@ -210,6 +214,9 @@ def _redock_seeds(ctx, entry, rules: dict[str, Any]) -> dict[str, Any]:
 
 def _strain(ctx, entry) -> dict[str, Any]:
     metrics = _metric(ctx, "compound", entry["compound_id"], "strain")
+    if metrics.get("pose_id") != entry["pose_id"]:
+        return _requirement("strain", status=NOT_EVALUATED,
+                            detail="strain pose is absent or differs from selected pose", source="strain stage")
     value = metrics.get("strain_kcal_mol")
     force_field = metrics.get("force_field")
     if value is None or not math.isfinite(float(value)):

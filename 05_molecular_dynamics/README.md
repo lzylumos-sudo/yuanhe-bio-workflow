@@ -75,3 +75,8 @@ source runtime.sh
 The auditor only reads a completed run and reloads its binary checkpoint in a separate CPU Context without advancing simulation. It checks at least 5,000,000 steps at 2 fs, input/configuration/system/segment/analysis hashes, finite coordinates, global CSV step/time and actual DCD frame counts/times. Segment-local DCD times are offset using independently verified preceding steps before comparison to the global CSV. It does not automatically use a GPU.
 
 Only full success writes installation_evidence/10ns_final_audit.json, validation_status.json and MD_TEST_PASS.md. Incomplete or 4 ps runs exit nonzero without overwriting prior successful evidence; the historical rejection record is installation_evidence/10ns_validator_rejection_test.json. Numerical completion does not establish convergence or affinity.
+
+
+## Yuanhe Bio integration
+
+See the [project code map](../docs/product/CODE_AND_CONTENT_MAP.md) for current module boundaries and the [product value assessment](../docs/product/PRODUCT_VALUE_ZH.md) for intended users. Existing technical instructions and historical acceptance records above retain their original scope; this documentation refresh does not revalidate execution.

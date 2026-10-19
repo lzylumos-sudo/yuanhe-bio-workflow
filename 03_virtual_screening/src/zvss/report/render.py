@@ -100,6 +100,35 @@ def write_all(ctx, state: dict[str, Any]) -> dict[str, Any]:
         ],
     )
 
+    decision = {
+        "schema": "screening-decision/2",
+        "selection_version": selection.get("selection_version"),
+        "strategy": selection.get("strategy", "legacy"),
+        "score_scope": ranking.get("score_scope", "legacy/unspecified"),
+        "pareto_front": selection.get("pareto_front", []),
+        "formal_pareto_front": selection.get("formal_pareto_front", []),
+        "pareto_unassessed": selection.get("pareto_unassessed", {}),
+        "weight_diagnostics": ranking.get("diagnostics", {}),
+    }
+    decision_path = os.path.join(directory, "decision.json")
+    atomic_write_json(decision_path, decision)
+    evidence_path = os.path.join(directory, "candidate_evidence.csv")
+    _write_rows(evidence_path,
+        ["compound_id", "pose_id", "representative_policy", "qa", "affinity_kcal_mol", "strain_kcal_mol",
+         "region_contacts", "evidence_coverage", "pareto", "formal", "best_rank", "worst_rank", "missing"],
+        [{"compound_id": e["compound_id"], "pose_id": e["pose_id"],
+          "representative_policy": e.get("representative_policy"), "qa": e.get("representative_qa"),
+          "affinity_kcal_mol": e.get("raw", {}).get("affinity"),
+          "strain_kcal_mol": e.get("raw", {}).get("strain"),
+          "region_contacts": e.get("raw", {}).get("mechanism"),
+          "evidence_coverage": e.get("evidence_coverage"),
+          "pareto": e["compound_id"] in decision["pareto_front"],
+          "formal": (selection.get("qualification", {}).get(e["compound_id"], {})).get("formal_qualified", False),
+          "best_rank": (ranking.get("diagnostics", {}).get("rank_ranges", {}).get(e["compound_id"], {})).get("best"),
+          "worst_rank": (ranking.get("diagnostics", {}).get("rank_ranges", {}).get(e["compound_id"], {})).get("worst"),
+          "missing": ";".join(e.get("components_missing", []))}
+         for e in ranking.get("ranking", [])])
+
     markdown = _markdown(ctx, state, ranking, selection, md, target, imported, qa, mech, redock, membrane)
     report_path = os.path.join(directory, "report.md")
     atomic_write_text(report_path, markdown)
@@ -119,6 +148,8 @@ def write_all(ctx, state: dict[str, Any]) -> dict[str, Any]:
             "qualification": relpath(qualification_csv, ctx.run_dir),
             "exclusions": relpath(exclusions, ctx.run_dir),
             "ranking": relpath(ranking_csv, ctx.run_dir),
+            "decision": relpath(decision_path, ctx.run_dir),
+            "candidate_evidence": relpath(evidence_path, ctx.run_dir),
         },
     }
     atomic_write_json(os.path.join(directory, "report.json"), payload)
@@ -211,6 +242,13 @@ def _markdown(ctx, state, ranking, selection, md, target, imported, qa, mech, re
             )
         lines.append("")
 
+    lines += ["### Decision robustness", "",
+              f"- Selection strategy: {selection.get('strategy', 'legacy')}",
+              "- Scores are relative to this candidate pool, not comparable across runs and not activity probabilities.",
+              "- decision.json contains fixed-pool weight perturbations and component ablations; rank ranges are not confidence intervals.",
+              f"- Complete-evidence eligible Pareto front: {len(selection.get('pareto_front', []))}; "
+              f"unassessed because objectives are missing: {len(selection.get('pareto_unassessed', {}))}.",
+              "- candidate_evidence.csv preserves raw units, pose identity, missing values and evidence coverage.", ""]
     lines += ["## 4. Candidates and exclusions", ""]
     primary = (selection or {}).get("primary") or []
     preliminary = (selection or {}).get("preliminary") or []
