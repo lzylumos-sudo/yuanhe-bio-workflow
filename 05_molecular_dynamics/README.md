@@ -59,6 +59,10 @@ Production MD is explicitly CPU-limited in this build, and PDBFixer preparation 
 
 Sources: [OpenMM documentation](https://docs.openmm.org/latest/userguide/), [OpenMMForceFields](https://github.com/openmm/openmmforcefields), [ParmEd OpenMM export](https://parmed.github.io/ParmEd/html/openmm.html), [Amber MM/PB(GB)SA tutorial](https://ambermd.org/tutorials/advanced/tutorial3/).
 
+## Explicit installation and export checks
+
+Use `python scripts/validate_native.py` in the installed OpenMM environment for the CPU smoke check. To compare an existing run's original system with its exported Amber topology, use `python scripts/validate_amber_export.py RUN_ID` in the complete OpenFF/Amber environment. These tools require real dependencies or run artifacts and are not executed during ordinary pytest collection.
+
 ## Independent completed 10 ns audit
 
 After normal analysis, audit the public CPU example independently:

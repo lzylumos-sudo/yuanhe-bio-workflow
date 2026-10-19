@@ -40,3 +40,8 @@ archive/20261018_original_layout/
 deployment/remote.local.json
 open_remote_workbench.command
 LOCAL_README.txt
+
+# Optional machine-specific PLIP interpreter
+04_interaction_analysis/env/plip_python.txt
+build/
+dist/

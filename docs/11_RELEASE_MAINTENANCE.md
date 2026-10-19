@@ -22,6 +22,8 @@ Case inputs and measurable tolerances must be frozen before the corresponding te
 
 ## Evidence already available
 
+Commit titles were normalized on 2026-10-19 without changing any commit file tree. Historical execution hashes below remain the actual original evidence identifiers; [the mapping](history/commit_renames_2026-10-19.csv) relates them to the renamed history. New maintenance changes are separate commits.
+
 - Source revision `b9cf13214c90f8986c2ca578aa34ae9df730b6f0` passed [main-branch CI](https://github.com/lzylumos-sudo/yuanhe-bio-workflow/actions/runs/39093935326).
 - Original JUnit artifacts for the same executable code at `056c448e27194ea7d794824a2d2860a43c717214` record 63 generation passes, 55 screening passes and 80 workbench passes, with one historical-output test skipped: 198 passed, one skipped, no failures. [Run and artifacts](https://github.com/lzylumos-sudo/yuanhe-bio-workflow/actions/runs/39093619141).
 - [Integrated execution record](10_INTEGRATED_ACCEPTANCE.md) contains actual observations and remaining execution limits. Historical test totals must not be added to current totals.

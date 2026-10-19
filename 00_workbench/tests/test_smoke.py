@@ -28,7 +28,6 @@ def check(name, cond, detail=''):
         print(f'  FAIL {name} {detail}')
         FAILED.append(name)
         raise AssertionError(name + ": " + detail)
-        raise AssertionError(f"{name}: {detail}")
 
 
 def test_structures():

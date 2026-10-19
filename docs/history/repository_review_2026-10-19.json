@@ -1,0 +1,78 @@
+{
+  "date": "2026-10-19",
+  "base_revision": "18c7a6e5b83f19d56d9381ee06a842e2921d1b4a",
+  "scope": "Local macOS engineering and archive checks of maintenance working tree; no GPU execution",
+  "platform": "Darwin arm64",
+  "test_python": "3.11.17",
+  "preview_python": "3.14.5",
+  "suites": {
+    "generation": {
+      "tests": 63,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "passed": 63
+    },
+    "workbench": {
+      "tests": 81,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 2,
+      "passed": 79
+    },
+    "docking": {
+      "tests": 42,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 2,
+      "passed": 40
+    },
+    "screening": {
+      "tests": 55,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "passed": 55
+    },
+    "interaction": {
+      "tests": 40,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "passed": 40
+    },
+    "standalone_md": {
+      "tests": 80,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 1,
+      "passed": 79
+    },
+    "packages": {
+      "tests": 4,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "passed": 4
+    }
+  },
+  "passed": 360,
+  "skipped": 5,
+  "javascript_modules_parsed": 18,
+  "upstream_license_hashes_verified": 5,
+  "credential_pattern_matches": 0,
+  "browser_preview": {
+    "home": "passed",
+    "environment_dialog": "passed",
+    "console_errors_observed": 0,
+    "scientific_jobs_started": 0
+  },
+  "notes": [
+    "HTTP tests passed outside the socket-restricted sandbox.",
+    "Local ParmEd absent; rigid-water export skipped locally; CI installs it explicitly.",
+    "Docking optional Vina and molscrub checks skipped when dependencies absent.",
+    "Ubuntu native preparation remains opt-in; historical generated outputs are not distributed.",
+    "One ZLIS NumPy binary-compatibility warning in the reused local environment; no test failed. Fresh Linux CI is checked separately.",
+    "No final remote MD recovery, raw export, or experimental validation claimed."
+  ]
+}

@@ -2,13 +2,15 @@
 """Export the shared MD core without the UI, histories, data or credentials."""
 import argparse,hashlib,json,zipfile
 from pathlib import Path
+from package_licenses import license_files
 ROOT=Path(__file__).resolve().parents[1]
 def main():
  p=argparse.ArgumentParser(description=__doc__);p.add_argument('--output',required=True,type=Path);a=p.parse_args()
  if a.output.exists():raise ValueError('Refusing to overwrite an existing package')
  a.output.parent.mkdir(parents=True,exist_ok=True)
  files={f'scientific/{n}':ROOT/'00_workbench/scientific'/n for n in ['__init__.py','artifacts.py','membrane.py','md_cli.py']}
- for n in ['LICENSE','LICENSE_SCOPE.txt','THIRD_PARTY_NOTICES.md','deployment/membrane-environment.yml','docs/07_MODULE_CONTRACTS.md']:files[n]=ROOT/n
+ for n in ['deployment/membrane-environment.yml','docs/07_MODULE_CONTRACTS.md']:files[n]=ROOT/n
+ files.update(license_files())
  manifest={n:hashlib.sha256(p.read_bytes()).hexdigest() for n,p in files.items()}
  with zipfile.ZipFile(a.output,'x',zipfile.ZIP_DEFLATED) as z:
   for name,path in files.items():z.write(path,name)

@@ -45,6 +45,9 @@ python3 00_workbench/run_webui.py --no-browser
 Open the displayed local address, normally http://127.0.0.1:8777. The UI starts without launching calculations. Configure environments once, then prepare, review, execute, stop, resume, inspect trajectories and export records through the interface.
 
 - [Setup](docs/01_SETUP.md)
+- [Platform support and test commands](docs/12_SUPPORT_MATRIX.md)
+- [Changelog](CHANGELOG.md)
+- [Contributing](CONTRIBUTING.md)
 - [UI workflow](USER_GUIDE.txt)
 - [RTX 5070 installation and MurJ validation](deployment/validation_5070/INSTALL_AND_VALIDATE.txt)
 - [Architecture](docs/02_PROJECT_GUIDE.md)

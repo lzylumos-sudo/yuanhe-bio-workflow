@@ -1,8 +1,14 @@
 name: Engineering checks
 on: [push, pull_request, workflow_dispatch]
+permissions:
+  contents: read
+concurrency:
+  group: engineering-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 jobs:
   contracts-and-workbench:
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -11,11 +17,14 @@ jobs:
           cache: pip
           cache-dependency-path: deployment/validation_5090/pip-freeze.txt
       - name: English content and source integrity
-        run: python deployment/check_english.py
+        run: |
+          python deployment/check_english.py
+          python deployment/check_repository.py
       - name: Install recorded chemistry and web dependencies
         run: |
           python -m pip install -r deployment/validation_5090/pip-freeze.txt
           python -m pip install openmm==8.5.1 parmed==4.3.0
+          python -m pip install biopython==1.85 openpyxl==3.1.5 cairosvg==2.7.1 lxml==5.4.0
           python -m pip check
       - name: Generation contracts (no model inference)
         working-directory: 01_molecule_generation
@@ -26,6 +35,22 @@ jobs:
       - name: Screening contracts and portable real-data fixtures
         working-directory: 03_virtual_screening
         run: PYTHONPATH=src python -m pytest tests -m 'not integration' -q --junitxml=../screening-tests.xml
+      - name: Docking contracts
+        working-directory: 02_docking
+        run: PYTHONPATH=src python -m pytest tests -q --junitxml=../docking-tests.xml
+      - name: Interaction analysis
+        working-directory: 04_interaction_analysis
+        run: PYTHONPATH=src python -m pytest tests -q --junitxml=../interaction-tests.xml
+      - name: Standalone MD contracts
+        working-directory: 05_molecular_dynamics
+        run: python -m pytest tests -q --junitxml=../md-tests.xml
+      - name: Independent package integrity and entrypoints
+        run: python -m pytest deployment/tests -q --junitxml=package-tests.xml
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Frontend syntax
+        run: node --experimental-vm-modules 00_workbench/webui/check_js.mjs
       - name: Preserve test evidence
         if: always()
         uses: actions/upload-artifact@v4

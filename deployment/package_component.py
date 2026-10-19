@@ -2,6 +2,7 @@
 """Package an independently installable component with exact file checksums."""
 import argparse,hashlib,json,zipfile
 from pathlib import Path
+from package_licenses import license_files
 ROOT=Path(__file__).resolve().parents[1]
 MODULES={'docking':'02_docking','screening':'03_virtual_screening'}
 def main():
@@ -12,7 +13,7 @@ def main():
   source=base/name
   for f in ([source] if source.is_file() else source.rglob('*')):
    if f.is_file() and not f.is_symlink() and '__pycache__' not in f.parts and f.suffix not in {'.pyc','.pyo'}:files['module/'+str(f.relative_to(base))]=f
- for name in ['LICENSE','LICENSE_SCOPE.txt','THIRD_PARTY_NOTICES.md']:files[name]=ROOT/name
+ files.update(license_files())
  manifest={n:hashlib.sha256(f.read_bytes()).hexdigest() for n,f in files.items()}
  a.output.parent.mkdir(parents=True,exist_ok=True)
  with zipfile.ZipFile(a.output,'x',zipfile.ZIP_DEFLATED) as z:

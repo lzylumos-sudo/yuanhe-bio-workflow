@@ -8,7 +8,7 @@ L1: compatible dependencies, verified weights, real CUDA/PyG operations and actu
 L2: a small MurJ batch passes through stages with correct identity, coordinates, scores, counts, failure reporting and recovery.
 L3: traceable computational candidates under predeclared rules, with repeat docking, pose inspection and controls.
 L4: biological activity, MurJ engagement/function and selectivity supported by appropriate experiments.
-Engineering tests and docking scores do not establish L4. The competition milestone is real generation, docking and traceable preliminary screening; unfinished MD must remain labeled unfinished.
+Engineering tests and docking scores do not establish L4. The research validation milestone is real generation, docking and traceable preliminary screening; unfinished MD must remain labeled unfinished.
 
 2. Host prerequisites and external disk
 
@@ -60,7 +60,7 @@ membrane: isolated OpenMM/AmberTools/OpenFF/ParmEd/MDAnalysis environment. After
 configure: write runtime.json while backing up an existing configuration and preserving configured paths.
 check: write environment evidence. It does not run target inference.
 
-Logs and installed-version records are under /opt/yuanhe/evidence. Freeze a successfully validated environment before competition. If a dependency solve or GPU kernel fails, retain the log; do not force-install incompatible packages or label CPU fallback as GPU success. If MD installation is deferred, explicitly record partial screening readiness rather than deleting a failed GROMACS check.
+Logs and installed-version records are under /opt/yuanhe/evidence. Freeze a successfully validated environment before release. If a dependency solve or GPU kernel fails, retain the log; do not force-install incompatible packages or label CPU fallback as GPU success. If MD installation is deferred, explicitly record partial screening readiness rather than deleting a failed GROMACS check.
 
 4. Optional CUDA GROMACS build
 
@@ -125,7 +125,7 @@ Review receptor and box, select the actual executable/device and run. The curren
 Virtual screening:
 Select Quick screening, Redocking trial or Full screening in the UI. Quick screening skips redocking; the other budgets retain their declared seeds/limits and the selected GNINA model/device. Inspect report, candidates.csv, qualification.csv, exclusions.csv, run_state.json and stage summaries. Missing checks remain missing, never PASS. The screening membrane orientation remains a geometric proxy, so formal qualification may remain unmet even with preliminary candidates. Report preliminary, exploratory and qualified counts separately.
 
-The competition milestone is reached only when real inference, real docking and traceable screening have succeeded with source inputs and logs, not merely when the UI shows completed stages.
+The research validation milestone is reached only when real inference, real docking and traceable screening have succeeded with source inputs and logs, not merely when the UI shows completed stages.
 
 8. Reproducibility and research design
 
@@ -161,7 +161,7 @@ Failed stage attempts are archived. Changed code, settings or upstream artifacts
 
 Wait for disk release, then safely eject. Do not unregister the distribution or globally stop unrelated workloads. On the next host rerun environment and fixed small-batch checks. Changed drive letters can invalidate old absolute paths; use new validation runs instead of rewriting frozen evidence.
 
-11. Competition evidence package
+11. Research evidence package
 
 Retain a workflow diagram, stage counts with explicit units, environment/driver/model table, repeatability table, candidate identities/poses/QA/contacts/limitations and source-linked images. Generation expansion can increase molecule counts, so the entire workflow is not necessarily a monotonically decreasing funnel. Formal and preliminary candidates remain distinct.
 

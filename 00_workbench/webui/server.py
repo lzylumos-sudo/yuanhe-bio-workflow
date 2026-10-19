@@ -32,7 +32,7 @@ from webui import data, jobs, stages, workflow, studio                          
 STATIC = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'static')
 ROOT = data.ROOT
 FILE_DIRS = ('results', 'evidence', 'figures', 'docs', 'priors')
-VERSION = '0.3.0-rc1'
+VERSION = '0.4.0-rc1'
 
 MIME = {
     '.html': 'text/html; charset=utf-8', '.css': 'text/css; charset=utf-8',
@@ -637,7 +637,7 @@ def serve(host='127.0.0.1', port=8777, open_browser=True, quiet=False):
     url = f'http://{host}:{port}/'
     if not quiet:
         print('=' * 62)
-        print('  Yuanhe Bio Research Studio · 0.3.0-rc1')
+        print(f'  Yuanhe Bio Research Studio · {VERSION}')
         print(f'  {url}')
         print(f'  Working directory {ROOT}')
         print(f'  Python {sys.version.split()[0]}   Scientific tasks use separate environments')

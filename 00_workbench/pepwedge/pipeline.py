@@ -16,7 +16,7 @@ from .core import (COMPLEXES, SGL_FUNCTIONAL, contacts, hotspot_table, load_comp
 from .design import enumerate_scaffolds, property_penalty
 from .pharmacophore import anchor_pairs, consensus_features, superpose_complex
 from .pocket import build_pocket, pocket_report, subpocket_centroids
-from .pose import place, receptor_from_complex, score_pose
+from .pose import Receptor, place, receptor_from_complex, score_pose
 
 # contact string used for a fast "which residues does the ligand touch" readout
 POLAR = {'N', 'O'}

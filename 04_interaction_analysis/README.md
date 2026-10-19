@@ -11,6 +11,8 @@ Protein-ligand interaction analysis with atom-level tables, editable 2D diagrams
 
 Commands: `ligands <pdb>`; `analyze <pdb> [--ligand A:BEN1] [--template lig.sdf|SMILES] [--charge N] [--model N] [--offline] [--plip] [--no-png] [--layout layout.json]`; `web [--port 8765]`. The web service binds to 127.0.0.1 and requires its startup token; it has no account system and must not be exposed publicly.
 
+Optional PLIP: set `ZLIS_PLIP_PYTHON` to the interpreter in your separate PLIP environment, or save that path in ignored `env/plip_python.txt`. No developer-specific interpreter path is distributed.
+
 ## Outputs
 
 Each ligand receives `interactions.csv/.xlsx/.json`, publication/detailed/audit 2D SVG/PNG/PDF, an HTML layout editor and audit view, `complex_analysis.pdb`, `ligand.sdf`, PyMOL scene/scripts, scene configuration, binding-site image and optional PLIP crosscheck. Save `layout.json` after moving labels and redraw using `--layout`.

@@ -1,6 +1,6 @@
 # Installation and configuration
 
-The target platform is Windows with WSL2, an NVIDIA RTX 5070 and Linux x86-64 environments. Keep environments on the WSL Linux filesystem, not an exFAT external disk. The external disk carries the project, structures, model files and run records. A new host still needs compatible installed dependencies.
+The recorded compute environment is Linux x86-64 with an RTX 5090 D; final release acceptance remains open. Windows/WSL2 with RTX 5070 is a planned deployment target, not a validated platform. See [the support matrix](12_SUPPORT_MATRIX.md) for the exact boundary. Keep environments on the WSL Linux filesystem, not an exFAT external disk. The external disk carries the project, structures, model files and run records. A new host still needs compatible installed dependencies.
 
 ## Preview
 

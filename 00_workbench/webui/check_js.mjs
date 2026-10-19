@@ -7,7 +7,12 @@ import { fileURLToPath } from 'node:url';
 import vm from 'node:vm';
 
 const root = fileURLToPath(new URL('./static/js/', import.meta.url));
-const dirs = [root, join(root, 'pages')];
+function directories(dir) {
+  return [dir, ...readdirSync(dir, { withFileTypes: true })
+    .filter((entry) => entry.isDirectory())
+    .flatMap((entry) => directories(join(dir, entry.name)))];
+}
+const dirs = directories(root);
 let failures = 0;
 let checked = 0;
 
