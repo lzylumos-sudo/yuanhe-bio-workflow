@@ -26,6 +26,7 @@ These are engineering references, not claims of scientific equivalence, upstream
 | Test collection executed dedicated runtime or completed-run validation scripts. | Move those tools to explicit `scripts/validate_*.py` entrypoints; make integrity regressions ordinary isolated tests. |
 | Frontend syntax check omitted nested flow modules. | Recursively check all 18 ES modules and run the check in CI. |
 | Clean Linux docking collection failed because Meeko was absent from package metadata and the combined test environment. | Declare Meeko and its required chemistry dependencies in the docking package; install the recorded Meeko version in CI. |
+| Clean Linux exposed concurrent SQLite journal initialization and a spawn test launching the same worker twice. | Serialize registry initialization, preserve existing WAL mode, close the parent log handle, reap the actual spawned child, and add a six-process initialization regression. |
 | CI used deprecated action runtimes and a moving Ubuntu label. | Update official actions and pin Ubuntu 24.04 to keep the acceptance environment explicit. |
 | CI covered only three main suites. | Add docking, ZLIS, standalone MD and standalone archive checks, with explicit dependencies and preserved JUnit results. |
 | Historical execution hashes differed from the renamed Git history. | Preserve original evidence hashes and supply a file-tree-equivalent old/new commit mapping. |
@@ -36,7 +37,7 @@ A static warning about `sim` in nested OpenMM functions was inspected: `sim` is 
 
 ## Validation boundary
 
-See the current commit's GitHub Actions run for fresh Linux JUnit reports. Local macOS checks: **360 passed, 5 skipped**, plus 18 JavaScript modules parsed and five upstream license hashes verified. Exact outcomes and skip reasons are in [the audit result](history/repository_review_2026-10-19.json). A fresh browser preview and its environment dialog opened without observed console errors; no scientific job was started. Optional native checks and absent historical output must be listed as skipped, not passed.
+See the current commit's GitHub Actions run for fresh Linux JUnit reports. Local macOS checks: **361 passed, 5 skipped**, plus 18 JavaScript modules parsed and five upstream license hashes verified. Exact outcomes and skip reasons are in [the audit result](history/repository_review_2026-10-19.json). A fresh browser preview and its environment dialog opened without observed console errors; no scientific job was started. Optional native checks and absent historical output must be listed as skipped, not passed.
 
 This review does not close the existing A1-A5 acceptance checklist. Final clean deployment, a second complete supported target, final remote repeat results, raw-data export recovery and real-UI acceptance remain subject to their existing evidence requirements. No experimental activity claim is established. Credential-pattern scanning and local HTTP regression checks are limited checks, not a full security or dependency-vulnerability audit.
 

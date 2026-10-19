@@ -21,36 +21,46 @@ jobs:
           python deployment/check_english.py
           python deployment/check_repository.py
       - name: Install recorded chemistry and web dependencies
+        id: dependencies
         run: |
           python -m pip install -r deployment/validation_5090/pip-freeze.txt
           python -m pip install openmm==8.5.1 parmed==4.3.0 meeko==0.8.0
           python -m pip install biopython==1.85 openpyxl==3.1.5 cairosvg==2.7.1 lxml==5.4.0
           python -m pip check
       - name: Generation contracts (no model inference)
+        if: ${{ !cancelled() && steps.dependencies.outcome == 'success' }}
         working-directory: 01_molecule_generation
         run: PYTHONPATH=. python -m pytest tests -q --junitxml=../generation-tests.xml
       - name: Full workbench and scientific handoff regressions
+        if: ${{ !cancelled() && steps.dependencies.outcome == 'success' }}
         working-directory: 00_workbench
         run: PYTHONPATH=. python -m pytest tests -q --junitxml=../workbench-tests.xml
       - name: Screening contracts and portable real-data fixtures
+        if: ${{ !cancelled() && steps.dependencies.outcome == 'success' }}
         working-directory: 03_virtual_screening
         run: PYTHONPATH=src python -m pytest tests -m 'not integration' -q --junitxml=../screening-tests.xml
       - name: Docking contracts
+        if: ${{ !cancelled() && steps.dependencies.outcome == 'success' }}
         working-directory: 02_docking
         run: PYTHONPATH=src python -m pytest tests -q --junitxml=../docking-tests.xml
       - name: Interaction analysis
+        if: ${{ !cancelled() && steps.dependencies.outcome == 'success' }}
         working-directory: 04_interaction_analysis
         run: PYTHONPATH=src python -m pytest tests -q --junitxml=../interaction-tests.xml
       - name: Standalone MD contracts
+        if: ${{ !cancelled() && steps.dependencies.outcome == 'success' }}
         working-directory: 05_molecular_dynamics
         run: python -m pytest tests -q --junitxml=../md-tests.xml
       - name: Independent package integrity and entrypoints
+        if: ${{ !cancelled() && steps.dependencies.outcome == 'success' }}
         run: python -m pytest deployment/tests -q --junitxml=package-tests.xml
       - uses: actions/setup-node@v7
+        if: ${{ !cancelled() && steps.dependencies.outcome == 'success' }}
         with:
           node-version: '22'
           package-manager-cache: false
       - name: Frontend syntax
+        if: ${{ !cancelled() && steps.dependencies.outcome == 'success' }}
         run: node --experimental-vm-modules 00_workbench/webui/check_js.mjs
       - name: Preserve test evidence
         if: always()

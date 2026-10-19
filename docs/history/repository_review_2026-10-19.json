@@ -21,11 +21,11 @@
       "passed": 79
     },
     "docking": {
-      "tests": 42,
+      "tests": 43,
       "failures": 0,
       "errors": 0,
       "skipped": 2,
-      "passed": 40
+      "passed": 41
     },
     "screening": {
       "tests": 55,
@@ -56,7 +56,7 @@
       "passed": 4
     }
   },
-  "passed": 360,
+  "passed": 361,
   "skipped": 5,
   "javascript_modules_parsed": 18,
   "upstream_license_hashes_verified": 5,
@@ -73,6 +73,7 @@
     "Docking optional Vina and molscrub checks skipped when dependencies absent.",
     "Ubuntu native preparation remains opt-in; historical generated outputs are not distributed.",
     "One ZLIS NumPy binary-compatibility warning in the reused local environment; no test failed. Fresh Linux CI is checked separately.",
-    "No final remote MD recovery, raw export, or experimental validation claimed."
+    "No final remote MD recovery, raw export, or experimental validation claimed.",
+    "Docking rerun after the Linux SQLite initialization finding: 41 passed, 2 skipped, including the new six-process regression."
   ]
 }

@@ -25,9 +25,20 @@ TERMINAL = {"COMPLETED", "FAILED", "CANCELLED", "PARTIAL"}
 class Registry:
     def __init__(self, db: Path):
         db = Path(db); db.parent.mkdir(parents=True, exist_ok=True)
-        self.db = sqlite3.connect(str(db), timeout=30, isolation_level=None)
-        self.db.execute("PRAGMA journal_mode=WAL")
-        self.db.execute("CREATE TABLE IF NOT EXISTS runs(id TEXT PRIMARY KEY, path TEXT, state TEXT, pid INTEGER, created REAL, updated REAL)")
+        # SQLite's busy timeout does not reliably serialize simultaneous changes
+        # of journal mode on a newly created database. Serialize initialization
+        # across processes, and never reset journal mode for an existing WAL DB.
+        with db.with_name(db.name + ".init.lock").open("a") as init_lock:
+            fcntl.flock(init_lock, fcntl.LOCK_EX)
+            self.db = sqlite3.connect(str(db), timeout=30, isolation_level=None)
+            try:
+                mode = self.db.execute("PRAGMA journal_mode").fetchone()[0]
+                if mode.lower() != "wal":
+                    self.db.execute("PRAGMA journal_mode=WAL")
+                self.db.execute("CREATE TABLE IF NOT EXISTS runs(id TEXT PRIMARY KEY, path TEXT, state TEXT, pid INTEGER, created REAL, updated REAL)")
+            except Exception:
+                self.db.close()
+                raise
 
     def get(self, rid):
         r = self.db.execute("SELECT id,path,state,pid,created,updated FROM runs WHERE id=?", (rid,)).fetchone()
@@ -119,11 +130,11 @@ def _spawn(rd: Path, python, detach):
     NOTE: `-I` must NOT be used here - it implies `-E`, which drops PYTHONPATH, and a dead worker looks exactly
     like a queued one. The package root is therefore injected on the command line instead of via the environment.
     """
-    log = open(rd / "worker.log", "ab")
     pkg_root = str(Path(__file__).resolve().parents[1])
     bootstrap = f"import sys; sys.path.insert(0, {pkg_root!r}); from sbvs2 import scheduler; sys.exit(scheduler.worker({str(rd)!r}))"
     cmd = [python, "-B", "-c", bootstrap]
-    subprocess.Popen(cmd, stdout=log, stderr=log, stdin=subprocess.DEVNULL, start_new_session=detach, close_fds=True)
+    with open(rd / "worker.log", "ab") as log:
+        return subprocess.Popen(cmd, stdout=log, stderr=log, stdin=subprocess.DEVNULL, start_new_session=detach, close_fds=True)
 
 
 # ---------------------------------------------------------------- worker

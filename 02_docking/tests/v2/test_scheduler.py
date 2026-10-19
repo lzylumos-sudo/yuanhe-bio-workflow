@@ -43,6 +43,7 @@ def env(tmp_path):
     reg = S.Registry(tmp_path / "reg.sqlite3")
     yield dict(stage=stage, stub=stub, tmp=tmp_path, reg=reg, runs=tmp_path / "runs")
     os.environ.pop("STUB_DIR", None)
+    reg.db.close()
 
 
 def spec_for(e, **kw):
@@ -152,24 +153,64 @@ def test_low_disk_waits_and_never_completes(env, monkeypatch):
     assert not (rd / "RUN_CHECKSUMS.sha256").exists()
 
 
-def test_spawned_worker_can_import_the_package(env):
-    """Regression: the worker used to be started with `python -I`, which drops PYTHONPATH, so it died instantly
-    while the run stayed QUEUED. This exercises the real spawn command line, not worker() in-process."""
+def test_spawned_worker_can_import_the_package(env, monkeypatch):
+    """Exercise the actual spawn once, and reap that child instead of duplicating it."""
     import subprocess
     sp = spec_for(env); rd = env["runs"] / sp["run_id"]
-    (rd / "jobs").mkdir(parents=True); atomic_write_json(rd / "run_spec.json", sp); (rd / "CANCEL").write_text("x")
+    (rd / "jobs").mkdir(parents=True)
+    atomic_write_json(rd / "run_spec.json", sp)
+    (rd / "CANCEL").write_text("x")
     captured = {}
     real_popen = subprocess.Popen
-    def fake_popen(cmd, **kw):
-        captured["cmd"] = cmd; captured["kwargs"] = kw
-        return real_popen(cmd, **kw)
-    S.subprocess.Popen = fake_popen
+    def capture(cmd, **kwargs):
+        captured["cmd"] = cmd
+        return real_popen(cmd, **kwargs)
+    monkeypatch.setattr(S.subprocess, "Popen", capture)
+    proc = S._spawn(rd, sys.executable, detach=False)
     try:
-        S._spawn(rd, sys.executable, detach=False)
+        code = proc.wait(timeout=60)
     finally:
-        S.subprocess.Popen = real_popen
-    assert "-I" not in captured["cmd"], "using -I silently disables PYTHONPATH"
-    p = real_popen(captured["cmd"], stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
-    out, _ = p.communicate(timeout=60)
-    assert "ModuleNotFoundError" not in (out or ""), out
-    assert p.returncode == 3, (p.returncode, out)          # CANCEL flag => clean CANCELLED exit
+        if proc.poll() is None:
+            proc.kill(); proc.wait()
+    output = (rd / "worker.log").read_text()
+    assert "-I" not in captured["cmd"]
+    assert "ModuleNotFoundError" not in output
+    assert code == 3, (code, output)
+
+
+def test_concurrent_registry_initialization(tmp_path):
+    """Independent workers can initialize one new database without losing records."""
+    import subprocess
+    db = tmp_path / "shared.sqlite3"
+    gate = tmp_path / "start"
+    source = str(pathlib.Path(S.__file__).resolve().parents[1])
+    script = """
+import sys, time
+from pathlib import Path
+sys.path.insert(0, sys.argv[1])
+from sbvs2.scheduler import Registry
+deadline = time.monotonic() + 20
+while not Path(sys.argv[3]).exists():
+    if time.monotonic() > deadline: raise RuntimeError('Start barrier timed out')
+    time.sleep(.01)
+r = Registry(Path(sys.argv[2]))
+r.put(sys.argv[4], sys.argv[4], 'QUEUED')
+r.db.close()
+"""
+    children = [subprocess.Popen([sys.executable, '-c', script, source, str(db), str(gate), str(i)],
+                                stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+                for i in range(6)]
+    try:
+        gate.touch()
+        for proc in children:
+            out, err = proc.communicate(timeout=30)
+            assert proc.returncode == 0, (out, err)
+        registry = S.Registry(db)
+        try:
+            assert {row['id'] for row in registry.all()} == {str(i) for i in range(6)}
+        finally:
+            registry.db.close()
+    finally:
+        for proc in children:
+            if proc.poll() is None:
+                proc.kill(); proc.wait()
