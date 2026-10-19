@@ -33,10 +33,13 @@ These are engineering references, not claims of scientific equivalence, upstream
 | Historical execution hashes differed from the renamed Git history. | Preserve original evidence hashes and supply a file-tree-equivalent old/new commit mapping. |
 | A fresh local UI displayed a hardcoded remote/GPU environment label. | Replace the implied connection status with a configuration prompt; verify preview and environment dialog in the browser. |
 | A pipeline type annotation referred to an unimported type. | Import `Receptor`; no scoring or molecular behavior changes. |
+| The relocation regression promised Unicode coverage but used only ASCII paths. | Exercise both relocated source and output directories with spaces and Chinese characters; retain real analysis and scene export assertions. |
 
 A static warning about `sim` in nested OpenMM functions was inspected: `sim` is assigned before those functions are called and deleted only after completion. It was not reproduced as a runtime defect, so the MD implementation was left unchanged. Unused-import/style observations are not presented as scientific failures.
 
 ## Validation boundary
+
+Clean Ubuntu 24.04 validation at `757c0f2` completed with **362 passed, 4 skipped** and no failures; [the preserved CI run](https://github.com/lzylumos-sudo/yuanhe-bio-workflow/actions/runs/39208990129) contains all seven JUnit reports. The skips cover optional native docking dependencies, MolScrub, an opt-in native Ubuntu MD check, and undistributed historical outputs. The subsequent Unicode-path regression also passed locally; consult the current revision's CI for its Linux result.
 
 See the current commit's GitHub Actions run for fresh Linux JUnit reports. Local macOS checks: **361 passed, 5 skipped**, plus 18 JavaScript modules parsed and five upstream license hashes verified. Exact outcomes and skip reasons are in [the audit result](history/repository_review_2026-10-19.json). A fresh browser preview and its environment dialog opened without observed console errors; no scientific job was started. Optional native checks and absent historical output must be listed as skipped, not passed.
 

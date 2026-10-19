@@ -226,9 +226,9 @@ def test_multichain_same_resseq_distinguished(tmp_path):
 
 # --- CLI / launcher: moved project directory, spaces and Chinese in the path ------------------
 def test_moved_project_dir_with_spaces_and_chinese(tmp_path):
-    dst = tmp_path / "After relocation associated ZLIS Contents"
+    dst = tmp_path / "Relocated \u7814\u7a76 ZLIS Contents"
     shutil.copytree(ROOT, dst, ignore=shutil.ignore_patterns("__pycache__", "results", ".pytest_cache", "._*"))
-    out = tmp_path / "Output Directory"
+    out = tmp_path / "Output \u7ed3\u679c Directory"
     env_py = sys.executable
     proc = subprocess.run([env_py, "-m", "zlis", "analyze", str(DATA / "3PTB.pdb"), "--out", str(out), "--offline", "--no-png"],
                           cwd=dst, capture_output=True, text=True, env={**__import__("os").environ, "PYTHONPATH": str(dst / "src")})
