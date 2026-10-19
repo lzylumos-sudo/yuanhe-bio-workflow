@@ -190,6 +190,7 @@ class RegionSide:
     name: str
     native_residues: list[int]
     note: str = ""
+    chain: str = ""
 
     @classmethod
     def from_dict(cls, payload: dict[str, Any]) -> "RegionSide":
@@ -197,6 +198,7 @@ class RegionSide:
             name=str(_require(payload, "name", "region.sides")),
             native_residues=[int(x) for x in _as_list(payload.get("native_residues"))],
             note=str(payload.get("note", "")),
+            chain=str(payload.get("chain", "") or ""),
         )
 
 
@@ -309,10 +311,18 @@ class TargetProfile:
     structures_dir: str
     raw: dict[str, Any]
     source_path: str = ""
+    screening_mode: str = "generic"
+    membrane_screening: dict[str, Any] = field(default_factory=dict)
 
     @property
     def is_generic(self) -> bool:
         return self.target_id == "generic"
+
+    @property
+    def is_membrane_aware(self) -> bool:
+        return self.screening_mode == "membrane_aware" and bool(
+            (self.membrane_screening or {}).get("enabled", False)
+        )
 
     def side_names(self) -> list[str]:
         return [side.name for side in (self.region.sides if self.region else [])]
@@ -335,6 +345,8 @@ class TargetProfile:
                 "construct": self.construct.raw,
                 "region": self.region.raw if self.region else None,
                 "membrane": self.membrane.raw,
+                "screening_mode": self.screening_mode,
+                "membrane_screening": self.membrane_screening,
                 "md_protocol": self.md_protocol,
                 "analysis_selections": self.analysis_selections,
             }
@@ -370,6 +382,8 @@ def load_target_profile(path: str, *, structures_dir: str | None = None) -> Targ
         structures_dir=structures_dir or str(raw.get("structures_dir", "")),
         raw=raw,
         source_path=os.path.abspath(path),
+        screening_mode=str(raw.get("screening_mode", "generic") or "generic").strip(),
+        membrane_screening=raw.get("membrane_screening") or {},
     )
     validate_target_profile(profile)
     return profile
@@ -377,6 +391,17 @@ def load_target_profile(path: str, *, structures_dir: str | None = None) -> Targ
 
 def validate_target_profile(profile: TargetProfile) -> None:
     errors: list[str] = []
+    if profile.screening_mode not in {"generic", "membrane_aware"}:
+        errors.append(
+            f"unknown screening_mode '{profile.screening_mode}'; expected 'generic' or 'membrane_aware'"
+        )
+    if profile.screening_mode == "membrane_aware":
+        block = profile.membrane_screening or {}
+        if "enabled" not in block:
+            errors.append("membrane_aware mode requires membrane_screening.enabled to be explicit")
+        for key, value in (block.get("geometry") or {}).items():
+            if key.endswith("_A") and (not isinstance(value, (int, float)) or not math.isfinite(float(value))):
+                errors.append(f"membrane_screening.geometry.{key} must be a finite number")
     if profile.native_length and profile.native_sequence and len(profile.native_sequence) != profile.native_length:
         errors.append(
             f"native_sequence length {len(profile.native_sequence)} != native_length {profile.native_length}"
@@ -546,6 +571,8 @@ class ResolvedConfig:
                 "construct": self.target.construct.raw,
                 "region": self.target.region.raw if self.target.region else None,
                 "membrane": self.target.membrane.raw,
+                "screening_mode": self.target.screening_mode,
+                "membrane_screening": self.target.membrane_screening,
                 "md_protocol": self.target.md_protocol,
             },
             "budget": self.budget.raw,

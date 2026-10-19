@@ -33,3 +33,52 @@ filters:
 # Experimental Pareto-first selection is opt-in; qualification thresholds unchanged.
 selection:
   strategy: evidence_diversity
+
+# Y-MAVS defaults. Target-level `membrane_screening` values override these keys.
+# Values here are geometric partition/algorithm parameters, not fitted weights.
+membrane_screening:
+  enabled: false
+  orientation:
+    require_verified_source: true
+    allow_proxy_for_exploration: true
+  geometry:
+    interface_buffer_A: 5.0
+    # Used only when no sourced orientation exists. The resulting geometry is
+    # labelled proxy_only and never satisfies formal membrane qualification.
+    proxy_thickness_A: 30.0
+  pocket:
+    contact_cutoff_A: 5.0
+    embedded_core_fraction: 0.60
+    interface_fraction: 0.50
+    aqueous_outside_fraction: 0.60
+    mixed_min_fraction: 0.20
+  accessibility:
+    enabled: true
+    grid_spacing_A: 1.0
+    probe_radius_A: 1.4
+    margin_A: 8.0
+    seed_radius_A: 3.0
+    max_grid_points: 1500000
+    method: grid_connectivity
+  compatibility:
+    enabled: true
+    explicit_lipid_check: optional
+    lipid_clash_cutoff_A: 2.0
+    contact_cutoff_A: 4.5
+  ensemble:
+    enabled: false
+    receptors: []
+    alignment_min_ca: 12
+    alignment_max_rmsd_A: 2.5
+  scoring:
+    enabled: true
+    strategy: evidence_first
+    preserve_baseline: true
+    allow_proxy_for_exploration: true
+    require_verified_orientation_for_formal: true
+    allow_pose_reselection: false
+  qualification:
+    formal_requirements: []
+    accessibility_evidence: auxiliary
+    ensemble_evidence: optional
+    require_complete_ensemble_states: false

@@ -6,7 +6,7 @@ import csv
 import os
 from typing import Any
 
-from ..util import atomic_write_json, atomic_write_text, now_iso, relpath
+from ..util import atomic_write_json, atomic_write_text, now_iso, read_json, relpath
 
 DONE = "Implemented and validated with real data"
 IMPL = "Implemented; real-data validation pending"
@@ -26,6 +26,21 @@ def write_all(ctx, state: dict[str, Any]) -> dict[str, Any]:
     mech = stages.get("mechanism") or {}
     redock = stages.get("redock") or {}
     membrane = stages.get("membrane") or {}
+    membrane_ranking = read_json(os.path.join(directory, "membrane_aware_ranking.json"), {}) or {}
+    membrane_files = {
+        "membrane_aware_ranking": os.path.join(directory, "membrane_aware_ranking.csv"),
+        "membrane_aware_ranking_json": os.path.join(directory, "membrane_aware_ranking.json"),
+        "membrane_evidence": os.path.join(directory, "membrane_evidence.json"),
+        "membrane_screening_report": os.path.join(directory, "membrane_screening_report.html"),
+        "membrane_geometry": os.path.join(ctx.stage_dir("membrane"), "membrane_geometry.json"),
+        "pocket_analysis": os.path.join(ctx.stage_dir("membrane"), "pocket_analysis.json"),
+        "accessibility_analysis": os.path.join(ctx.stage_dir("membrane"), "accessibility_analysis.json"),
+        "accessibility_paths": os.path.join(ctx.stage_dir("membrane"), "accessibility_paths.json"),
+        "membrane_compatibility": os.path.join(ctx.stage_dir("membrane"), "membrane_compatibility.json"),
+        "ensemble_analysis": os.path.join(ctx.stage_dir("membrane"), "ensemble_analysis.json"),
+        "pose_membrane_evidence": os.path.join(ctx.stage_dir("membrane"), "pose_membrane_evidence.json"),
+    }
+    membrane_files = {name: path for name, path in membrane_files.items() if os.path.isfile(path)}
 
     candidates = os.path.join(directory, "candidates.csv")
     _write_rows(
@@ -129,7 +144,7 @@ def write_all(ctx, state: dict[str, Any]) -> dict[str, Any]:
           "missing": ";".join(e.get("components_missing", []))}
          for e in ranking.get("ranking", [])])
 
-    markdown = _markdown(ctx, state, ranking, selection, md, target, imported, qa, mech, redock, membrane)
+    markdown = _markdown(ctx, state, ranking, selection, md, target, imported, qa, mech, redock, membrane, membrane_ranking)
     report_path = os.path.join(directory, "report.md")
     atomic_write_text(report_path, markdown)
     payload = {
@@ -150,6 +165,7 @@ def write_all(ctx, state: dict[str, Any]) -> dict[str, Any]:
             "ranking": relpath(ranking_csv, ctx.run_dir),
             "decision": relpath(decision_path, ctx.run_dir),
             "candidate_evidence": relpath(evidence_path, ctx.run_dir),
+            **{name: relpath(path, ctx.run_dir) for name, path in membrane_files.items()},
         },
     }
     atomic_write_json(os.path.join(directory, "report.json"), payload)
@@ -190,7 +206,7 @@ def _blockers(md, redock, membrane) -> list[dict[str, Any]]:
     return out
 
 
-def _markdown(ctx, state, ranking, selection, md, target, imported, qa, mech, redock, membrane) -> str:
+def _markdown(ctx, state, ranking, selection, md, target, imported, qa, mech, redock, membrane, membrane_ranking=None) -> str:
     lines: list[str] = []
     profile = ctx.config.target
     lines += [
@@ -249,6 +265,33 @@ def _markdown(ctx, state, ranking, selection, md, target, imported, qa, mech, re
               f"- Complete-evidence eligible Pareto front: {len(selection.get('pareto_front', []))}; "
               f"unassessed because objectives are missing: {len(selection.get('pareto_unassessed', {}))}.",
               "- candidate_evidence.csv preserves raw units, pose identity, missing values and evidence coverage.", ""]
+    membrane_rows = membrane_ranking.get("ranking") or []
+    if membrane_rows:
+        orientation = membrane_ranking.get("orientation") or {}
+        lines += [
+            "### Y-MAVS membrane-aware evidence",
+            "",
+            f"- Membrane orientation: {orientation.get('status', 'not_evaluated')} "
+            f"(source: {orientation.get('source') or 'none'}; verified: {orientation.get('orientation_verified')})",
+            f"- Evidence-status counts: {membrane_ranking.get('evidence_status_counts') or {}}",
+            "- membrane_aware_score is an ordinal priority within this pool, not a binding free energy or activity probability.",
+            "- Membrane evidence is applied after the existing tier and evidence score; formal qualification is unchanged except for explicitly configured additive requirements.",
+            "",
+            "| Y-MAVS rank | Baseline | Shift | Compound | GNINA | Pocket region | Depth (Å) | Accessibility | Steric | Ensemble | Evidence | Formal |",
+            "| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |",
+        ]
+        for row in membrane_rows[:15]:
+            lines.append(
+                f"| {row.get('membrane_aware_rank')} | {row.get('baseline_rank')} | {row.get('rank_shift')} | "
+                f"`{row.get('compound_id')}` | {row.get('gnina_affinity')} | {row.get('pocket_region')} | "
+                f"{row.get('ligand_center_depth_A')} | {row.get('geometric_accessibility_status')} | "
+                f"{row.get('steric_compatibility_status')} | {row.get('ensemble_status')} | "
+                f"{row.get('membrane_evidence_status')} | {row.get('formal_qualified')} |"
+            )
+        lines.append("")
+        lines.append("Full tables: `membrane_aware_ranking.csv`, `membrane_evidence.json`, `membrane_screening_report.html`.")
+        lines.append("")
+
     lines += ["## 4. Candidates and exclusions", ""]
     primary = (selection or {}).get("primary") or []
     preliminary = (selection or {}).get("preliminary") or []

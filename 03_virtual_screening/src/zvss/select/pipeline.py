@@ -8,7 +8,7 @@ report can be reproduced byte-for-byte.
 
 from __future__ import annotations
 
-import math
+import os
 from typing import Any
 
 from ..chem import rdio
@@ -44,7 +44,7 @@ def run(ctx, ranking: dict[str, Any]) -> dict[str, Any]:
             ctx.db.record_assessment("compound", entry["compound_id"], "selection", "excluded", 1.0,
                                      status=None, reason_code=reason[0], note=reason[1])
 
-    by_tier = sorted(eligible, key=lambda e: (e["tier"], -e["evidence_score"], e["compound_id"]))
+    by_tier = sorted(eligible, key=_entry_order)
 
     # Qualification is evaluated on every eligible compound, not only on the
     # shortlist, so the report can show why a well-scoring compound is not a
@@ -105,7 +105,7 @@ def run(ctx, ranking: dict[str, Any]) -> dict[str, Any]:
             )
 
     pareto = _pareto(eligible)
-    return {
+    result = {
         "selection_version": selection_id,
         "policy_version": "screening-evidence/v2",
         "strategy": strategy,
@@ -134,6 +134,16 @@ def run(ctx, ranking: dict[str, Any]) -> dict[str, Any]:
             f"formal qualification currently requires: {', '.join(rules)}",
         ],
     }
+    try:
+        from ..scoring.membrane_aware import write_ranking_files
+
+        outputs = write_ranking_files(ctx, ranking, result)
+        if outputs:
+            result["membrane_outputs"] = {name: os.path.relpath(path, ctx.run_dir).replace(os.sep, "/") for name, path in outputs.items()}
+    except Exception as exc:  # noqa: BLE001 - reporting failure must not corrupt selection
+        ctx.log(f"membrane-aware output generation failed: {exc}", stage="selection", level="error")
+        result["membrane_outputs"] = {"status": "error", "reason": f"{type(exc).__name__}: {exc}"}
+    return result
 
 
 def _exclusion(entry, limits, ctx):
@@ -148,10 +158,32 @@ def _exclusion(entry, limits, ctx):
     return None
 
 
+def _entry_order(entry: dict[str, Any]) -> tuple[Any, ...]:
+    """Keep the evidence tier, then follow the Y-MAVS order when available.
+
+    ``membrane_aware_rank`` is only present when the membrane-aware layer ran.
+    Generic targets therefore keep their exact previous ordering.
+    """
+    membrane_rank = entry.get("membrane_aware_rank")
+    return (
+        entry["tier"],
+        int(membrane_rank) if membrane_rank is not None else 10**9,
+        -float(entry.get("evidence_score") or 0.0),
+        str(entry.get("compound_id") or ""),
+    )
+
+
+def _priority(entry: dict[str, Any]) -> float:
+    value = entry.get("membrane_aware_score")
+    if value is not None:
+        return float(value)
+    return float(entry.get("evidence_score") or 0.0)
+
+
 def _select(pool: list[dict[str, Any]], limit: int, *, diversity: float, prior=None) -> list[dict[str, Any]]:
     chosen: list[dict[str, Any]] = []
     prior = list(prior or [])
-    remaining = sorted(pool, key=lambda e: (e["tier"], -e["evidence_score"], e["compound_id"]))
+    remaining = sorted(pool, key=_entry_order)
     while remaining and len(chosen) < limit:
         if not chosen and not prior:
             best = remaining[0]
@@ -161,7 +193,7 @@ def _select(pool: list[dict[str, Any]], limit: int, *, diversity: float, prior=N
             for entry in remaining:
                 similarity = max((_similarity(entry, c) for c in prior + chosen), default=0.0)
                 penalty = diversity * similarity
-                key = (entry["tier"], -(entry["evidence_score"] - penalty), entry["compound_id"])
+                key = (entry["tier"], -(_priority(entry) - penalty), entry["compound_id"])
                 if best_key is None or key < best_key:
                     best_key = key
                     best = entry

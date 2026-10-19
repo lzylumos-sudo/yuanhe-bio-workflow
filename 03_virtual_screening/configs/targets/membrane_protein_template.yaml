@@ -1,0 +1,121 @@
+# Y-MAVS target template for a membrane protein.
+#
+# Copy this file, replace every placeholder, and keep target-specific structural
+# annotations here rather than in the Python engine.  The engine must be usable
+# for GPCRs, ion channels, transporters and other membrane proteins without
+# changing code.
+#
+# Minimum evidence for a formal membrane-aware run:
+#   * a docking receptor in one verified coordinate frame;
+#   * a sourced membrane orientation (for example OPM/PPM3) with checksums, or
+#     an explicit orientation you can defend in the same frame;
+#   * real GNINA results imported by the existing 02_docking/import path.
+# A PCA plane is accepted only as a labelled proxy and never satisfies
+# membrane_geometry in formal qualification.
+
+target_id: YOUR_TARGET_ID
+display_name: "Your membrane protein target"
+organism: "Your organism"
+uniprot: YOUR_UNIPROT
+native_length: 0
+screening_mode: membrane_aware
+
+structures:
+  primary:
+    pdb_id: YOUR_PDB_ID
+    chain: A
+    role: "reference structure"
+    conformational_state: "state described by the deposit"
+    # sha256: "..."  # recommended for a frozen receptor
+
+construct:
+  native_range: [1, 1]
+  label_native_offset: 0
+
+region:
+  # Optional local annotation.  These names become pocket_tm_segments only when
+  # the listed residues are actually in contact with the docked ligand.
+  contact_cutoff_A: 4.5
+  sides:
+    - name: "ANNOTATED_SEGMENT_NAME"
+      chain: A
+      native_residues: [1]
+      note: "replace with a defensible annotation"
+
+membrane:
+  status: evidence_available
+  method: "PPM3_or_other_sourced_placement"
+  source: "https://opm.phar.umich.edu/"
+  evidence_dir: "../membrane/YOUR_PDB_ID"
+  uncertainty: "computational_placement_not_experimental"
+
+membrane_screening:
+  enabled: true
+
+  orientation:
+    require_verified_source: true
+    allow_proxy_for_exploration: true
+
+  geometry:
+    interface_buffer_A: 5.0
+    # Only for a labelled PCA proxy; never used as formal membrane geometry.
+    proxy_thickness_A: 30.0
+
+  pocket:
+    contact_cutoff_A: 5.0
+    embedded_core_fraction: 0.60
+    interface_fraction: 0.50
+    aqueous_outside_fraction: 0.60
+    mixed_min_fraction: 0.20
+
+  accessibility:
+    enabled: true
+    grid_spacing_A: 1.0
+    probe_radius_A: 1.4
+    margin_A: 8.0
+    seed_radius_A: 3.0
+    max_grid_points: 1500000
+    method: grid_connectivity
+
+  compatibility:
+    enabled: true
+    explicit_lipid_check: optional
+    # Only set this when the lipid coordinates are in the exact docking-receptor
+    # frame named below.  Never use a membrane plane as a lipid atom set.
+    # lipid_coordinates: "path/to/lipids.pdb"
+    # lipid_coordinate_frame: "exact_docking_receptor"
+
+  ensemble:
+    enabled: false
+    # Each state needs its own structure, hash, membrane evidence and real
+    # docking-results manifest.  Missing states stay missing; they are not zero.
+    receptors: []
+    # - structure_id: YOUR_STATE_ID
+    #   pdb_id: YOUR_STATE_PDB
+    #   chain: A
+    #   conformational_state: "outward_facing"
+    #   structure_path: "path/to/state.pdb"
+    #   sha256: "..."
+    #   docking_results: "path/to/ymavs_ensemble_state_evidence.json"
+    #   membrane_orientation:
+    #     evidence_dir: "path/to/state_ppm_evidence"
+
+  scoring:
+    enabled: true
+    strategy: evidence_first
+    preserve_baseline: true
+    allow_proxy_for_exploration: true
+    require_verified_orientation_for_formal: true
+    allow_pose_reselection: false
+
+  qualification:
+    formal_requirements:
+      - membrane_geometry
+      - pocket_localization
+    accessibility_evidence: auxiliary
+    ensemble_evidence: optional
+    require_complete_ensemble_states: false
+
+md_protocol:
+  engine: gromacs
+  membrane_required: true

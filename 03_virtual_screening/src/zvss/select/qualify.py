@@ -33,7 +33,17 @@ NEEDS_INPUT = AssessmentStatus.NEEDS_INPUT.value
 UNSUPPORTED = AssessmentStatus.UNSUPPORTED.value
 
 #: Requirement ids understood by the selector, in report order.
-REQUIREMENT_ORDER = ("pose_qa", "target_region", "redock_seeds", "strain", "membrane")
+REQUIREMENT_ORDER = (
+    "pose_qa",
+    "target_region",
+    "redock_seeds",
+    "strain",
+    "membrane",
+    "membrane_geometry",
+    "pocket_localization",
+    "accessibility_evidence",
+    "ensemble_evidence",
+)
 
 DEFAULT_FORMAL = {
     "pose_qa": {},
@@ -41,6 +51,10 @@ DEFAULT_FORMAL = {
     "redock_seeds": {"seeds_required": 3, "supporting_seeds_required": 2},
     "strain": {},
     "membrane": {},
+    "membrane_geometry": {},
+    "pocket_localization": {},
+    "accessibility_evidence": {},
+    "ensemble_evidence": {"require_complete_states": False},
 }
 
 
@@ -99,7 +113,7 @@ def _pose_qa(ctx, entry) -> dict[str, Any]:
         status=mapped,
         observed=status,
         detail=detail,
-        source="pose.assess_status",
+        source=source,
         reason_code=fallback.get("reason_code") if mapped != PASS else None,
     )
 
@@ -290,6 +304,187 @@ def _membrane(ctx, entry) -> dict[str, Any]:
     )
 
 
+def _membrane_geometry(ctx, entry) -> dict[str, Any]:
+    """Require verified membrane geometry bound to this exact pose.
+
+    A proxy plane, a missing receptor hash, or a depth copied from another pose can
+    never satisfy this requirement.  The observation is a coordinate/depth
+    measurement, not evidence of biological activity.
+    """
+    stage = read_json(os.path.join(ctx.stage_dir("membrane"), "summary.json"), {}) or {}
+    metrics = _metric(ctx, "pose", entry["pose_id"], "membrane")
+    geometry = stage.get("geometry") or {}
+    geometry_status = str(geometry.get("status") or stage.get("geometry_status") or "")
+    orientation_verified = stage.get("orientation_verified") is True and stage.get("status") == "sourced"
+    depth = metrics.get("ligand_center_depth_A")
+    if depth is None:
+        depth = metrics.get("insertion_depth")
+    observed = {
+        "stage_status": stage.get("status"),
+        "geometry_status": geometry_status,
+        "orientation_verified": orientation_verified,
+        "ligand_center_depth_A": depth,
+        "orientation_status": metrics.get("orientation_status"),
+        "coordinate_frame": geometry.get("coordinate_frame") or stage.get("coordinate_frame"),
+    }
+    if not stage:
+        return _requirement(
+            "membrane_geometry", status=NOT_EVALUATED, observed=observed,
+            detail="membrane stage produced no summary in this run", source="membrane stage",
+            reason_code=str(Reason.MEMBRANE_ORIENTATION_UNSOURCED),
+        )
+    if not orientation_verified or geometry_status != "evaluated":
+        return _requirement(
+            "membrane_geometry", status=NOT_EVALUATED, observed=observed,
+            detail=(
+                "membrane geometry is proxy-only or incomplete; it is retained for exploration but cannot satisfy a formal requirement"
+                if stage.get("status") == "proxy_only"
+                else "verified membrane geometry was not produced"
+            ),
+            source="membrane stage",
+            reason_code=str(Reason.MEMBRANE_ORIENTATION_UNSOURCED),
+        )
+    if isinstance(depth, bool) or not isinstance(depth, (int, float)) or not math.isfinite(float(depth)):
+        return _requirement(
+            "membrane_geometry", status=NOT_EVALUATED, observed=observed,
+            detail="the selected pose has no finite membrane depth measurement",
+            source="membrane stage",
+        )
+    pose = ctx.db.one("SELECT receptor_sha256 FROM docking_job j JOIN pose p ON p.job_id=j.job_id WHERE p.pose_id=?", (entry["pose_id"],)) or {}
+    stage_sha = (stage.get("input_hashes") or {}).get("receptor_sha256") or geometry.get("receptor_sha256")
+    pose_sha = pose.get("receptor_sha256")
+    if stage_sha and pose_sha and str(stage_sha) != str(pose_sha):
+        return _requirement(
+            "membrane_geometry", status=FAIL, observed=observed,
+            detail="membrane plane and pose belong to different receptor hashes",
+            source="membrane stage / docking job",
+            reason_code=str(Reason.RECEPTOR_UNBOUND),
+        )
+    return _requirement(
+        "membrane_geometry", status=PASS, observed=observed,
+        detail="verified membrane geometry and finite depth are bound to the selected pose",
+        source="membrane stage",
+    )
+
+
+def _pocket_localization(ctx, entry) -> dict[str, Any]:
+    metrics = _metric(ctx, "pose", entry["pose_id"], "membrane")
+    region = metrics.get("pocket_region")
+    contacts = metrics.get("pocket_contact_count")
+    observed = {
+        "pocket_region": region,
+        "pocket_contact_count": contacts,
+        "pocket_core_fraction": metrics.get("pocket_core_fraction"),
+        "pocket_interface_fraction": metrics.get("pocket_interface_fraction"),
+        "pocket_outside_core_fraction": metrics.get("pocket_outside_core_fraction"),
+        "pocket_tm_segments": metrics.get("pocket_tm_segments"),
+    }
+    if region is None and contacts is None:
+        return _requirement(
+            "pocket_localization", status=NOT_EVALUATED, observed=observed,
+            detail="pocket membrane localization was not produced for the selected pose",
+            source="membrane pocket analysis",
+        )
+    if contacts is None:
+        return _requirement(
+            "pocket_localization", status=NOT_EVALUATED, observed=observed,
+            detail="pocket region exists but the contact count is missing; localization is incomplete",
+            source="membrane pocket analysis",
+        )
+    if not math.isfinite(float(contacts)) or float(contacts) <= 0:
+        return _requirement(
+            "pocket_localization", status=FAIL, observed=observed,
+            detail="the docked ligand makes no receptor-residue contact inside the configured pocket cutoff",
+            source="membrane pocket analysis", reason_code=str(Reason.NO_CONTACTS),
+        )
+    if region in (None, "", "unknown"):
+        return _requirement(
+            "pocket_localization", status=NOT_EVALUATED, observed=observed,
+            detail="pocket region is unknown because membrane geometry was not usable",
+            source="membrane pocket analysis",
+            reason_code=str(Reason.MEMBRANE_ORIENTATION_UNSOURCED),
+        )
+    return _requirement(
+        "pocket_localization", status=PASS, observed=observed,
+        detail="ligand-defined pocket has receptor contacts and a membrane-region classification",
+        source="membrane pocket analysis",
+    )
+
+
+def _accessibility_evidence(ctx, entry) -> dict[str, Any]:
+    metrics = _metric(ctx, "pose", entry["pose_id"], "membrane")
+    status = metrics.get("geometric_accessibility_status")
+    observed = {
+        "aqueous_accessibility": metrics.get("aqueous_accessibility"),
+        "membrane_lateral_accessibility": metrics.get("membrane_lateral_accessibility"),
+        "geometric_path_length_A": metrics.get("geometric_path_length_A"),
+        "status": status,
+    }
+    if status is None:
+        return _requirement(
+            "accessibility_evidence", status=NOT_EVALUATED, observed=observed,
+            detail="geometric accessibility was not evaluated for this pose",
+            source="membrane accessibility analysis",
+        )
+    if status in {"accessible", "uncertain"}:
+        return _requirement(
+            "accessibility_evidence", status=PASS, observed=observed,
+            detail=(
+                "a static geometric route was found; this is not a permeation or binding-kinetics result"
+                if status == "accessible"
+                else "geometric analysis ran but no route was resolved; uncertainty is recorded, not treated as exclusion"
+            ),
+            source="membrane accessibility analysis",
+        )
+    return _requirement(
+        "accessibility_evidence", status=NOT_EVALUATED, observed=observed,
+        detail=f"accessibility status '{status}' is not an evaluated geometric result",
+        source="membrane accessibility analysis",
+    )
+
+
+def _ensemble_evidence(ctx, entry, rules: dict[str, Any]) -> dict[str, Any]:
+    payload = read_json(os.path.join(ctx.stage_dir("membrane"), "ensemble_analysis.json"), {}) or {}
+    if not payload or payload.get("enabled") is False:
+        return _requirement(
+            "ensemble_evidence", status=NOT_EVALUATED, observed={"ensemble_status": payload.get("ensemble_status")},
+            detail="ensemble screening is disabled or produced no analysis",
+            source="membrane ensemble analysis",
+        )
+    item = (payload.get("compounds") or {}).get(entry["compound_id"]) or {}
+    observed = {
+        "ensemble_status": item.get("ensemble_status") or payload.get("ensemble_status"),
+        "evaluated_states": item.get("number_of_evaluated_states"),
+        "missing_states": item.get("number_of_missing_states"),
+        "state_coverage": item.get("state_coverage"),
+        "best_supported_state": item.get("best_supported_state"),
+    }
+    if not item:
+        return _requirement(
+            "ensemble_evidence", status=NOT_EVALUATED, observed=observed,
+            detail="no per-state evidence exists for this compound",
+            source="membrane ensemble analysis",
+        )
+    require_complete = bool(rules.get("require_complete_states", False))
+    if require_complete and item.get("ensemble_status") != "complete":
+        return _requirement(
+            "ensemble_evidence", status=NEEDS_INPUT, observed=observed,
+            detail="configured state coverage is incomplete for this compound",
+            source="membrane ensemble analysis",
+        )
+    if int(item.get("number_of_evaluated_states") or 0) < 1:
+        return _requirement(
+            "ensemble_evidence", status=NOT_EVALUATED, observed=observed,
+            detail="no evaluated conformational state is available",
+            source="membrane ensemble analysis",
+        )
+    return _requirement(
+        "ensemble_evidence", status=PASS, observed=observed,
+        detail="at least one conformational state has real evidence; states are not averaged",
+        source="membrane ensemble analysis",
+    )
+
+
 def evaluate(ctx, entry: dict[str, Any], rules: dict[str, Any] | None = None) -> dict[str, Any]:
     rules = rules or DEFAULT_FORMAL
     results = [
@@ -298,6 +493,10 @@ def evaluate(ctx, entry: dict[str, Any], rules: dict[str, Any] | None = None) ->
         _redock_seeds(ctx, entry, rules.get("redock_seeds") or {}),
         _strain(ctx, entry),
         _membrane(ctx, entry),
+        _membrane_geometry(ctx, entry),
+        _pocket_localization(ctx, entry),
+        _accessibility_evidence(ctx, entry),
+        _ensemble_evidence(ctx, entry, rules.get("ensemble_evidence") or {}),
     ]
     required = [r for r in results if r["requirement"] in rules]
     unmet = [r for r in required if not r["satisfied"]]
@@ -321,8 +520,26 @@ def evaluate(ctx, entry: dict[str, Any], rules: dict[str, Any] | None = None) ->
 
 
 def qualification_rules(ctx) -> dict[str, Any]:
-    """Rules from the budget file, with the documented defaults as fallback."""
-    raw = ctx.config.get("qualification.formal_requirements") or list(REQUIREMENT_ORDER)
+    """Rules from the budget, plus strictly additive membrane-aware requirements.
+
+    The base formal requirements are never removed or weakened.  A membrane-aware
+    target may add requirements or request accessibility/ensemble evidence, but
+    the existing evidence gates remain in force.
+    """
+    raw = list(ctx.config.get("qualification.formal_requirements") or list(REQUIREMENT_ORDER[:5]))
+    target = ctx.config.target
+    membrane_block = getattr(target, "membrane_screening", None) or {}
+    qualification_block = membrane_block.get("qualification") or {}
+    extras = [str(name) for name in (qualification_block.get("formal_requirements") or [])]
+    for name in ("accessibility_evidence", "ensemble_evidence"):
+        policy = str(qualification_block.get(name, "optional"))
+        if policy == "required" and name not in extras:
+            extras.append(name)
+    for name in extras:
+        if name not in raw:
+            raw.append(name)
+    if not raw:
+        raw = list(REQUIREMENT_ORDER[:5])
     rules: dict[str, Any] = {}
     for name in raw:
         if name not in DEFAULT_FORMAL:
@@ -334,7 +551,13 @@ def qualification_rules(ctx) -> dict[str, Any]:
                     ctx.config.get("qualification.supporting_seeds_required", 2) or 2
                 ),
             }
-        elif name in DEFAULT_FORMAL:
+        elif name == "ensemble_evidence":
+            rules[name] = {
+                "require_complete_states": bool(
+                    qualification_block.get("require_complete_ensemble_states", False)
+                )
+            }
+        else:
             rules[name] = dict(DEFAULT_FORMAL[name])
     return rules
 

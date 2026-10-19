@@ -11,6 +11,7 @@ Rules:
 
 from __future__ import annotations
 
+import copy
 import math
 from typing import Any
 
@@ -138,16 +139,58 @@ def run(ctx) -> dict[str, Any]:
     entries.sort(key=lambda e: (e["tier"], -e["evidence_score"], e["compound_id"]))
     for index, entry in enumerate(entries, start=1):
         entry["rank"] = index
+        entry["baseline_rank"] = index
     from .diagnostics import sensitivity
+
+    diagnostics = sensitivity(
+        entries,
+        {k: weights[k] for k in available_weights},
+        relative_change=float(ctx.config.get("scoring.sensitivity_relative_change", 0.2)),
+    )
+    membrane_summary: dict[str, Any] = {
+        "schema": "ymavs-membrane-aware-ranking/1",
+        "status": "disabled",
+        "enabled": False,
+        "notes": ["screening_mode is not membrane_aware or membrane screening is disabled"],
+    }
+    baseline_entries = copy.deepcopy(entries)
+    try:
+        from ..membrane.settings import is_enabled, settings_for
+
+        if is_enabled(ctx):
+            from .membrane_aware import MembraneAwareScorer, write_evidence
+
+            scorer = MembraneAwareScorer(ctx, settings=settings_for(ctx))
+            ranked = scorer.run(entries)
+            entries = ranked.pop("entries", entries)
+            membrane_summary = ranked
+            evidence_path = write_evidence(
+                ctx.stage_dir("scoring"), entries, membrane_summary
+            )
+            membrane_summary["evidence_path"] = evidence_path
+    except Exception as exc:  # noqa: BLE001 - the baseline ranking must survive an optional layer failure
+        entries = baseline_entries
+        membrane_summary = {
+            "schema": "ymavs-membrane-aware-ranking/1",
+            "status": "error",
+            "enabled": True,
+            "reason": f"{type(exc).__name__}: {exc}",
+            "policy": "baseline ranking preserved; no partial membrane fields are used",
+        }
+        ctx.log(
+            f"membrane-aware ranking failed; baseline order preserved: {exc}",
+            stage="scoring",
+            level="error",
+        )
     return {
         "policy_version": "screening-evidence/v2",
         "score_scope": "within_candidate_pool_only; not comparable across runs",
-        "diagnostics": sensitivity(entries, {k: weights[k] for k in available_weights},
-                                   relative_change=float(ctx.config.get("scoring.sensitivity_relative_change", 0.2))),
+        "diagnostics": diagnostics,
         "weights_used": {w: weights[w] for w in available_weights},
         "weights_skipped": [w for w in weights if w not in available_weights],
         "compounds": len(entries),
         "tiers": {tier: sum(1 for e in entries if e["tier"] == tier) for tier in ("A", "B", "C", "D")},
+        "membrane_aware": membrane_summary,
         "ranking": entries,
     }
 

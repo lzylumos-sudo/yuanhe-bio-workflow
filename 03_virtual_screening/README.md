@@ -38,6 +38,19 @@ New report contracts include `decision.json` and `candidate_evidence.csv`: objec
 
 See [policy details](docs/SCREENING_DECISION_V2.md), [implementation status](../docs/product/IMPLEMENTATION_STATUS.md) and [product positioning](../docs/product/PRODUCT_VALUE_ZH.md).
 
+## Y-MAVS membrane-aware engine
+
+Targets with `screening_mode: membrane_aware` additionally run the Yuanhe
+Membrane-Aware Virtual Screening Engine: membrane regions, ligand-defined pocket
+analysis, static geometric accessibility, compatibility descriptors, optional
+multi-state evidence and an evidence-first ranking. GNINA scores, baseline ranks and
+formal qualification remain separate and are never upgraded by a proxy membrane plane.
+
+See [Y-MAVS implementation and validation boundary](docs/YMAVS.md) and the generic
+[target template](configs/targets/membrane_protein_template.yaml). The archived 1DRF
+fixture was executed once as a proxy-only integration check; no new docking, MD or
+benchmark is claimed.
+
 ## Existing entry points
 
 Install into the chemistry environment from the repository root with `python -m pip install -e ./03_virtual_screening`. From this module directory, existing commands are:
