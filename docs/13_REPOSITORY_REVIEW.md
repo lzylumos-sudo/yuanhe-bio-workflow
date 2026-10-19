@@ -25,6 +25,8 @@ These are engineering references, not claims of scientific equivalence, upstream
 | Optional PLIP interpreter configuration contained a developer's absolute path. | Remove the tracked path; retain an ignored local override and document the environment variable. |
 | Test collection executed dedicated runtime or completed-run validation scripts. | Move those tools to explicit `scripts/validate_*.py` entrypoints; make integrity regressions ordinary isolated tests. |
 | Frontend syntax check omitted nested flow modules. | Recursively check all 18 ES modules and run the check in CI. |
+| Clean Linux docking collection failed because Meeko was absent from package metadata and the combined test environment. | Declare Meeko and its required chemistry dependencies in the docking package; install the recorded Meeko version in CI. |
+| CI used deprecated action runtimes and a moving Ubuntu label. | Update official actions and pin Ubuntu 24.04 to keep the acceptance environment explicit. |
 | CI covered only three main suites. | Add docking, ZLIS, standalone MD and standalone archive checks, with explicit dependencies and preserved JUnit results. |
 | Historical execution hashes differed from the renamed Git history. | Preserve original evidence hashes and supply a file-tree-equivalent old/new commit mapping. |
 | A fresh local UI displayed a hardcoded remote/GPU environment label. | Replace the implied connection status with a configuration prompt; verify preview and environment dialog in the browser. |
