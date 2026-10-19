@@ -27,6 +27,7 @@ These are engineering references, not claims of scientific equivalence, upstream
 | Frontend syntax check omitted nested flow modules. | Recursively check all 18 ES modules and run the check in CI. |
 | Clean Linux docking collection failed because Meeko was absent from package metadata and the combined test environment. | Declare Meeko and its required chemistry dependencies in the docking package; install the recorded Meeko version in CI. |
 | Clean Linux exposed concurrent SQLite journal initialization and a spawn test launching the same worker twice. | Serialize registry initialization, preserve existing WAL mode, close the parent log handle, reap the actual spawned child, and add a six-process initialization regression. |
+| Linux ZLIS scene tests lacked PyMOL; the available renderer wheel requires NumPy 2 while chemistry is locked to 1.26. | Support an explicit separate PyMOL interpreter and install its isolated CI environment; retain actual scene creation/reopening assertions. Run one ligand comparison serially to avoid unnecessary fork warnings. |
 | CI used deprecated action runtimes and a moving Ubuntu label. | Update official actions and pin Ubuntu 24.04 to keep the acceptance environment explicit. |
 | CI covered only three main suites. | Add docking, ZLIS, standalone MD and standalone archive checks, with explicit dependencies and preserved JUnit results. |
 | Historical execution hashes differed from the renamed Git history. | Preserve original evidence hashes and supply a file-tree-equivalent old/new commit mapping. |

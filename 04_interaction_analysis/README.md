@@ -13,6 +13,8 @@ Commands: `ligands <pdb>`; `analyze <pdb> [--ligand A:BEN1] [--template lig.sdf|
 
 Optional PLIP: set `ZLIS_PLIP_PYTHON` to the interpreter in your separate PLIP environment, or save that path in ignored `env/plip_python.txt`. No developer-specific interpreter path is distributed.
 
+PyMOL rendering can use a separate environment: set `ZLIS_PYMOL_PYTHON` to its Python executable. Without this setting, the current interpreter is used. This keeps a renderer requiring NumPy 2 separate from a chemistry environment locked to NumPy 1.26. Both scene creation and reopening must be checked; file generation alone is not a visual acceptance. CI uses the explicitly pinned `pymol-open-source==3.2.0a0` renderer wheel in an isolated environment.
+
 ## Outputs
 
 Each ligand receives `interactions.csv/.xlsx/.json`, publication/detailed/audit 2D SVG/PNG/PDF, an HTML layout editor and audit view, `complex_analysis.pdb`, `ligand.sdf`, PyMOL scene/scripts, scene configuration, binding-site image and optional PLIP crosscheck. Save `layout.json` after moving labels and redraw using `--layout`.

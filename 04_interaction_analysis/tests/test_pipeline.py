@@ -242,14 +242,14 @@ def test_moved_project_dir_with_spaces_and_chinese(tmp_path):
 
 # --- PyMOL: scene reopens with objects --------------------------------------------------------
 def test_pse_reopens_with_objects_and_arrows(r3ptb, tmp_path):
-    from zlis.pymol_scene import build_scene, write_scene_files
+    from zlis.pymol_scene import build_scene, write_scene_files, pymol_python
     write_scene_files(r3ptb, tmp_path)
     b = build_scene(tmp_path, no_png=True)
     assert b["ok"], b["stderr"]
     code = ("import pymol,json;pymol.finish_launching(['pymol','-qc']);from pymol import cmd;"
             f"cmd.load({str(tmp_path / 'scene.pse')!r});"
             "print(json.dumps({'objs':cmd.get_names('objects'),'complex':cmd.count_atoms('complex'),'ligand':cmd.count_atoms('ligand')}), flush=True)")
-    p = subprocess.run([sys.executable, "-c", code], capture_output=True, text=True)
+    p = subprocess.run([pymol_python(), "-c", code], capture_output=True, text=True)
     info = json.loads([l for l in p.stdout.splitlines() if l.startswith("{")][-1])
     assert "ix_hydrogen_bond" in info["objs"] and "ix_ionic" in info["objs"]
     assert info["ligand"] == r3ptb["_lig"].mol.GetNumAtoms()

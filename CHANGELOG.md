@@ -8,6 +8,7 @@
 - Restore five missing upstream license texts at their recorded hashes and include license notices in independent exports.
 - Remove a developer-specific optional PLIP interpreter path and the hardcoded remote/GPU label in a fresh UI.
 - Serialize docking registry initialization and fix duplicate worker spawning in its regression test.
+- Support an isolated PyMOL renderer and avoid multiprocessing for a single interaction comparison.
 - Declare missing docking preparation dependencies and pin the CI Ubuntu version.
 - Expand CI to docking, ZLIS, standalone MD contracts, package integrity and recursive JavaScript syntax checks.
 - Add the support matrix, contribution guidance and repository integrity checks.

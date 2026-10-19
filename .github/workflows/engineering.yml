@@ -43,9 +43,17 @@ jobs:
         if: ${{ !cancelled() && steps.dependencies.outcome == 'success' }}
         working-directory: 02_docking
         run: PYTHONPATH=src python -m pytest tests -q --junitxml=../docking-tests.xml
+      - name: Install isolated PyMOL renderer
+        if: ${{ !cancelled() && steps.dependencies.outcome == 'success' }}
+        run: |
+          python -m venv "$RUNNER_TEMP/yuanhe-pymol"
+          "$RUNNER_TEMP/yuanhe-pymol/bin/python" -m pip install numpy==2.2.6 pymol-open-source==3.2.0a0
+          "$RUNNER_TEMP/yuanhe-pymol/bin/python" -m pip check
       - name: Interaction analysis
         if: ${{ !cancelled() && steps.dependencies.outcome == 'success' }}
         working-directory: 04_interaction_analysis
+        env:
+          ZLIS_PYMOL_PYTHON: ${{ runner.temp }}/yuanhe-pymol/bin/python
         run: PYTHONPATH=src python -m pytest tests -q --junitxml=../interaction-tests.xml
       - name: Standalone MD contracts
         if: ${{ !cancelled() && steps.dependencies.outcome == 'success' }}

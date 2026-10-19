@@ -123,7 +123,7 @@ def run_analysis(lig: LigandChem, prot: ProteinIndex, polymer_atoms: list[Atom],
     pm = plf.Molecule.from_rdkit(pmol)
     lm = plf.Molecule.from_rdkit(lmol)
     fp = plf.Fingerprint(PROLIF_TYPES, count=True)
-    fp.run_from_iterable([lm], pm, progress=False)
+    fp.run_from_iterable([lm], pm, progress=False, n_jobs=1)
 
     events: list[dict] = []
 

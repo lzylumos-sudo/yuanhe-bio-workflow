@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import json
+import os
 import shutil
 import subprocess
 import sys
@@ -72,8 +73,13 @@ def write_scene_files(result: dict, out_dir: Path, hidden_types=("hydrophobic", 
     return {"pdb": str(out_dir / "complex_analysis.pdb"), "sdf": str(out_dir / "ligand.sdf")}
 
 
+def pymol_python() -> str:
+    """Use a separate renderer environment when its NumPy ABI differs."""
+    return os.environ.get("ZLIS_PYMOL_PYTHON") or sys.executable
+
+
 def build_scene(out_dir: Path, no_png: bool = False, timeout: int = 600) -> dict:
-    """Run rebuild_scene.py in a fresh headless PyMOL (same interpreter that has pymol installed)."""
+    """Run the recorded scene in a fresh headless PyMOL interpreter."""
     import os
     out_dir = Path(out_dir)
     env = dict(os.environ)
@@ -81,7 +87,7 @@ def build_scene(out_dir: Path, no_png: bool = False, timeout: int = 600) -> dict
         env["ZLIS_NO_PNG"] = "1"
     code = (f"import pymol,sys,os; pymol.finish_launching(['pymol','-qc']); os.chdir({str(out_dir)!r}); "
             f"exec(compile(open('rebuild_scene.py').read(),'rebuild_scene.py','exec'))")
-    proc = subprocess.run([sys.executable, "-c", code], capture_output=True, text=True, timeout=timeout,
+    proc = subprocess.run([pymol_python(), "-c", code], capture_output=True, text=True, timeout=timeout,
                           env=env, cwd=str(out_dir))
     ok = (out_dir / "scene.pse").exists() and proc.returncode == 0
     return {"ok": ok, "stdout": proc.stdout[-400:], "stderr": proc.stderr[-1200:],
