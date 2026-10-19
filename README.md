@@ -1,69 +1,102 @@
-# Yuanhe Bio Workflow
+# 🧬 Yuanhe Bio | &#20803;&#26680;&#29983;&#29289;
 
-A traceable research workbench connecting protein-peptide complexes to Peptide2Mol seeds, reviewed molecular cores, REINVENT4 expansion, GNINA docking, virtual screening and membrane molecular dynamics.
+### AI-Driven Drug Discovery & Molecular Design Platform
 
-**Release 0.4.0-rc1: reproducible research integration, with explicit scientific gates.** The browser workflow connects reviewed structures to generation, docking, screening, membrane construction, GROMACS, trajectory analysis and export. The fresh 9NU4 run completed all 16 generation attempts (one accepted), generated eight unique REINVENT molecules and docked nine molecules / 81 poses. Corrected, versioned reassessment of the archived three-seed redocking results yielded **two formally qualified screening candidates**. Qualification is distinct from MD quality and biological activity.
+*From Protein Structures to Small-Molecule Candidates.*
 
-The release includes independent docking, screening, membrane MD and peptide-contact evidence packages, clean-environment installation records, a second-target crystallographic docking control, and prespecified three-repeat MD quality criteria. See [current acceptance evidence](docs/10_INTEGRATED_ACCEPTANCE.md), [module contracts](docs/07_MODULE_CONTRACTS.md) and [application scope](docs/09_MATURITY_AND_APPLICATION_SCOPE.md). Prior 0.3 results remain historical records. Windows/WSL2 with RTX 5070 is not a validated execution platform for this release.
+A source-available **Artificial Intelligence for Drug Discovery (AIDD)** research workflow that connects reviewed protein structures, AI molecular generation, structure-based virtual screening and molecular dynamics with traceable evidence.
 
-**Final acceptance remains open.** The last remote observation on 2026-10-18 at 11:18 China Standard Time confirmed two completed 5 ns repeats; the third was in equilibration. Remote access was lost before aggregate acceptance and final export. Passing automated checks does not close those steps. The [five-part acceptance and maintenance checklist](docs/11_RELEASE_MAINTENANCE.md) defines the remaining scope, evidence requirements and release decision.
+**Generative AI · Structure-Based Drug Design · Virtual Screening · Molecular Dynamics · Reproducible Workflow**
+
+[![Status: Research preview](https://img.shields.io/badge/status-research_preview-245b78)](docs/10_INTEGRATED_ACCEPTANCE.md)
+[![License: PolyForm Noncommercial](https://img.shields.io/badge/license-PolyForm_Noncommercial-5b6f67)](LICENSE)
+
+**Release 0.4.0-rc1 — final acceptance remains open.** Yuanhe Research Edition is the current research direction; Yuanhe Enterprise is a proposed commercial platform, not an available enterprise product. Computational candidates are hypotheses for further testing.
+
+## Workflow overview
 
 ```mermaid
 flowchart LR
- A[Complex and construct review] --> B[Peptide2Mol seeds]
- B --> C[Interactive core review]
- C --> D[REINVENT4 expansion]
- D --> E[GNINA batch docking]
- E --> F[Virtual screening]
- F --> G[Candidate and membrane review]
- G --> H[Build membrane system]
- H --> I[GROMACS and checkpoint recovery]
- I --> J[Trajectory analysis and export]
+ A[Protein structure] --> B[Binding-site analysis and human review]
+ B --> C[AI molecular generation]
+ C --> D[Molecular docking]
+ D --> E[Virtual screening]
+ E --> F[Molecular dynamics]
+ F --> G[Candidate prioritization and evidence]
+ G -. Requires separate experiments .-> H[Biological validation]
 ```
 
-| Directory | Purpose |
-|---|---|
-| `00_workbench` | Unified UI, guided review, scheduling, membrane builder, GROMACS and analysis |
-| `01_molecule_generation` | Preparation, model adapters, core and chemistry checks |
-| `02_docking` | GNINA protocols, docking records and standalone tools |
-| `03_virtual_screening` | Pose QC, evidence, diversity, qualification and ranking |
-| `04_interaction_analysis` | Optional ZLIS interaction visualization |
-| `05_molecular_dynamics` | Optional standalone OpenMM workflow |
-| `data/structures` | Original structural inputs and provenance |
-| `deployment` | Installation, runtime configuration and validation tools |
-| `docs` | Architecture, setup and validation records |
-| `archive` | Historical docking prototype |
+The implemented path uses Peptide2Mol seeds, human-reviewed cores, REINVENT4 expansion, GNINA docking, screening and membrane/GROMACS execution. Structure interpretation, core selection, membrane construction choices and scientific acceptance require human judgment. Final repeated-MD acceptance is pending; biological validation is outside the demonstrated workflow.
 
-## Start
+## Core capabilities
 
-After initial dependency installation, double-click `start_windows.cmd` and select the configured WSL distribution. On Linux use `bash start_linux.sh`. For a UI-only preview with Python 3.11+, run:
+| Capability | What it provides | Evidence boundary |
+|---|---|---|
+| AI molecular generation | Pinned Peptide2Mol and REINVENT4 adapters, sample accounting and chemistry checks | Real bounded inference recorded; no proprietary generator or proven functional mimicry |
+| Structure-based drug design | Receptor/pocket preparation, core review and GNINA docking | MurJ example and a separate 1DRF docking control |
+| Virtual screening | Pose quality, redocking, diversity, qualification and candidate identity | Qualification is a computational protocol verdict |
+| Molecular dynamics | Membrane setup, GROMACS, checkpoint recovery and trajectory analysis | Two 5 ns repeats last observed complete; aggregate acceptance pending |
+| Reproducible workflow | Source/input hashes, review gates, isolated execution and export implementation | Final UI export for the current acceptance run remains pending |
+| Optional analysis | ZLIS interaction analysis and a separate OpenMM module | Separate environments and validation records |
+
+## MurJ / 9NU4 research case
+
+The recorded Linux / RTX 5090 D run completed 16 Peptide2Mol attempts (1 accepted), produced 8 unique REINVENT molecules and docked 9 molecules / 81 poses. Corrected reassessment of archived three-seed redocking results qualified **2 screening candidates**. These are computational candidates, not experimentally validated hits.
+
+Peptide-contact comparison found that each of the seven shortlisted molecules recovered only **1 of 22** reference contact residues. Contact-guided sorting did not change the ordering. This negative result does not support peptide-function replacement or improved hit rate.
+
+At the last remote observation on 2026-10-18 at 11:18 China Standard Time, two 5 ns MD velocity repeats were complete and the third was in equilibration. Remote access was lost before aggregate acceptance and final export. See the [integrated evidence and remaining gates](docs/10_INTEGRATED_ACCEPTANCE.md).
+
+## Quick Start
+
+For a local UI preview with Python 3.11+:
 
 ```bash
+git clone https://github.com/lzylumos-sudo/yuanhe-bio-workflow.git
+cd yuanhe-bio-workflow
 python3 00_workbench/run_webui.py --no-browser
 ```
 
-Open the displayed local address, normally http://127.0.0.1:8777. The UI starts without launching calculations. Configure environments once, then prepare, review, execute, stop, resume, inspect trajectories and export records through the interface.
+Open the displayed address, normally http://127.0.0.1:8777. Preview starts the interface; scientific engines and weights require separate installation. Follow [setup](docs/01_SETUP.md) and the [platform support matrix](docs/12_SUPPORT_MATRIX.md) before executing a calculation.
 
-- [Setup](docs/01_SETUP.md)
-- [Platform support and test commands](docs/12_SUPPORT_MATRIX.md)
-- [Changelog](CHANGELOG.md)
-- [Contributing](CONTRIBUTING.md)
-- [UI workflow](USER_GUIDE.txt)
-- [RTX 5070 installation and MurJ validation](deployment/validation_5070/INSTALL_AND_VALIDATE.txt)
-- [Architecture](docs/02_PROJECT_GUIDE.md)
-- [Validation scope](docs/04_VALIDATION.md)
-- [Third-party sources](THIRD_PARTY_NOTICES.md)
+After dependency setup, Linux users can run `bash start_linux.sh`; Windows users can launch `start_windows.cmd` and choose the configured WSL distribution. Windows/WSL2 RTX 5070 acceptance is unverified. macOS supports preview and documented checks; use the Linux GPU execution path for the released model adapter.
 
-## Scientific boundaries
+## Documentation
 
-The current input is MurJ / 9NU4. Review chains, construct mutations, residue ranges, protonation and the docking box. Peptide2Mol uses the peptide-defined receptor pocket; explicit peptide-pharmacophore retention is not claimed. REINVENT4 expands a reviewed molecular core, not a protein backbone.
+| Start here | Contents |
+|---|---|
+| [Setup](docs/01_SETUP.md) · [UI guide](USER_GUIDE.txt) | Installation and reviewed execution |
+| [Project guide](docs/02_PROJECT_GUIDE.md) · [Module contracts](docs/07_MODULE_CONTRACTS.md) | Architecture, data flow and handoff |
+| [Validation](docs/04_VALIDATION.md) · [Integrated acceptance](docs/10_INTEGRATED_ACCEPTANCE.md) | Recorded checks and scientific limitations |
+| [Release checklist](docs/11_RELEASE_MAINTENANCE.md) · [Platform support](docs/12_SUPPORT_MATRIX.md) | Open acceptance and supported paths |
+| [Commercialization dossier](docs/commercialization/README.md) | Repository/rights audit, boundaries and proposed roadmap |
+| [Changelog](CHANGELOG.md) · [Contributing](CONTRIBUTING.md) | Release history and contributions |
+| [RTX 5070 installation recipe](deployment/validation_5070/INSTALL_AND_VALIDATE.txt) | Planned target setup; not proof of target execution |
 
-Counts distinguish requested samples, valid unique molecules, docking poses, preliminary candidates and formally qualified candidates. Unperformed checks never become passes. For the exact 9NU4 construct, screening transfers an archived PPM3 orientation with file hashes, atom mapping and a rigid-fit tolerance check. Other structures without matching evidence retain a proxy or missing-evidence status; the membrane builder requires a reviewed orientation. Idealized single-lipid membranes are not full bacterial membrane models.
+The source is organized as `00_workbench`, `01_molecule_generation`, `02_docking`, `03_virtual_screening`, `04_interaction_analysis` and `05_molecular_dynamics`. `data/structures` preserves structural provenance; `deployment` supplies installation and packaging tools; `archive` retains the historical docking prototype.
 
-The built-in MD path includes parameterization, minimization, staged equilibration, production, checkpoint guards and analysis. It has not been executed on the target Windows machine in this release. Short trajectories and docking scores do not establish affinity, activity or convergence.
+## Validation & limitations
 
-Weights, installed environments, VHDX images and historical run outputs are excluded from GitHub. Restore pinned models separately. An external disk does not remove host driver, WSL, environment or target-machine acceptance requirements.
+Review construct mutations, chains, residue ranges, protonation and the docking box. Peptide2Mol uses a peptide-defined receptor pocket; explicit pharmacophore retention is not established. REINVENT4 expands reviewed molecular cores, not protein backbones.
 
-## License
+The 9NU4 membrane orientation is transferred from a hash-checked archived PPM3 result with atom mapping and a rigid-fit tolerance. Other constructs do not inherit that evidence. Idealized single-lipid membranes do not reproduce the complete bacterial membrane. Short MD, docking scores and passing software tests do not establish affinity, activity, convergence or clinical suitability.
 
-Original project contributions in this release use the unmodified [PolyForm Noncommercial License 1.0.0](LICENSE), subject to [scope and existing rights](LICENSE_SCOPE.txt). This is source-available software, not an unrestricted commercial-use open-source license. Commercial uses outside the license's permitted purposes require separate authorization. Third-party materials and prior grants retain their own terms; see [notices](THIRD_PARTY_NOTICES.txt).
+Weights, environments, VHDX images and full historical run outputs are excluded. Restore pinned models separately and review their rights. The 1DRF control is not a second complete peptide-to-MD validation. No controlled time-saving study, broad target benchmark, wet-lab hit-rate improvement or paid-customer outcome is established. See [maturity assessment](docs/09_MATURITY_AND_APPLICATION_SCOPE.md).
+
+## Roadmap
+
+1. Close reproducibility and acceptance gaps, strengthen installation and independent benchmark evidence.
+2. Evaluate structure constraints and multi-objective selection on held-out targets under fixed compute budgets.
+3. Prototype uncertainty-aware active learning and separately deployed enterprise services only after rights, scientific and user-need gates.
+
+These are development targets. See the [18-month plan](docs/commercialization/roadmap_18_months.md) and [closed-loop design](docs/commercialization/closed_loop_design.md).
+
+## Licensing & commercial use
+
+Original eligible contributions use the unmodified [PolyForm Noncommercial License 1.0.0](LICENSE), subject to [scope and existing rights](LICENSE_SCOPE.txt). This is **source-available research software**. A public repository does not grant unrestricted commercial authorization. Uses outside permitted purposes require separate permission from the relevant rights holders; the standard license controls.
+
+Third-party code, weights, data and historical grants retain their own terms, including earlier MIT rights. A Yuanhe authorization cannot replace those rights or obligations. See [third-party sources](THIRD_PARTY_NOTICES.md), [preserved notices](THIRD_PARTY_NOTICES.txt) and the [preliminary license audit](docs/commercialization/license_audit.md).
+
+## Collaboration & contact
+
+We welcome reproducibility reports, public benchmark feedback and research collaboration. Use [GitHub Issues](https://github.com/lzylumos-sudo/yuanhe-bio-workflow/issues) for non-sensitive questions or to request a private contact channel for commercial licensing. Do not post confidential compounds, customer data or credentials in public issues.
