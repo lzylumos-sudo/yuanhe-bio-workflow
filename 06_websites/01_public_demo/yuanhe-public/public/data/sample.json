@@ -1,0 +1,577 @@
+{
+  "id": "9NU4",
+  "source": "https://files.rcsb.org/download/9NU4.pdb",
+  "citation": "https://doi.org/10.2210/pdb9NU4/pdb",
+  "license": "CC0-1.0",
+  "licenseSource": "https://www.wwpdb.org/about/usage-policies",
+  "retrieved": "2026-10-18",
+  "sha256": "ec509ae9f04236407d515de6f64095fefb44a8432eca8287e9bd8b3f75c78a3a",
+  "method": "Minimum inter-chain heavy-atom Euclidean distance; model 1; altloc blank/A; receptor A:3-500; observed peptide B; contacts stored to 8 A; no hydrogen-bond or affinity assignment.",
+  "chains": {
+    "A": {
+      "atoms": 4598,
+      "residues": 602,
+      "min": -101,
+      "max": 500
+    },
+    "B": {
+      "atoms": 226,
+      "residues": 29,
+      "min": 2,
+      "max": 30
+    }
+  },
+  "contacts": [
+    {
+      "res": 113,
+      "icode": "",
+      "name": "THR",
+      "atom": "OG1",
+      "peptideRes": 15,
+      "peptideName": "VAL",
+      "peptideAtom": "O",
+      "distance": 2.438
+    },
+    {
+      "res": 112,
+      "icode": "",
+      "name": "VAL",
+      "atom": "O",
+      "peptideRes": 19,
+      "peptideName": "SER",
+      "peptideAtom": "OG",
+      "distance": 2.6236
+    },
+    {
+      "res": 50,
+      "icode": "",
+      "name": "LEU",
+      "atom": "O",
+      "peptideRes": 14,
+      "peptideName": "LEU",
+      "peptideAtom": "CD2",
+      "distance": 3.0575
+    },
+    {
+      "res": 234,
+      "icode": "",
+      "name": "GLY",
+      "atom": "O",
+      "peptideRes": 6,
+      "peptideName": "ASN",
+      "peptideAtom": "ND2",
+      "distance": 3.097
+    },
+    {
+      "res": 241,
+      "icode": "",
+      "name": "SER",
+      "atom": "OG",
+      "peptideRes": 13,
+      "peptideName": "LEU",
+      "peptideAtom": "CD1",
+      "distance": 3.26
+    },
+    {
+      "res": 255,
+      "icode": "",
+      "name": "SER",
+      "atom": "OG",
+      "peptideRes": 25,
+      "peptideName": "SER",
+      "peptideAtom": "CB",
+      "distance": 3.3609
+    },
+    {
+      "res": 54,
+      "icode": "",
+      "name": "ILE",
+      "atom": "CG2",
+      "peptideRes": 10,
+      "peptideName": "CYS",
+      "peptideAtom": "SG",
+      "distance": 3.4486
+    },
+    {
+      "res": 230,
+      "icode": "",
+      "name": "VAL",
+      "atom": "O",
+      "peptideRes": 3,
+      "peptideName": "TYR",
+      "peptideAtom": "CE1",
+      "distance": 3.4533
+    },
+    {
+      "res": 245,
+      "icode": "",
+      "name": "ILE",
+      "atom": "CG1",
+      "peptideRes": 13,
+      "peptideName": "LEU",
+      "peptideAtom": "CD1",
+      "distance": 3.4609
+    },
+    {
+      "res": 237,
+      "icode": "",
+      "name": "ILE",
+      "atom": "CG2",
+      "peptideRes": 6,
+      "peptideName": "ASN",
+      "peptideAtom": "ND2",
+      "distance": 3.4624
+    },
+    {
+      "res": 240,
+      "icode": "",
+      "name": "VAL",
+      "atom": "CG1",
+      "peptideRes": 10,
+      "peptideName": "CYS",
+      "peptideAtom": "SG",
+      "distance": 3.4811
+    },
+    {
+      "res": 244,
+      "icode": "",
+      "name": "GLN",
+      "atom": "CG",
+      "peptideRes": 14,
+      "peptideName": "LEU",
+      "peptideAtom": "CD1",
+      "distance": 3.5182
+    },
+    {
+      "res": 251,
+      "icode": "",
+      "name": "THR",
+      "atom": "CG2",
+      "peptideRes": 18,
+      "peptideName": "ASP",
+      "peptideAtom": "OD1",
+      "distance": 3.6167
+    },
+    {
+      "res": 252,
+      "icode": "",
+      "name": "ILE",
+      "atom": "CD1",
+      "peptideRes": 24,
+      "peptideName": "VAL",
+      "peptideAtom": "CG1",
+      "distance": 3.6631
+    },
+    {
+      "res": 248,
+      "icode": "",
+      "name": "ILE",
+      "atom": "CD1",
+      "peptideRes": 17,
+      "peptideName": "GLY",
+      "peptideAtom": "O",
+      "distance": 3.6773
+    },
+    {
+      "res": 51,
+      "icode": "",
+      "name": "LEU",
+      "atom": "CD2",
+      "peptideRes": 11,
+      "peptideName": "VAL",
+      "peptideAtom": "CG1",
+      "distance": 3.8048
+    },
+    {
+      "res": 238,
+      "icode": "",
+      "name": "LEU",
+      "atom": "N",
+      "peptideRes": 6,
+      "peptideName": "ASN",
+      "peptideAtom": "ND2",
+      "distance": 3.9228
+    },
+    {
+      "res": 115,
+      "icode": "",
+      "name": "PRO",
+      "atom": "CG",
+      "peptideRes": 23,
+      "peptideName": "ARG",
+      "peptideAtom": "NH2",
+      "distance": 3.9302
+    },
+    {
+      "res": 233,
+      "icode": "",
+      "name": "MET",
+      "atom": "C",
+      "peptideRes": 3,
+      "peptideName": "TYR",
+      "peptideAtom": "CE1",
+      "distance": 3.9597
+    },
+    {
+      "res": 256,
+      "icode": "",
+      "name": "PHE",
+      "atom": "CE1",
+      "peptideRes": 28,
+      "peptideName": "LEU",
+      "peptideAtom": "CB",
+      "distance": 4.0749
+    },
+    {
+      "res": 47,
+      "icode": "",
+      "name": "LEU",
+      "atom": "CD2",
+      "peptideRes": 15,
+      "peptideName": "VAL",
+      "peptideAtom": "O",
+      "distance": 4.2369
+    },
+    {
+      "res": 55,
+      "icode": "",
+      "name": "PHE",
+      "atom": "CZ",
+      "peptideRes": 7,
+      "peptideName": "LEU",
+      "peptideAtom": "CD1",
+      "distance": 4.2816
+    },
+    {
+      "res": 53,
+      "icode": "",
+      "name": "ARG",
+      "atom": "CB",
+      "peptideRes": 14,
+      "peptideName": "LEU",
+      "peptideAtom": "CD2",
+      "distance": 4.6489
+    },
+    {
+      "res": 111,
+      "icode": "",
+      "name": "MET",
+      "atom": "O",
+      "peptideRes": 23,
+      "peptideName": "ARG",
+      "peptideAtom": "NH2",
+      "distance": 4.6923
+    },
+    {
+      "res": 114,
+      "icode": "",
+      "name": "ALA",
+      "atom": "N",
+      "peptideRes": 19,
+      "peptideName": "SER",
+      "peptideAtom": "OG",
+      "distance": 4.806
+    },
+    {
+      "res": 109,
+      "icode": "",
+      "name": "VAL",
+      "atom": "CG1",
+      "peptideRes": 15,
+      "peptideName": "VAL",
+      "peptideAtom": "CB",
+      "distance": 5.0166
+    },
+    {
+      "res": 235,
+      "icode": "",
+      "name": "PRO",
+      "atom": "N",
+      "peptideRes": 6,
+      "peptideName": "ASN",
+      "peptideAtom": "ND2",
+      "distance": 5.0228
+    },
+    {
+      "res": 52,
+      "icode": "",
+      "name": "ARG",
+      "atom": "N",
+      "peptideRes": 14,
+      "peptideName": "LEU",
+      "peptideAtom": "CD2",
+      "distance": 5.4205
+    },
+    {
+      "res": 231,
+      "icode": "",
+      "name": "LYS",
+      "atom": "N",
+      "peptideRes": 3,
+      "peptideName": "TYR",
+      "peptideAtom": "CE1",
+      "distance": 5.5544
+    },
+    {
+      "res": 46,
+      "icode": "",
+      "name": "LYS",
+      "atom": "NZ",
+      "peptideRes": 15,
+      "peptideName": "VAL",
+      "peptideAtom": "O",
+      "distance": 5.5943
+    },
+    {
+      "res": 242,
+      "icode": "",
+      "name": "VAL",
+      "atom": "N",
+      "peptideRes": 13,
+      "peptideName": "LEU",
+      "peptideAtom": "CD1",
+      "distance": 5.6843
+    },
+    {
+      "res": 98,
+      "icode": "",
+      "name": "VAL",
+      "atom": "CG2",
+      "peptideRes": 11,
+      "peptideName": "VAL",
+      "peptideAtom": "CG2",
+      "distance": 5.8643
+    },
+    {
+      "res": 249,
+      "icode": "",
+      "name": "ILE",
+      "atom": "N",
+      "peptideRes": 21,
+      "peptideName": "ALA",
+      "peptideAtom": "CB",
+      "distance": 5.9768
+    },
+    {
+      "res": 247,
+      "icode": "",
+      "name": "LEU",
+      "atom": "O",
+      "peptideRes": 21,
+      "peptideName": "ALA",
+      "peptideAtom": "CB",
+      "distance": 6.0755
+    },
+    {
+      "res": 229,
+      "icode": "",
+      "name": "VAL",
+      "atom": "O",
+      "peptideRes": 3,
+      "peptideName": "TYR",
+      "peptideAtom": "OH",
+      "distance": 6.1203
+    },
+    {
+      "res": 236,
+      "icode": "",
+      "name": "ALA",
+      "atom": "C",
+      "peptideRes": 6,
+      "peptideName": "ASN",
+      "peptideAtom": "ND2",
+      "distance": 6.2048
+    },
+    {
+      "res": 232,
+      "icode": "",
+      "name": "GLN",
+      "atom": "C",
+      "peptideRes": 3,
+      "peptideName": "TYR",
+      "peptideAtom": "CE1",
+      "distance": 6.2455
+    },
+    {
+      "res": 239,
+      "icode": "",
+      "name": "GLY",
+      "atom": "N",
+      "peptideRes": 6,
+      "peptideName": "ASN",
+      "peptideAtom": "OD1",
+      "distance": 6.2978
+    },
+    {
+      "res": 135,
+      "icode": "",
+      "name": "PHE",
+      "atom": "CE2",
+      "peptideRes": 15,
+      "peptideName": "VAL",
+      "peptideAtom": "CG1",
+      "distance": 6.3629
+    },
+    {
+      "res": 94,
+      "icode": "",
+      "name": "ALA",
+      "atom": "CB",
+      "peptideRes": 7,
+      "peptideName": "LEU",
+      "peptideAtom": "CD2",
+      "distance": 6.4335
+    },
+    {
+      "res": 49,
+      "icode": "",
+      "name": "ASN",
+      "atom": "O",
+      "peptideRes": 14,
+      "peptideName": "LEU",
+      "peptideAtom": "CD2",
+      "distance": 6.4845
+    },
+    {
+      "res": 250,
+      "icode": "",
+      "name": "ASN",
+      "atom": "C",
+      "peptideRes": 21,
+      "peptideName": "ALA",
+      "peptideAtom": "CB",
+      "distance": 6.6213
+    },
+    {
+      "res": 90,
+      "icode": "",
+      "name": "LEU",
+      "atom": "CD2",
+      "peptideRes": 3,
+      "peptideName": "TYR",
+      "peptideAtom": "OH",
+      "distance": 6.7405
+    },
+    {
+      "res": 59,
+      "icode": "",
+      "name": "ALA",
+      "atom": "CB",
+      "peptideRes": 10,
+      "peptideName": "CYS",
+      "peptideAtom": "SG",
+      "distance": 6.7512
+    },
+    {
+      "res": 243,
+      "icode": "",
+      "name": "SER",
+      "atom": "OG",
+      "peptideRes": 14,
+      "peptideName": "LEU",
+      "peptideAtom": "CD1",
+      "distance": 6.889
+    },
+    {
+      "res": 48,
+      "icode": "",
+      "name": "PRO",
+      "atom": "N",
+      "peptideRes": 15,
+      "peptideName": "VAL",
+      "peptideAtom": "CG1",
+      "distance": 6.893
+    },
+    {
+      "res": 110,
+      "icode": "",
+      "name": "ILE",
+      "atom": "O",
+      "peptideRes": 19,
+      "peptideName": "SER",
+      "peptideAtom": "OG",
+      "distance": 6.9232
+    },
+    {
+      "res": 253,
+      "icode": "",
+      "name": "PHE",
+      "atom": "N",
+      "peptideRes": 21,
+      "peptideName": "ALA",
+      "peptideAtom": "CB",
+      "distance": 6.9764
+    },
+    {
+      "res": 116,
+      "icode": "",
+      "name": "GLY",
+      "atom": "N",
+      "peptideRes": 22,
+      "peptideName": "TYR",
+      "peptideAtom": "CE2",
+      "distance": 6.9826
+    },
+    {
+      "res": 246,
+      "icode": "",
+      "name": "SER",
+      "atom": "N",
+      "peptideRes": 13,
+      "peptideName": "LEU",
+      "peptideAtom": "CD1",
+      "distance": 7.3222
+    },
+    {
+      "res": 254,
+      "icode": "",
+      "name": "ALA",
+      "atom": "C",
+      "peptideRes": 25,
+      "peptideName": "SER",
+      "peptideAtom": "CB",
+      "distance": 7.5272
+    },
+    {
+      "res": 60,
+      "icode": "",
+      "name": "PHE",
+      "atom": "CD1",
+      "peptideRes": 3,
+      "peptideName": "TYR",
+      "peptideAtom": "OH",
+      "distance": 7.5503
+    },
+    {
+      "res": 43,
+      "icode": "",
+      "name": "VAL",
+      "atom": "CG1",
+      "peptideRes": 15,
+      "peptideName": "VAL",
+      "peptideAtom": "O",
+      "distance": 7.7572
+    },
+    {
+      "res": 63,
+      "icode": "",
+      "name": "ALA",
+      "atom": "CB",
+      "peptideRes": 3,
+      "peptideName": "TYR",
+      "peptideAtom": "OH",
+      "distance": 7.9363
+    }
+  ],
+  "results": {
+    "generation": null,
+    "optimization": null,
+    "docking": null,
+    "screening": null,
+    "md": null
+  },
+  "publicApproval": {
+    "basis": "Public PDB CC0 coordinates and independently derived geometry only",
+    "internalDataIncluded": false
+  }
+}
