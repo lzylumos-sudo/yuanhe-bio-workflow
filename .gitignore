@@ -36,7 +36,10 @@ installation_evidence/
 # Local research deliveries and preserved external-drive installations
 result/
 archive/20261018_original_layout/
-06_websites/
+06_websites/*
+!06_websites/01_public_demo/
+06_websites/01_public_demo/*
+!06_websites/01_public_demo/yuanhe-public/
 deployment/remote.local.json
 open_remote_workbench.command
 LOCAL_README.txt

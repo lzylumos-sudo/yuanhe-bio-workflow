@@ -1,0 +1,2 @@
+export type Sample={id:string;source:string;citation:string;license:string;licenseSource:string;retrieved:string;sha256:string;method:string;chains:Record<string,{atoms:number;residues:number;min:number;max:number}>;contacts:{res:number;icode:string;name:string;atom:string;peptideRes:number;peptideName:string;peptideAtom:string;distance:number}[];results:Record<string,null>};
+export type Translate=(zh:string,en:string)=>string;
