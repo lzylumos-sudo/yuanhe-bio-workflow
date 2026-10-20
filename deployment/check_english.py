@@ -9,6 +9,9 @@ import subprocess
 
 ROOT = Path(__file__).resolve().parents[1]
 HAN = re.compile(r'[\u3400-\u9fff\uf900-\ufaff]')
+# The public demo intentionally ships Chinese and English copy together.
+# Keep filename, syntax, JSON and license integrity checks for these files.
+BILINGUAL_DEMO_PREFIX = '06_websites/01_public_demo/yuanhe-public/'
 
 def main():
     names = subprocess.check_output(['git', 'ls-files', '-z', '--cached', '--others', '--exclude-standard'], cwd=ROOT).decode().split('\0')
@@ -25,14 +28,15 @@ def main():
             source = path.read_text(encoding='utf-8-sig')
         except UnicodeDecodeError:
             continue
-        if HAN.search(source):
+        bilingual_demo = name.startswith(BILINGUAL_DEMO_PREFIX)
+        if HAN.search(source) and not bilingual_demo:
             errors.append(name + ': untranslated text')
         try:
             if path.suffix == '.py':
                 ast.parse(source, filename=name)
             elif path.suffix == '.json':
                 value = json.loads(source)
-                if HAN.search(json.dumps(value, ensure_ascii=False)):
+                if HAN.search(json.dumps(value, ensure_ascii=False)) and not bilingual_demo:
                     errors.append(name + ': escaped untranslated text')
         except (SyntaxError, ValueError) as exc:
             errors.append(name + ': ' + str(exc))
