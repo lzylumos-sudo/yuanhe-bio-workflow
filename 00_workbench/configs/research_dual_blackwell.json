@@ -70,5 +70,6 @@
     "route_reviews": [],
     "external_interfaces": []
   },
-  "ligand_states": {}
+  "ligand_states": {},
+  "md_task_timeout_seconds": 5184000
 }

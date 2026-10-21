@@ -323,7 +323,8 @@ def stage_gromacs(d,cfg,out):
  if cfg.get('research') and not cfg.get('md_system_ids'):raise Blocked('Research MD requires reviewed membrane systems; external TPR bypass disabled')
  if cfg.get('md_system_ids'):
   py=executable(cfg.get('md_python'),'membrane simulation Python')
-  command([py,str(UI/'md_stage.py'),'--run-id',d.name,'--output',out],out,cfg['timeout_seconds'])
+  timeout=cfg['timeout_seconds'] if not cfg.get('research') else cfg['research']['md_task_timeout_seconds']*max(1,len(cfg['md_system_ids']))
+  command([py,str(UI/'md_stage.py'),'--run-id',d.name,'--output',out],out,timeout)
   systems=read(out/'systems.json',[])
   return {'simulations_completed':len(systems),'remaining':len({s['compound_id'] for s in systems}),'scientifically_validated':0}
  exe=executable(cfg['gmx'],'GROMACS')

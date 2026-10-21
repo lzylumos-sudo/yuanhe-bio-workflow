@@ -138,7 +138,9 @@ def run(root,d,cfg,out,executable):
         atomic(phase_out/'score_selection.json',select(results,limit,'score'))
         all_results=results;rows=[{**r,'smiles':r.get('parent_smiles',r['smiles'])} for r in selected]
         if not rows:raise ValueError('No successful Vina results in '+phase)
-    atomic(out/'counts.json',actual);atomic(out/'results.json',all_results)
+    selected_ids={r['compound_id'] for r in rows}
+    handoff_results=[r for r in all_results if r['compound_id'] in selected_ids]
+    atomic(out/'counts.json',actual);atomic(out/'results.json',handoff_results)
     atomic(out/'input_molecules.json',[{**r,**state} for r in rows for state in r['states']]);atomic(out/'box.json',b);shutil.copyfile(receptors[0]['path'],out/'receptor.pdb')
     # Preserve the legacy Y-MAVS handoff contract; poses retain original cache provenance.
     for row in all_results:

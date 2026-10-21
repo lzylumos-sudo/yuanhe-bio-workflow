@@ -26,7 +26,7 @@ def resolve(value=None):
     if cfg['version'] != '1.0.0': raise ValueError('Unsupported configuration version')
     for key in ('peptide_attempts','core_limit','reinvent_attempts','generated_unique_limit','external_limit',
                 'initial_limit','refine_limit','review_limit','md_limit','md_replicas','md_concurrency',
-                'wetlab_min','wetlab_max','generation_workers','vina_workers','vina_cpu','vina_thread_budget'):
+                'wetlab_min','wetlab_max','md_task_timeout_seconds','generation_workers','vina_workers','vina_cpu','vina_thread_budget'):
         if type(cfg[key]) is not int or cfg[key] < 1: raise ValueError(key+' must be a positive integer')
     for key in ('md_production_ns','disk_reserve_gb'):
         if type(cfg[key]) not in (float,int) or not math.isfinite(cfg[key]) or cfg[key] <= 0: raise ValueError(key+' must be finite and positive')

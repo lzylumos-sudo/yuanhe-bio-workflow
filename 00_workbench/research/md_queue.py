@@ -47,7 +47,7 @@ def run(d,c,out):
                     estimate=rc.get('estimated_md_gb_per_candidate')
                     disk_guard(d,rc,0 if estimate is None else float(estimate)*1024**3)
                     with lock:state[ident].update(status='running',gpu=gpu['index']);persist()
-                    w.atomic(request,{'run_dir':str(d),'config':c,'system_id':ident,'response':str(response)})
+                    w.atomic(request,{'run_dir':str(d),'config':{**c,'timeout_seconds':rc['md_task_timeout_seconds']},'system_id':ident,'response':str(response)})
                     # UUID exposes exactly one device; both GROMACS run and checkpoint probe see it as device 0.
                     with (folder/'queue.log').open('a') as log:
                         subprocess.run([sys.executable,'-I',str(driver),str(request)],check=True,
