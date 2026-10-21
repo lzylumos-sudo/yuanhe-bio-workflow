@@ -16,7 +16,7 @@
 以下命令均在 Linux / WSL 终端执行。使用仓库中包含本目录的版本；在仓库根目录执行后两条命令。
 
 ```bash
-git clone --branch deployment/public-minimal-gpu-20261021 https://github.com/lzylumos-sudo/yuanhe-bio-workflow.git
+git clone https://github.com/lzylumos-sudo/yuanhe-bio-workflow.git
 cd yuanhe-bio-workflow
 
 # 若 micromamba 不在 PATH，先设置为它的实际可执行文件路径：
