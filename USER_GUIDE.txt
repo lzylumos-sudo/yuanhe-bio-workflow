@@ -36,3 +36,7 @@ MM/PBSA 使用同一轨迹，默认分析 400–500 ns，每 10 个已保存帧�
 方法与配置迁移：docs/15_VINA_RESP_RESEARCH.md
 组件许可：docs/16_RESEARCH_DEPENDENCY_LICENSES.md
 页面操作详解：docs/18_UI_RESEARCH_WORKFLOW.md
+
+
+对接前新增风险子结构与获取路径门槛（2026-10-21）
+REINVENT4 → 标准化与去重 → risk → availability → AutoDock Vina。配置、真实供应目录字段、本地 AiZynthFinder 资产、复核／缓存／CLI 运行说明见 docs/PREDOCKING_PREFLIGHT.md。未配置真实证据时不自动放行；本次不变更 MD 代码或参数。

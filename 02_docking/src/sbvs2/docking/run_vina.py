@@ -24,26 +24,4 @@ def parse_vina_pdbqt(text: str) -> list[dict]:
 
 def run_vina_job(receptor_pdbqt: Path, ligand_pdbqt_text: str, box: Box, proto: Protocol, seed: int,
                  job_dir: Path, cpu: int = 0) -> dict:
-    from vina import Vina
-    job_dir.mkdir(parents=True, exist_ok=False)          # a job dir is never reused/overwritten
-    lig = job_dir / "ligand.pdbqt"; lig.write_text(ligand_pdbqt_text)
-    out = job_dir / "poses.pdbqt"
-    rec = {"job": job_dir.name, "seed": seed, "receptor_sha256": sha256_file(receptor_pdbqt),
-           "ligand_sha256": sha256_file(lig), "protocol_hash": proto.hash(), "box_hash": box.hash(),
-           "status": "running", "engine": "vina-python-1.2.7", "started": time.time()}
-    try:
-        v = Vina(sf_name="vina", seed=seed, cpu=cpu, verbosity=0)
-        v.set_receptor(str(receptor_pdbqt))
-        v.set_ligand_from_file(str(lig))
-        v.compute_vina_maps(center=list(box.center), box_size=list(box.size))
-        v.dock(exhaustiveness=proto.exhaustiveness, n_poses=proto.num_modes)
-        v.write_poses(str(out), n_poses=proto.num_modes, overwrite=True)
-        poses = parse_vina_pdbqt(out.read_text())
-        if not poses:
-            raise RuntimeError("EMPTY_OUTPUT: engine produced no poses")       # never counted as success
-        rec.update(status="ok", poses=poses, output_sha256=sha256_file(out))
-    except Exception as e:                                                       # isolate failure per job
-        rec.update(status="failed", error=f"{type(e).__name__}: {e}", trace=traceback.format_exc()[-800:])
-    rec["finished"] = time.time()
-    atomic_write_json(job_dir / "job_record.json", rec)
-    return rec
+    raise ValueError('Legacy PDBQT-only execution disabled: use vina_official.run_vina_job with pre-docking evidence')

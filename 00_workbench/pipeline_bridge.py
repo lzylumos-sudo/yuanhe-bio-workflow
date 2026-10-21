@@ -136,11 +136,33 @@ def stage_reinvent4(d,cfg,out):
  if not rows:raise RuntimeError('No valid unique molecules available for docking')
  return {'sampled':sampled,'unique':len(seen),'failed':len(failures),'remaining':len(rows)}
 
+def stage_risk(d,cfg,out):
+ from yuanhe_preflight.pipeline import risk_stage
+ if cfg.get('imported_candidates'):
+  from yuanhe_preflight.cli import import_candidates
+  rows=import_candidates(Path(cfg['imported_candidates']),out/'imported')
+ else:
+  rows=list(read(d/'reinvent4/candidates.json',[]))
+  rows += [{**r,'sdf':r['raw_sdf'],'source_stage':'peptide2mol'} for r in read(d/'peptide2mol/seeds.json',[])]
+ return risk_stage(rows,cfg['predocking'],out,base=d,batch_id=d.name)
+
+def stage_availability(d,cfg,out):
+ from yuanhe_preflight.pipeline import availability_stage
+ require(d,'risk')
+ return availability_stage(read(d/'risk/records.json',[]),cfg['predocking'],out)
+
 def stage_docking(d,cfg,out):
  sys.path.insert(0,str(ROOT/'02_docking/src'))
  from sbvs2.docking.vina_official import run_vina_job, validate_resources
  from sbvs2.docking.protocol import Protocol
  from sbvs2.docking.box import Box
+ require(d,'risk');require(d,'availability')
+ from yuanhe_preflight.gate import require_ligand
+ rows=read(d/'availability/qualified.json',[])
+ for row in rows:require_ligand(row['source_sdf'],row['qualification_evidence'])
+ if not rows:
+  atomic(out/'results.json',[]);csv_write(out/'molecules.csv',[],['id','smiles','status'])
+  return {'input':0,'remaining':0,'failed':0,'poses':0,'shortfall':read(d/'risk/summary.json',{}).get('input',0)}
  exe=executable(cfg['vina'],'AutoDock Vina')
  validate_resources(int(cfg['docking_cpu']), int(cfg['docking_workers']), int(cfg['docking_total_threads']))
  # Explicit preparation is a scientific input, not guessed from raw coordinates.
@@ -159,13 +181,7 @@ def stage_docking(d,cfg,out):
  box=Box(tuple(map(float,b['center'])),tuple(map(float,b['size'])),'manual')
  if box.validate():raise ValueError('Invalid or oversized docking box: '+','.join(box.validate()))
  receptor=out/'receptor.pdb';shutil.copyfile(rec,receptor);atomic(out/'box.json',b)
- proto=Protocol.preset('standard',seeds=(cfg['seed'],),exhaustiveness=cfg['exhaustiveness'],num_modes=cfg['num_modes'],energy_range=cfg['energy_range']);rows=list(read(d/'reinvent4/candidates.json',[]));results=[];successful=[]
- from rdkit import Chem
- seen={Chem.MolToSmiles(Chem.MolFromSmiles(r['smiles']),isomericSmiles=True) for r in rows}
- for seed in read(d/'peptide2mol/seeds.json',[]):
-  canon=Chem.MolToSmiles(Chem.MolFromSmiles(seed['smiles']),isomericSmiles=True)
-  if canon not in seen:
-   seen.add(canon);rows.append({'id':seed['id'],'smiles':canon,'sdf':seed['raw_sdf'],'source_stage':'peptide2mol'})
+ proto=Protocol.preset('standard',seeds=(cfg['seed'],),exhaustiveness=cfg['exhaustiveness'],num_modes=cfg['num_modes'],energy_range=cfg['energy_range']);results=[];successful=[]
  atomic(out/'input_molecules.json',rows)
  from concurrent.futures import ThreadPoolExecutor, as_completed
  seeds=cfg.get('docking_seeds') or [cfg['seed']]
@@ -173,7 +189,7 @@ def stage_docking(d,cfg,out):
  tasks=[(row,int(seed)) for row in rows for seed in seeds]
  def dock(task):
   row,seed=task;job_id=row['id']+'_seed'+str(seed)
-  result=run_vina_job(exe,receptor,d/row['sdf'],box,proto,seed,out/'jobs'/job_id,cpu=int(cfg['docking_cpu']),timeout=cfg['timeout_seconds'])
+  result=run_vina_job(exe,receptor,d/row['sdf'],box,proto,seed,out/'jobs'/job_id,cpu=int(cfg['docking_cpu']),timeout=cfg['timeout_seconds'],qualification_evidence=row['qualification_evidence'],meta={'predocking':{k:row.get(k) for k in ('compound_id','state_id','source_core','generation_batch','labels','qualification_sha256','qualification_evidence')}})
   entry={**row,'job_id':job_id,'seed':seed,'status':result['status'],'engine':'vina','engine_version':'1.2.7','error':result.get('error')}
   if result['status']=='ok':entry.update(min(result['poses'],key=lambda x:x['vina_affinity_kcal_mol']))
   return entry
@@ -183,11 +199,15 @@ def stage_docking(d,cfg,out):
    if entry['status']=='ok':successful.append(entry['job_id'])
    atomic(out/'progress.json',{'input':len(tasks),'processed':len(results),'successful':len(successful),'failed':len(results)-len(successful)})
  results.sort(key=lambda r:(r['id'],r['seed']))
- atomic(out/'results.json',results);csv_write(out/'molecules.csv',results,['id','smiles','status','vina_affinity_kcal_mol','engine','cnn_pose_score','cnn_affinity_pK','error'])
+ atomic(out/'results.json',results);csv_write(out/'molecules.csv',results,['id','compound_id','state_id','smiles','status','vina_affinity_kcal_mol','engine','labels','source_core','generation_batch','qualification_evidence','qualification_sha256','error'])
  if not successful:raise RuntimeError('All molecules failed docking; inspect each job_record.json')
- return {'input':len(rows),'remaining':len({r['id'] for r in results if r['status']=='ok'}),'failed':len(tasks)-len(successful),'poses':sum(len(read(out/'jobs'/x/'job_record.json')['poses']) for x in successful)}
+ return {'input':len(rows),'shortfall':max(0,read(d/'risk/summary.json',{}).get('input',len(rows))-len(rows)),'remaining':len({r['id'] for r in results if r['status']=='ok'}),'failed':len(tasks)-len(successful),'poses':sum(len(read(out/'jobs'/x/'job_record.json')['poses']) for x in successful)}
 
 def stage_screening(d,cfg,out):
+ if not read(d/'docking/results.json',[]):
+  atomic(out/'candidates.json',[]);csv_write(out/'molecules.csv',[],['compound_id','state_id','pose_id','qualification'])
+  atomic(out/'predocking_handoff.json',{'compounds':read(d/'availability/identity_evidence.json',{}),'reason':'zero_qualified_candidates'})
+  return {'input':0,'remaining':0,'formal':0,'preliminary':0}
  py=executable(cfg.get('screen_python') or cfg['chem_python'],'Virtual screening Python')
  # Separate stage-local database prevents cross-run counts and candidate contamination.
  workspace=out/'workspace';workspace.mkdir();shutil.copytree(SCREEN/'configs',workspace/'configs')
@@ -202,7 +222,7 @@ def stage_screening(d,cfg,out):
  for record in read(d/'docking/results.json',[]):
   if record['status']!='ok':continue
   target=handoff/record.get('job_id',record['id']);target.mkdir()
-  for name in ('poses.sdf','job_record.json'):
+  for name in ('poses.sdf','poses.sdf.qualification.json','job_record.json'):
    source=d/'docking/jobs'/record.get('job_id',record['id'])/name
    if source.is_file():shutil.copyfile(source,target/name)
  env=os.environ.copy();env['PYTHONPATH']=str(SCREEN/'src')
@@ -217,6 +237,11 @@ def stage_screening(d,cfg,out):
  if not files:raise RuntimeError('Screening did not produce candidates.csv')
  with files[0].open(encoding='utf-8-sig',newline='') as f:rows=list(csv.DictReader(f))
  from rdkit import Chem
+ evidence_index=read(d/'availability/identity_evidence.json',{})
+ for row in rows:
+  evidence=evidence_index.get(row.get('compound_id'))
+  if evidence:row.update({k:v for k,v in evidence.items() if k not in ('compound_id','state_id')})
+ atomic(out/'predocking_handoff.json',{'scope':'acquisition evidence only; MD parameters and final wet-lab review unchanged','compounds':evidence_index})
  selected=out/'selected_poses';selected.mkdir()
  for row in rows:
   pid=row.get('pose_id','')
@@ -259,7 +284,7 @@ def main():
   if rec.get('status')!='running':raise RuntimeError('Stage must be started by the workflow manager')
   if digest(d/'config.json')!=read(d/'run.json')['config_sha256']:raise RuntimeError('Configuration changed')
   order=[x[0] for x in STAGES];i=order.index(a.stage)
-  if i:require(d,order[i-1])
+  if i and not (a.stage=='risk' and (read(d/'reviews/risk.json',{}).get('imported_candidates') or cfg.get('imported_candidates'))):require(d,order[i-1])
   for prior in order[:i+1]:
    cfg.update(read(d/prior/'review.json',{}))
   counts=globals()['stage_'+a.stage](d,cfg,out)

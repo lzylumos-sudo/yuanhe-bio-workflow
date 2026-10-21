@@ -47,6 +47,9 @@ def export_sdf(pdbqt, source_mol, output, rows):
 def run_vina_job(exe, receptor, ligand, box, proto, seed, job_dir, *, cpu=4,
                  timeout=3600, cancel=None, cancel_file=None, meta=None, **kwargs):
     from rdkit import Chem
+    from yuanhe_preflight.gate import require_ligand
+    evidence_path=kwargs.get('qualification_evidence') or Path(ligand).with_suffix(Path(ligand).suffix+'.qualification.json')
+    qualification=require_ligand(ligand,evidence_path)
     validate_resources(cpu)
     if kwargs.get('operation','redock') != 'redock':raise ValueError('Only explicit Vina redock jobs supported')
     if proto.engine_version!=VERSION or proto.scoring!='vina':raise ValueError('Pinned Vina version/scoring required')
@@ -78,6 +81,9 @@ def run_vina_job(exe, receptor, ligand, box, proto, seed, job_dir, *, cpu=4,
         rows = parse_vina_pdbqt(out.read_text())
         if not rows or any(not math.isfinite(r['vina_affinity']) for r in rows): raise ValueError('EMPTY_OUTPUT: invalid Vina output')
         export_sdf(out, mol, jd/'poses.sdf', rows)
+        atomic_write_json(jd/'poses.sdf.qualification.json',qualification)
+        rec['predocking_evidence']=qualification
+        rec['qualification_sha256']=qualification['record_sha256']
         rec['poses'] = [{**r, 'vina_affinity_kcal_mol':r['vina_affinity'], 'empirical_score_kcal_mol':r['vina_affinity'],
                          'engine':'vina', 'cnn_pose_score':None, 'cnn_affinity_pK':None} for r in rows]
         rec.update(status='ok', output_sha256=sha256_file(jd/'poses.sdf'))

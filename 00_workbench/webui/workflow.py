@@ -4,8 +4,9 @@ import hashlib,json,os,re,shutil,subprocess,sys,threading,time,uuid
 from pathlib import Path
 UI=Path(__file__).resolve().parents[1]
 ROOT=UI.parent
+sys.path.insert(0,str(ROOT/'02_docking/src'))
 RUNS=UI/'workflow_runs'
-STAGES=[('prepare','Complex preparation','Separate protein and peptide; retain full receptor and local pocket'),('peptide2mol','Peptide2Mol','Real model sampling and chemistry checks'),('reinvent4','REINVENT4','Expand candidate molecules after core review'),('docking','AutoDock Vina batch docking','CPU · affinity / kcal mol-1 · lower is better'),('screening','Virtual screening','Quality control, binding-mode and diversity screening'),('gromacs','GROMACS','Membrane minimization, equilibration, production and trajectory analysis')]
+STAGES=[('prepare','Complex preparation','Separate protein and peptide; retain full receptor and local pocket'),('peptide2mol','Peptide2Mol','Real model sampling and chemistry checks'),('reinvent4','REINVENT4','Expand candidate molecules after core review'),('risk','风险子结构过滤','结构标准化与去重；规则匹配、排除和人工复核'),('availability','可购买／可合成性筛选','精确采购证据优先；本地逆合成完整路线校验'),('docking','AutoDock Vina batch docking','CPU · affinity / kcal mol-1 · lower is better'),('screening','Virtual screening','Quality control, binding-mode and diversity screening'),('gromacs','GROMACS','Membrane minimization, equilibration, production and trajectory analysis')]
 _lock=threading.RLock(); _active={}
 
 def digest(path):
@@ -32,6 +33,9 @@ def defaults():
  'prep_python':'/opt/yuanhe/envs/prep/bin/python','md_python':'/opt/yuanhe/envs/membrane/bin/python','screening_budget':'quick','receptor_review':{},'md_system_ids':[], 'screen_python':'','vina':'vina','docking_engine':'vina','docking_seeds':[],'docking_cpu':4,'docking_workers':1,'docking_total_threads':4,'exhaustiveness':32,'num_modes':9,'energy_range':3.0,'gmx':'','target_profile':'ecmurj',
  'core_selections':[], 'docking_receptor':'','docking_box':None,'gromacs_tpr':'',
  'gromacs_system_reviewed':False,'timeout_seconds':86400}
+ from yuanhe_preflight.config import defaults as preflight_defaults
+ cfg['predocking']=preflight_defaults(ROOT)
+ cfg['imported_candidates']=''
  cfg.update({k:v for k,v in read(ROOT/'deployment/runtime.json',{}).items() if k in cfg})
  return cfg
 
@@ -40,6 +44,7 @@ def source_snapshot():
  files=[ROOT/'00_workbench'/n for n in ['pipeline_bridge.py','studio_worker.py','md_stage.py']]
  for root in roots:files.extend((ROOT/root).rglob('*.py'))
  files.extend((ROOT/'03_virtual_screening'/'configs').rglob('*'))
+ files.extend((ROOT/'02_docking/src/yuanhe_preflight/configs').rglob('*.json'))
  return {str(p.relative_to(ROOT)):digest(p) for p in sorted(set(files)) if p.is_file()}
 
 def _screen_revision_allowed(name):
@@ -119,7 +124,10 @@ def rescreen(rid):
 def create(config):
  allowed=set(defaults());unknown=set(config)-allowed
  if unknown:raise ValueError('Unknown configuration field: '+','.join(sorted(unknown)))
- cfg={**defaults(),**config};validate_docking_settings(cfg);source=(ROOT/cfg['structure']).resolve()
+ cfg={**defaults(),**config};validate_docking_settings(cfg)
+ from yuanhe_preflight.config import validate
+ validate(cfg['predocking'])
+ source=(ROOT/cfg['structure']).resolve()
  if not source.is_relative_to(ROOT.resolve()) or not source.is_file() or source.suffix.lower()!='.pdb':raise ValueError('Structure must be a project-local PDB')
  if cfg['receptor_chain']==cfg['peptide_chain']:raise ValueError('Receptor and peptide chains must differ')
  for k in ('receptor_chain','peptide_chain'):
@@ -173,6 +181,8 @@ def status(rid):
   rec=read(d/key/'stage.json',{})
   if rec.get('status')=='running' and rid not in _active and not live_record(rec,rid):
    rec={**rec,'status':'interrupted','error':'Original process not found after restart. Stop the task to archive its interrupted state, then retry; membrane simulations retain separate checkpoints.'}
+  if rec.get('status')=='running' and key in ('risk','availability'):
+   rec={**rec,'counts':read(d/key/'progress.json',{})}
   if rec.get('status')=='running' and key=='docking':
    prog=read(d/key/'progress.json',{})
    if prog:rec={**rec,'counts':{'input':prog['input'],'processed':prog['processed'],'remaining':prog['successful'],'failed':prog['failed']}}
@@ -234,7 +244,7 @@ def start(rid,stage):
    if previous_record.get('status') not in {'failed','blocked','cancelled'}:
     raise RuntimeError('This stage has completed or interrupted records and cannot be overwritten')
   previous=[k for k,_,_ in STAGES];idx=previous.index(stage)
-  if idx:require(d,previous[idx-1])
+  if idx and not (stage=='risk' and (read(d/'reviews/risk.json',{}).get('imported_candidates') or cfg.get('imported_candidates'))):require(d,previous[idx-1])
   lease=acquire_compute()
   if target.exists():
    archive=d/'attempts'/f'{stage}_{time.time_ns()}';archive.parent.mkdir(exist_ok=True);target.rename(archive)
@@ -294,6 +304,8 @@ REVIEW_FIELDS={
  'prepare':[],
  'peptide2mol':['peptide_python'],
  'reinvent4':['reinvent_executable','core_selections'],
+ 'risk':['predocking','imported_candidates'],
+ 'availability':['predocking'],
  'docking':['vina','docking_seeds','docking_engine','docking_cpu','docking_workers','docking_total_threads','exhaustiveness','num_modes','energy_range','docking_receptor','docking_box','receptor_review'],
  'screening':['screen_python','screening_budget'],
  'gromacs':['gmx','gromacs_tpr','gromacs_system_reviewed','md_system_ids'],
@@ -313,6 +325,9 @@ def validate_docking_settings(cfg):
 
 def review(rid,stage,payload):
  d=run_dir(rid)
+ if 'predocking' in payload:
+  from yuanhe_preflight.config import validate
+  validate(payload['predocking'])
  if 'screening_budget' in payload and payload['screening_budget'] not in {'quick','redock_trial','full'}:raise ValueError('Invalid screening budget')
  if 'docking_box' in payload and payload['docking_box'] is not None:
   import math
@@ -327,6 +342,25 @@ def review(rid,stage,payload):
   if (d/stage).exists() and read(d/stage/'stage.json',{}).get('status') not in {'failed','blocked','cancelled'}:raise RuntimeError('Stage started or completed; settings are immutable')
   atomic(d/'reviews'/f'{stage}.json',{**read(d/'reviews'/f'{stage}.json',{}),**payload})
  return {'saved':True}
+
+
+def revise_preflight(rid,stage):
+ """Explicit UI revision of evidence only. Preserve generation and old attempts."""
+ if stage not in ('risk','availability'):raise ValueError('Invalid preflight stage')
+ d=run_dir(rid)
+ with _lock:
+  if _active:raise ValueError('Wait for active work to finish')
+  if (d/'docking').exists() or (d/'screening').exists() or (d/'md_systems').exists():raise ValueError('Downstream artifacts exist; create a separate evidence-review run')
+  lease=acquire_compute()
+  try:
+   for key in (('risk','availability') if stage=='risk' else ('availability',)):
+    target=d/key
+    if target.exists():
+     record=read(target/'stage.json',{})
+     if record.get('status')=='running':raise ValueError('Stage still running')
+     archive=d/'attempts'/(key+'_evidence_revision_'+str(time.time_ns()));archive.parent.mkdir(exist_ok=True);target.rename(archive)
+   return {'status':'pending','stage':stage,'generation_unchanged':True}
+  finally:lease.close()
 
 
 def lease_fds():

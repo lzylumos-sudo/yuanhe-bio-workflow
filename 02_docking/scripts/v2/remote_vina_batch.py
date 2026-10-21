@@ -26,6 +26,8 @@ ap.add_argument("--lib-dirs", default="")
 ap.add_argument("--cancel-file", default="")
 a = ap.parse_args()
 stage, out = Path(a.stage), Path(a.out)
+from yuanhe_preflight.gate import require_ligand
+for ligand in (stage/'ligands').glob('*.sdf'): require_ligand(ligand)
 meta = json.loads((stage / "stage_meta.json").read_text())
 man = json.loads((stage / "STAGE_MANIFEST.json").read_text())
 for rel, h in man.items():                     # inputs must still be what was staged

@@ -1,0 +1,32 @@
+{
+  "rdkit_license": {
+    "url": "https://raw.githubusercontent.com/rdkit/rdkit/Release_2026_03_1/license.txt",
+    "sha256": "daeb8d194502cbcf34c05c39541a0d02be65bc9bada5b891c1974cd24e9fca30",
+    "bytes": 1580
+  },
+  "rdkit_filters": {
+    "url": "https://raw.githubusercontent.com/rdkit/rdkit/Release_2026_03_1/Code/GraphMol/FilterCatalog/Filters.cpp",
+    "sha256": "bad5c1760f30d860ec99f6cd61e85b25f411948a027bcc5a88c8030162a9365b",
+    "bytes": 25575
+  },
+  "aizynth_license": {
+    "url": "https://raw.githubusercontent.com/MolecularAI/aizynthfinder/v4.4.1/LICENSE",
+    "sha256": "833f30fba672a9e41d42f72fa3211a60e46e7aede2d50d3b593a7515f766010a",
+    "bytes": 1072
+  },
+  "aizynth_reactiontree": {
+    "url": "https://raw.githubusercontent.com/MolecularAI/aizynthfinder/v4.4.1/aizynthfinder/reactiontree.py",
+    "sha256": "2785b0d878473780baed67152fcc115f154aaf5888902ec64f454eb91c081b64",
+    "bytes": 14915
+  },
+  "aizynth_expansion": {
+    "url": "https://raw.githubusercontent.com/MolecularAI/aizynthfinder/v4.4.1/aizynthfinder/context/policy/expansion_strategies.py",
+    "sha256": "56cbb02ef6af8c04aa60730f223d9d4c07a3b3d9ed45f488d5d5f385eba2954b",
+    "bytes": 18512
+  },
+  "filelock_license": {
+    "url": "https://raw.githubusercontent.com/tox-dev/filelock/main/LICENSE",
+    "sha256": "608c89d5060ae9921adccf3236695bc654a9946e12323ef6c021dfa04e294d48",
+    "bytes": 1088
+  }
+}

@@ -17,3 +17,18 @@ Pinned commits and weight hashes are in `deployment/model_dependencies.json`. Pr
 Full-text papers are not redistributed. Original PDB coordinates and provenance are in `data/structures/manifest.json`. These structures were not determined by this team and do not establish experimental activity of generated compounds.
 
 Current production docking uses official AutoDock Vina 1.2.7. New preparation/MD/analysis dependencies include Meeko, RDKit, Psi4, cdsgroup RESP, AmberTools, OpenMM, ParmEd, MDAnalysis and GROMACS. Their component-specific license and distribution obligations remain; see `docs/16_RESEARCH_DEPENDENCY_LICENSES.md` at the repository root. Historical GNINA notices remain applicable to historical code and artifacts.
+
+## Pre-docking risk and acquisition filters (2026-10-21)
+
+The curated risk configuration uses individually selected RDKit Brenk patterns,
+an explicitly adapted NIH epoxide alert, and PAINS catechol_A(92). RDKit attribution
+and its BSD license are retained in `docs/preflight_sources/rdkit_license.txt`.
+The nitrosamine SMARTS is project-defined and informed by FDA's structural-risk
+discussion; it is not an FDA classifier or a measured toxicity result.
+
+AiZynthFinder 4.4.1 is an optional MIT-licensed local dependency. filelock is an
+existing dependency; current upstream is MIT (check each installed version).
+Software notices and source hashes are in `docs/preflight_sources/`. No model
+weights, reaction-template datasets, raw-material inventories or vendor catalogs
+are redistributed here. Their licenses remain separate and must be recorded for
+each installation/import; see `deployment/preflight_licenses.json`.

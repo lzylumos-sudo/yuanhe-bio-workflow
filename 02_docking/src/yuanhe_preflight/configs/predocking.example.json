@@ -1,0 +1,12 @@
+{
+  "rules_path": "02_docking/src/yuanhe_preflight/configs/risk_rules.v1.json",
+  "risk_policies": {}, "risk_exceptions": [],
+  "catalogs": [], "stock_catalogs": [], "evidence_max_age_days": 30,
+  "retro": {"python": "python", "model_path": "", "templates_path": "", "stock_path": "",
+    "model_version": "", "templates_version": "", "stock_version": "",
+    "model_license": "", "templates_license": "", "stock_license": "",
+    "time_limit_seconds": 120, "max_depth": 6, "iteration_limit": 100,
+    "startup_grace_seconds": 60},
+  "cache_dir": "data/predocking_cache", "workers": 1, "batch_size": 32,
+  "route_reviews": [], "external_interfaces": []
+}
