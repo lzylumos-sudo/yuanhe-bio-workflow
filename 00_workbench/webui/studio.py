@@ -144,6 +144,8 @@ def system_summary(meta):
 def md_list(rid):
  d,c=config(rid)
  rows=[{'id':p.parent.name,**system_summary(w.read(p)),'progress':w.read(p.parent/'progress.json',{})} for p in sorted((d/'md_systems').glob('*/system.json'))]
+ for ident,record in w.read(d/'inherited_md.json',{}).items():
+  source=w.run_dir(record['source_run']);rows.append({'id':ident,**system_summary(w.read(source/'md_systems'/ident/'system.json')),'reused_from':source.name})
  return sorted(rows,key=lambda x:(x.get('status') not in {'built','completed'},x['id']))
 
 def membrane_preview(rid,payload):

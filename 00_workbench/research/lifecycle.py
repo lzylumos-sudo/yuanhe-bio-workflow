@@ -28,6 +28,15 @@ def derive(rid,changes):
     proof={'parent_run':rid,'parent_config_sha256':w.digest(parent/'config.json'),'changes':changes,
            'generation_reused':True,'docking_reuse':'verified cache entries; exact scientific key required',
            'additional_docking_tasks':'computed from cache misses at dispatch','plan':plan(rc)}
+    completed=w.read(parent/'gromacs/systems.json',[])
+    inherited={}
+    for record in completed:
+        if not record.get('md_completed'):continue
+        source=w.run_dir(record.get('source_run',rid))
+        if any(w.digest(source/name)!=sha for name,sha in record['files'].items()):raise ValueError('Completed MD integrity mismatch')
+        inherited[record['system_id']]={**record,'source_run':source.name}
+    if inherited:w.atomic(d/'inherited_md.json',inherited)
+    proof['completed_md_reused']=len(inherited)
     w.atomic(d/'derivation.json',proof)
     return {'id':child,**proof}
 
@@ -57,8 +66,9 @@ def handoff(rid,reviews):
     for rec in records:
         cid=rec['compound_id'];m=reviews.get(cid,{})
         q=qualified.get(cid,{})
+        source=w.run_dir(rec.get('source_run',rid))
         for name,sha in rec['files'].items():
-            if w.digest(d/name)!=sha:raise ValueError('MD artifact changed before handoff')
+            if w.digest(source/name)!=sha:raise ValueError('MD artifact changed before handoff')
         a=rec['analysis'];checks={
             'identity_clear':q.get('stereochemistry')=='specified_or_not_applicable',
             'chemistry_passed':bool(q.get('smiles')),

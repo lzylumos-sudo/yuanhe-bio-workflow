@@ -172,18 +172,19 @@ def run(
         if not required.issubset(rows[0]): raise RuntimeError("REINVENT4 CSV must contain SMILES and NLL columns")
         input_column = "Input_SMILES" if "Input_SMILES" in rows[0] else "Scaffold" if "Scaffold" in rows[0] else None
         if input_column is None: raise RuntimeError("REINVENT4 CSV must preserve Input_SMILES or Scaffold")
-        accepted, rejected, seen = [], [], set()
-        for raw in rows:
-            preserved = {"SMILES": raw.get("SMILES"), "Input_SMILES": raw.get(input_column), "NLL": raw.get("NLL")}
+        accepted, rejected, seen = [], [], set(); valid_count = 0
+        for sample_index, raw in enumerate(rows):
+            preserved = {"sample_index": sample_index, "SMILES": raw.get("SMILES"), "Input_SMILES": raw.get(input_column), "NLL": raw.get("NLL")}
             if scaffold_identity(raw.get(input_column, "")) != scaffold_identity(scaffold_smiles):
                 preserved["failure_reason"] = "input_scaffold_mismatch"; rejected.append(preserved); continue
             ok, reason = _core_retained(scaffold_smiles, raw.get("SMILES", ""))
             if not ok: preserved["failure_reason"] = reason; rejected.append(preserved); continue
             canonical = _rdkit().MolToSmiles(_rdkit().MolFromSmiles(raw["SMILES"]), canonical=True)
+            valid_count += 1
             if canonical in seen: preserved["failure_reason"] = "duplicate"; rejected.append(preserved); continue
             seen.add(canonical); preserved["canonical_smiles"] = canonical; accepted.append(preserved)
         if not accepted: raise RuntimeError("REINVENT4 produced no valid unique molecules retaining the scaffold core")
-        report = {"requested": budget, "completed": len(rows), "valid": len(accepted), "unique": len(accepted), "rejected": len(rejected)}
+        report = {"requested": budget, "completed": len(rows), "valid": valid_count, "unique": len(accepted), "rejected": len(rejected)}
         _write_json(out / "candidates.json", {"candidates": accepted, "rejected": rejected, "report": report})
         manifest.update({"report": report, "raw_output": str(raw_csv), "status": "completed"})
     except Exception as exc:

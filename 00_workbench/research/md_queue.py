@@ -8,20 +8,27 @@ def run(d,c,out):
     rc=c['research'];ids=c.get('md_system_ids',[])
     if not c.get('gromacs_system_reviewed') or not ids:raise ValueError('Reviewed membrane systems required')
     if len(ids)>rc['md_limit'] or len(ids)!=len(set(ids)):raise ValueError('Invalid MD candidate count or duplicate system')
+    inherited=w.read(d/'inherited_md.json',{})
     compounds=set()
     for ident in ids:
         if Path(ident).name!=ident:raise ValueError('Invalid system ID')
-        meta=w.read(d/'md_systems'/ident/'system.json',{})
+        source=w.run_dir(inherited[ident]['source_run']) if ident in inherited else d
+        meta=w.read(source/'md_systems'/ident/'system.json',{})
+        if ident in inherited and any(w.digest(source/name)!=sha for name,sha in inherited[ident]['files'].items()):raise ValueError('Inherited MD files changed')
         if not meta or meta['compound_id'] in compounds:raise ValueError('Only one trajectory per compound')
         compounds.add(meta['compound_id'])
         if meta['parameters']['production_ns']!=rc['md_production_ns']:raise ValueError('Prepared production length differs from frozen research configuration')
     disk_guard(d,rc)
     gpus=[g for g in detect(d)['gpus'] if g['allocatable']][:rc['md_concurrency']]
-    if not gpus:raise ValueError('No authorized allocatable GPU; MD remains queued')
+    if not gpus and any(ident not in inherited for ident in ids):raise ValueError('No authorized allocatable GPU; MD remains queued')
     tasks=queue.Queue()
-    for ident in ids:tasks.put(ident)
+    for ident in ids:
+        if ident not in inherited:tasks.put(ident)
     state={ident:{'status':'queued','target_ns':rc['md_production_ns']} for ident in ids}
-    records=[];lock=threading.Lock()
+    records=[inherited[ident] for ident in ids if ident in inherited];lock=threading.Lock()
+    for ident in ids:
+        if ident in inherited:state[ident].update(status='md_completed',completed_ns=inherited[ident]['analysis']['production_end_ns'],source_run=inherited[ident]['source_run'])
+    w.atomic(out/'systems.json',records)
     package=out/'standalone_md';package.mkdir(exist_ok=True)
     for name in ('__init__.py','artifacts.py','membrane.py','md_cli.py'):
         dest=package/'scientific'/name;dest.parent.mkdir(exist_ok=True);shutil.copyfile(w.UI/'scientific'/name,dest)
@@ -56,7 +63,7 @@ def run(d,c,out):
                 except Exception as exc:
                     with lock:state[ident].update(status='failed',error=str(exc));persist()
                 finally:tasks.task_done()
-    with concurrent.futures.ThreadPoolExecutor(max_workers=len(gpus)) as pool:
+    with concurrent.futures.ThreadPoolExecutor(max_workers=max(1,len(gpus))) as pool:
         futures=[pool.submit(worker,gpu) for gpu in gpus]
         for future in futures:future.result()
     if len(records)!=len(ids):raise RuntimeError('Some MD jobs remain incomplete; checkpoints retained')

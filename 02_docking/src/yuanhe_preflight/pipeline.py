@@ -63,10 +63,13 @@ def risk_stage(rows, config, out, *, base, batch_id):
             else:seen[r['smiles']]=r['id']
             (out/(r['id']+'.svg')).write_text(rules.svg(r['smiles']))
         except Exception as exc:r.update(decision='review',reason=type(exc).__name__+': '+str(exc))
-        results.append(r);write(out/'progress.json',counts(results,len(rows)))
+        results.append(r)
+        if len(results)%config['batch_size']==0 or len(results)==len(rows):write(out/'progress.json',counts(results,len(rows)))
+    origins={}
     for r in results:
-        if r.get('compound_id'):
-            r['all_origins']=[{k:x.get(k) for k in ('original_id','source_core','generation_batch','seed_id','provenance_manifest')} for x in results if x.get('compound_id')==r['compound_id']]
+        if r.get('compound_id'):origins.setdefault(r['compound_id'],[]).append({k:r.get(k) for k in ('original_id','source_core','generation_batch','seed_id','provenance_manifest')})
+    for r in results:
+        if r.get('compound_id'):r['all_origins']=origins[r['compound_id']]
     export(out,results);write(out/'summary.json',counts(results,len(rows)))
     return counts(results,len(rows))
 

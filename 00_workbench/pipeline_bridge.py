@@ -113,6 +113,7 @@ def stage_reinvent4(d,cfg,out):
  if not selections:raise Blocked('Reviewed core selection required: in core_selections enter seed_id and key_atom_indices(from 1 onward). First inspect Peptide2Mol seed structures.')
  seeds={r['id']:r for r in read(d/'peptide2mol/seeds.json',[])};mc=read(GEN/'configs/project.json')['models']['reinvent4']
  exe=executable(cfg['reinvent_executable'],'REINVENT4');rows=[];failures=[];seen=set();core_records=[];sampled=0
+ if rc:(out/'lineage.jsonl').write_text('')
  quotas=[rc['reinvent_attempts']//len(selections)+(i<rc['reinvent_attempts']%len(selections)) for i in range(len(selections))] if rc else [cfg['budget']]*len(selections)
  atomic(out/'budget_plan.json',{'quotas':quotas,'total_attempts':sum(quotas),'scope':'whole_task' if rc else 'historical_per_core'})
  for n,selection in enumerate(selections):
@@ -145,6 +146,8 @@ def stage_reinvent4(d,cfg,out):
    if rc:
     from research.qualification import identity
     _,smiles,_=identity(smiles);base=Chem.MolFromSmiles(smiles)
+   if rc:
+    with (out/'lineage.jsonl').open('a') as lineage:lineage.write(json.dumps({'compound_id':identity(smiles)[0],'core_index':n,'seed_id':seed['id'],'sample_record':c,'manifest':str((out/f'core_{n:04d}/manifest.json').relative_to(d))})+'\n')
    if smiles in seen:continue
    seen.add(smiles);cid=identity(smiles)[0] if rc else 'CMP'+__import__('hashlib').sha256(smiles.encode()).hexdigest()[:20]
    mol=Chem.AddHs(base);params=AllChem.ETKDGv3();params.randomSeed=cfg['seed']

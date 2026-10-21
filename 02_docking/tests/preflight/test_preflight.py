@@ -7,7 +7,7 @@ from rdkit import Chem
 from rdkit.Chem import AllChem
 ROOT=Path(__file__).resolve().parents[3]
 sys.path[:0]=[str(ROOT/'02_docking/src'),str(ROOT/'00_workbench'),str(ROOT/'03_virtual_screening/src')]
-from yuanhe_preflight.common import *
+from yuanhe_preflight.common import file_hash,read,write,canonical,hash_obj,seal,identity
 from yuanhe_preflight.config import defaults
 from yuanhe_preflight.toxicity_substructure_filter import RiskRules
 from yuanhe_preflight.catalog import Catalog

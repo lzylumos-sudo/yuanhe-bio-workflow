@@ -265,7 +265,6 @@ def run_redock(ctx, plan: list[dict[str, Any]]) -> dict[str, Any]:
             if len(capability.command)!=1: raise ValueError('Run the screening module inside the Vina environment')
             jobdir = Path(prefix + '_job')
             # A versioned parameter digest prevents reuse across engines or protocols.
-            from ..ids import sha256_text
             import hashlib
             file_sha=lambda path:hashlib.sha256(Path(path).read_bytes()).hexdigest()
             cache = sha256_text(str(('vina','1.2.7',protocol.hash(), box, seed, file_sha(ligand_path), file_sha(receptor))))[:16]
