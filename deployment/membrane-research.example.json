@@ -1,0 +1,37 @@
+{
+  "production_ns": 500,
+  "equilibration_ns": 2,
+  "temperature_K": 310,
+  "salt_M": 0.15,
+  "lipid": "POPE",
+  "padding_nm": 1.2,
+  "gpu_id": "0",
+  "precision": "mixed",
+  "output_interval_ps": 10,
+  "charge_method": "resp",
+  "qm_threads": 4,
+  "center": [0, 0, 0],
+  "normal": [0, 0, 1],
+  "orientation_reviewed": false,
+  "orientation_source": "REPLACE with reviewed membrane placement source",
+  "alignment_selection": "protein and backbone",
+  "mmpbsa": {
+    "enabled": true,
+    "start_ns": 400,
+    "end_ns": 500,
+    "stride": 10,
+    "entropy": false,
+    "interior_dielectric": 1,
+    "exterior_dielectric": 80,
+    "salt_molar": 0.15,
+    "membrane": true,
+    "membrane_model": {
+      "reviewed": false,
+      "source": "REPLACE with thickness, orientation and pore model rationale",
+      "normal": [0, 0, 1],
+      "thickness_A": 30,
+      "dielectric": 2,
+      "poretype": 1
+    }
+  }
+}

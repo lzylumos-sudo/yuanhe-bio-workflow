@@ -328,9 +328,9 @@ def stage_redock(ctx, selection: dict[str, Any] | None = None) -> dict[str, Any]
     if "redock" in ctx.config.budget.not_run or ctx.config.budget.redock_max_parents <= 0:
         return {"status": "not_run", "requested": 0, "completed": 0,
                 "reason": "disabled by explicit screening budget", "results": [], "compounds": {}}
-    from .redock import gnina
+    from .redock import vina
 
-    return gnina.run_redock(ctx, _redock_plan(ctx, selection))
+    return vina.run_redock(ctx, _redock_plan(ctx, selection))
 
 
 def _redock_plan(ctx, selection) -> list[dict[str, Any]]:

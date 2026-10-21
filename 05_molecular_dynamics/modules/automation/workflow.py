@@ -28,19 +28,18 @@ def implementation():
 
 def settings(args, interactive):
     cfg=load_mapping(ROOT/'config/default.yaml')
-    merge(cfg,{'MD':{'production':'100ps','cpu_threads':2},'replicates':1})
     if args.config: merge(cfg,load_mapping(Path(args.config).expanduser().resolve()))
     decisions=cfg.pop('decisions',{})
     if not isinstance(decisions,dict): raise ValueError('decisions must be a mapping.')
     if args.smoke_test:
-        merge(cfg,{'MD':{'platform':'CPU','cpu_threads':2,'production':'10ps','equilibration':'2ps',
-             'nvt':'1ps','npt':'1ps','report_interval':'1ps','checkpoint_interval':'2ps'},
-             'replicates':1,'analysis':{'stride':1,'discard_ns':0,'sasa_stride':1},'mmgbsa':{'max_frames':4,'start_ns':0}})
+        merge(cfg,{'MD':{'platform':'CPU','require_gpu':False,'segment_length':'2ps','cpu_threads':2,'production':'10ps','equilibration':'2ps',
+             'nvt':'1ps','npt':'1ps','heating_duration':'1ps','report_interval':'1ps','checkpoint_interval':'2ps'},
+             'mmpbsa':{'enabled':False},'replicates':1,'analysis':{'stride':1,'discard_ns':0,'sasa_stride':1},'mmgbsa':{'max_frames':4,'start_ns':0}})
     elif interactive and not args.config:
         from .forcefields import list_presets
         print(json.dumps(list_presets(),ensure_ascii=False,indent=2))
-        print('The currently supported complete preset is:AMBER ff14SB + GAFF 2.11/AM1-BCC + TIP3P/NaCl. Other combinations await validation. The default is a short preflight run.')
-        cfg['MD']['production']=input('Production duration [100ps]: ').strip() or '100ps'
+        print('The currently supported complete preset is:AMBER ff14SB + GAFF2 / HF-RESP + TIP3P/NaCl. Other combinations await validation. Research default is one 500 ns production trajectory; use --smoke-test for engineering only.')
+        cfg['MD']['production']=input('Production duration [500ns]: ').strip() or '500ns'
         cfg['replicates']=int(input('Independent replicas [1]: ').strip() or '1')
         cfg['MD']['cpu_threads']=int(input('CPU Thread count [2]: ').strip() or '2')
         cfg['MD']['temperature']=float(input('Temperature K [300]: ').strip() or '300')

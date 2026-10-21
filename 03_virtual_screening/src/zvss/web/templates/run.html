@@ -82,12 +82,12 @@
   <a href="/api/run/{{ run_id }}/membrane">JSON</a>
 </p>
 <table>
-  <tr><th>Y-MAVS</th><th>Baseline</th><th>Shift</th><th>Compounds</th><th>GNINA</th><th>Pocket region</th><th>Depth Å</th><th>Accessibility</th><th>Steric</th><th>Ensemble</th><th>Membrane evidence</th><th>Formal</th></tr>
+  <tr><th>Y-MAVS</th><th>Baseline</th><th>Shift</th><th>Compounds</th><th>Affinity kcal/mol</th><th>Pocket region</th><th>Depth Å</th><th>Accessibility</th><th>Steric</th><th>Ensemble</th><th>Membrane evidence</th><th>Formal</th></tr>
   {% for e in membrane_ranking %}
   <tr>
     <td>{{ e.membrane_aware_rank }}</td><td>{{ e.baseline_rank }}</td><td>{{ e.rank_shift }}</td>
     <td><code>{{ e.compound_id }}</code><div class="muted"><code>{{ e.pose_id }}</code></div></td>
-    <td>{{ e.gnina_affinity }}</td><td>{{ e.pocket_region }}</td><td>{{ e.ligand_center_depth_A }}</td>
+    <td>{{ e.docking_affinity_kcal_mol if e.docking_affinity_kcal_mol is defined else e.gnina_affinity }}</td><td>{{ e.pocket_region }}</td><td>{{ e.ligand_center_depth_A }}</td>
     <td>{{ e.geometric_accessibility_status }}</td><td>{{ e.steric_compatibility_status }}</td>
     <td>{{ e.ensemble_status }}</td><td>{{ e.membrane_evidence_status }}</td><td>{{ e.formal_qualified }}</td>
   </tr>

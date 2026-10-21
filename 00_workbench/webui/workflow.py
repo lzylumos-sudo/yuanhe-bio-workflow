@@ -5,7 +5,7 @@ from pathlib import Path
 UI=Path(__file__).resolve().parents[1]
 ROOT=UI.parent
 RUNS=UI/'workflow_runs'
-STAGES=[('prepare','Complex preparation','Separate protein and peptide; retain full receptor and local pocket'),('peptide2mol','Peptide2Mol','Real model sampling and chemistry checks'),('reinvent4','REINVENT4','Expand candidate molecules after core review'),('docking','GNINA Batch docking','Full receptor · Unique molecules · Raw CNN Scores'),('screening','Virtual screening','Quality control, binding-mode and diversity screening'),('gromacs','GROMACS','Membrane minimization, equilibration, production and trajectory analysis')]
+STAGES=[('prepare','Complex preparation','Separate protein and peptide; retain full receptor and local pocket'),('peptide2mol','Peptide2Mol','Real model sampling and chemistry checks'),('reinvent4','REINVENT4','Expand candidate molecules after core review'),('docking','AutoDock Vina batch docking','CPU · affinity / kcal mol-1 · lower is better'),('screening','Virtual screening','Quality control, binding-mode and diversity screening'),('gromacs','GROMACS','Membrane minimization, equilibration, production and trajectory analysis')]
 _lock=threading.RLock(); _active={}
 
 def digest(path):
@@ -29,14 +29,14 @@ def read(path,default=None):
 def defaults():
  cfg = {'structure':'data/structures/9nu4.pdb','receptor_chain':'A','peptide_chain':'B','receptor_range':[3,500],
  'budget':20,'generation_recovery_run':'','seed':17,'pocket_radius':6.0,'peptide_python':'','reinvent_executable':'','chem_python':sys.executable,
- 'prep_python':'/opt/yuanhe/envs/prep/bin/python','md_python':'/opt/yuanhe/envs/membrane/bin/python','screening_budget':'quick','receptor_review':{},'md_system_ids':[], 'screen_python':'','gnina':'','gnina_device':'gpu','gmx':'','target_profile':'ecmurj',
+ 'prep_python':'/opt/yuanhe/envs/prep/bin/python','md_python':'/opt/yuanhe/envs/membrane/bin/python','screening_budget':'quick','receptor_review':{},'md_system_ids':[], 'screen_python':'','vina':'vina','docking_engine':'vina','docking_seeds':[],'docking_cpu':4,'docking_workers':1,'docking_total_threads':4,'exhaustiveness':32,'num_modes':9,'energy_range':3.0,'gmx':'','target_profile':'ecmurj',
  'core_selections':[], 'docking_receptor':'','docking_box':None,'gromacs_tpr':'',
  'gromacs_system_reviewed':False,'timeout_seconds':86400}
  cfg.update({k:v for k,v in read(ROOT/'deployment/runtime.json',{}).items() if k in cfg})
  return cfg
 
 def source_snapshot():
- roots=['00_workbench/scientific','00_workbench/webui','01_molecule_generation/src','02_docking/src','03_virtual_screening/src']
+ roots=['00_workbench/scientific','00_workbench/webui','01_molecule_generation/src','02_docking/src','03_virtual_screening/src','05_molecular_dynamics/modules']
  files=[ROOT/'00_workbench'/n for n in ['pipeline_bridge.py','studio_worker.py','md_stage.py']]
  for root in roots:files.extend((ROOT/root).rglob('*.py'))
  files.extend((ROOT/'03_virtual_screening'/'configs').rglob('*'))
@@ -46,7 +46,7 @@ def _screen_revision_allowed(name):
  return name.startswith(('03_virtual_screening/src/','03_virtual_screening/configs/')) or name in {'00_workbench/webui/server.py', '00_workbench/webui/workflow.py'}
 
 def _md_revision_allowed(name):
- return _screen_revision_allowed(name) or name in {str(UI.relative_to(ROOT))+'/'+x for x in ('scientific/membrane.py','scientific/artifacts.py','scientific/md_cli.py','scientific/validation.py','md_stage.py','studio_worker.py','webui/studio.py')}
+ return _screen_revision_allowed(name) or name.startswith("05_molecular_dynamics/modules/") or name in {str(UI.relative_to(ROOT))+'/'+x for x in ('scientific/membrane.py','scientific/artifacts.py','scientific/md_cli.py','scientific/validation.py','md_stage.py','studio_worker.py','webui/studio.py')}
 
 def continue_md(rid):
  """Audit MD-only changes without recreating or relabeling upstream results."""
@@ -128,7 +128,7 @@ def create(config):
   if isinstance(cfg[k],bool) or not isinstance(cfg[k],int) or not low<=cfg[k]<=high:raise ValueError(k+' Out of range')
  rr=cfg['receptor_range']
  if not isinstance(rr,list) or len(rr)!=2 or not all(isinstance(x,int) for x in rr) or rr[0]>rr[1]:raise ValueError('Invalid receptor residue range')
- if cfg['gnina_device'] not in ('cpu','gpu'):raise ValueError('GNINA Invalid device')
+ if cfg['docking_engine']!='vina':raise ValueError('New tasks require official Vina; historical GNINA results remain read-only')
  if cfg['target_profile'] not in ('ecmurj','generic'):raise ValueError('Invalid target configuration')
  rid=time.strftime('%Y%m%d_%H%M%S')+'_'+uuid.uuid4().hex[:8];d=run_dir(rid);d.mkdir(parents=True)
  shutil.copyfile(source,d/'input.pdb');cfg['input_sha256']=digest(d/'input.pdb')
@@ -200,7 +200,7 @@ def status(rid):
 def inventory():
  paths={'Peptide2Mol':'01_molecule_generation/vendor/Peptide2Mol/ckpts/PMT_major.ckpt',
  'REINVENT4':'01_molecule_generation/vendor/REINVENT4/priors/libinvent.prior',
- 'GNINA adapter':'02_docking/src/sbvs2/docking/run_gnina.py',
+ 'Vina adapter':'02_docking/src/sbvs2/docking/vina_official.py',
  'Virtual screening':'03_virtual_screening/src/zvss/stages.py',
  'Membrane MD':str(UI.relative_to(ROOT)/'scientific/membrane.py')}
  modules=[{'name':n,'present':(ROOT/p).is_file(),'path':p} for n,p in paths.items()]
@@ -294,7 +294,7 @@ REVIEW_FIELDS={
  'prepare':[],
  'peptide2mol':['peptide_python'],
  'reinvent4':['reinvent_executable','core_selections'],
- 'docking':['gnina','gnina_device','docking_receptor','docking_box','receptor_review'],
+ 'docking':['vina','docking_seeds','docking_engine','docking_cpu','docking_workers','docking_total_threads','exhaustiveness','num_modes','energy_range','docking_receptor','docking_box','receptor_review'],
  'screening':['screen_python','screening_budget'],
  'gromacs':['gmx','gromacs_tpr','gromacs_system_reviewed','md_system_ids'],
 }

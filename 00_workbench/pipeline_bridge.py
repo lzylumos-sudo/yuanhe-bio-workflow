@@ -3,7 +3,7 @@
 from __future__ import annotations
 import argparse,csv,json,math,os,shutil,subprocess,sys,time
 from pathlib import Path
-from webui.workflow import ROOT,UI,STAGES,atomic,digest,read,require,run_dir,lease_fds,gnina_environment
+from webui.workflow import ROOT,UI,STAGES,atomic,digest,read,require,run_dir,lease_fds
 GEN=ROOT/'01_molecule_generation'
 SCREEN=ROOT/'03_virtual_screening'
 sys.path.insert(0,str(GEN))
@@ -138,14 +138,11 @@ def stage_reinvent4(d,cfg,out):
 
 def stage_docking(d,cfg,out):
  sys.path.insert(0,str(ROOT/'02_docking/src'))
- from sbvs2.docking.run_gnina import run_gnina_job
+ from sbvs2.docking.vina_official import run_vina_job, validate_resources
  from sbvs2.docking.protocol import Protocol
  from sbvs2.docking.box import Box
- exe=executable(cfg['gnina'],'GNINA')
- if cfg['gnina_device']=='gpu':
-  smi=shutil.which('nvidia-smi') or '/usr/lib/wsl/lib/nvidia-smi'
-  probe=subprocess.run([smi,'-L'],capture_output=True,text=True,timeout=20)
-  if probe.returncode or not probe.stdout.strip():raise Blocked('GPU docking requested but no NVIDIA GPU detected')
+ exe=executable(cfg['vina'],'AutoDock Vina')
+ validate_resources(int(cfg['docking_cpu']), int(cfg['docking_workers']), int(cfg['docking_total_threads']))
  # Explicit preparation is a scientific input, not guessed from raw coordinates.
  rec=Path(cfg.get('docking_receptor') or '')
  if not rec.is_absolute():rec=d/rec
@@ -158,33 +155,43 @@ def stage_docking(d,cfg,out):
  if len(atoms)<expected*.8:raise ValueError('Too few receptor heavy atoms; possible cropped pocket or incorrect file')
  b=cfg.get('docking_box')
  if not isinstance(b,dict) or len(b.get('center',[]))!=3 or len(b.get('size',[]))!=3:raise Blocked('Explicitly reviewed values required for docking_box.center and size, units Å')
+ if b.get('units','angstrom') not in {'angstrom','A','Å'}:raise ValueError('Docking box units must be angstrom')
  box=Box(tuple(map(float,b['center'])),tuple(map(float,b['size'])),'manual')
  if box.validate():raise ValueError('Invalid or oversized docking box: '+','.join(box.validate()))
  receptor=out/'receptor.pdb';shutil.copyfile(rec,receptor);atomic(out/'box.json',b)
- proto=Protocol.preset('standard',seeds=(cfg['seed'],));rows=list(read(d/'reinvent4/candidates.json',[]));results=[];successful=[]
+ proto=Protocol.preset('standard',seeds=(cfg['seed'],),exhaustiveness=cfg['exhaustiveness'],num_modes=cfg['num_modes'],energy_range=cfg['energy_range']);rows=list(read(d/'reinvent4/candidates.json',[]));results=[];successful=[]
  from rdkit import Chem
  seen={Chem.MolToSmiles(Chem.MolFromSmiles(r['smiles']),isomericSmiles=True) for r in rows}
  for seed in read(d/'peptide2mol/seeds.json',[]):
   canon=Chem.MolToSmiles(Chem.MolFromSmiles(seed['smiles']),isomericSmiles=True)
   if canon not in seen:
    seen.add(canon);rows.append({'id':seed['id'],'smiles':canon,'sdf':seed['raw_sdf'],'source_stage':'peptide2mol'})
- if len(rows)>16:raise ValueError('This bounded workflow accepts at most 16 unique docking inputs')
  atomic(out/'input_molecules.json',rows)
- for row in rows:
-  result=run_gnina_job(exe,receptor,d/row['sdf'],box,proto,cfg['seed'],out/'jobs'/row['id'],device=cfg['gnina_device'],cpu=int(os.environ.get('YUANHE_DOCKING_THREADS','24')),timeout=cfg['timeout_seconds'],nvidia_smi=shutil.which('nvidia-smi'),env_extra=gnina_environment())
-  entry={**row,'status':result['status'],'error':result.get('error')}
-  if result['status']=='ok':
-   best=max(result['poses'],key=lambda x:x['cnn_pose_score']);entry.update(best);successful.append(row['id'])
-  results.append(entry);atomic(out/'progress.json',{'input':len(rows),'processed':len(results),'successful':len(successful),'failed':len(results)-len(successful)})
- atomic(out/'results.json',results);csv_write(out/'molecules.csv',results,['id','smiles','status','empirical_score_kcal_mol','cnn_pose_score','cnn_affinity_pK','error'])
+ from concurrent.futures import ThreadPoolExecutor, as_completed
+ seeds=cfg.get('docking_seeds') or [cfg['seed']]
+ if not seeds or len(set(seeds))!=len(seeds) or any(type(s) is not int or not 0<s<2**31 for s in seeds):raise ValueError('Distinct positive integer docking seeds required')
+ tasks=[(row,int(seed)) for row in rows for seed in seeds]
+ def dock(task):
+  row,seed=task;job_id=row['id']+'_seed'+str(seed)
+  result=run_vina_job(exe,receptor,d/row['sdf'],box,proto,seed,out/'jobs'/job_id,cpu=int(cfg['docking_cpu']),timeout=cfg['timeout_seconds'])
+  entry={**row,'job_id':job_id,'seed':seed,'status':result['status'],'engine':'vina','engine_version':'1.2.7','error':result.get('error')}
+  if result['status']=='ok':entry.update(min(result['poses'],key=lambda x:x['vina_affinity_kcal_mol']))
+  return entry
+ with ThreadPoolExecutor(max_workers=int(cfg['docking_workers'])) as pool:
+  for future in as_completed([pool.submit(dock,task) for task in tasks]):
+   entry=future.result();results.append(entry)
+   if entry['status']=='ok':successful.append(entry['job_id'])
+   atomic(out/'progress.json',{'input':len(tasks),'processed':len(results),'successful':len(successful),'failed':len(results)-len(successful)})
+ results.sort(key=lambda r:(r['id'],r['seed']))
+ atomic(out/'results.json',results);csv_write(out/'molecules.csv',results,['id','smiles','status','vina_affinity_kcal_mol','engine','cnn_pose_score','cnn_affinity_pK','error'])
  if not successful:raise RuntimeError('All molecules failed docking; inspect each job_record.json')
- return {'input':len(rows),'remaining':len(successful),'failed':len(rows)-len(successful),'poses':sum(len(read(out/'jobs'/x/'job_record.json')['poses']) for x in successful)}
+ return {'input':len(rows),'remaining':len({r['id'] for r in results if r['status']=='ok'}),'failed':len(tasks)-len(successful),'poses':sum(len(read(out/'jobs'/x/'job_record.json')['poses']) for x in successful)}
 
 def stage_screening(d,cfg,out):
  py=executable(cfg.get('screen_python') or cfg['chem_python'],'Virtual screening Python')
  # Separate stage-local database prevents cross-run counts and candidate contamination.
  workspace=out/'workspace';workspace.mkdir();shutil.copytree(SCREEN/'configs',workspace/'configs')
- host={'paths':{'structures_dir':str(ROOT)},'tools':{'gnina':[executable(cfg['gnina'],'GNINA')], 'gnina_settings':{'cnn_model':'crossdock_default2018_1_3','device':cfg['gnina_device'],'exhaustiveness':16,'num_modes':9,'cpu':4,'cnn_scoring':'rescore','environment':gnina_environment()}},
+ host={'paths':{'structures_dir':str(ROOT)},'tools':{'vina':[executable(cfg['vina'],'AutoDock Vina')], 'vina_settings':{'engine_version':'1.2.7','exhaustiveness':cfg['exhaustiveness'],'num_modes':cfg['num_modes'],'cpu':cfg['docking_cpu'],'energy_range':cfg['energy_range']}},
  'executors':{'md_openmm_linux':{'mode':'disabled','note':'GROMACS used separately; membrane system not auto-prepared'}}}
  if cfg['target_profile']=='generic':
   from scientific.target_profile import bind_generic
@@ -194,16 +201,16 @@ def stage_screening(d,cfg,out):
  shutil.copyfile(d/'docking/receptor.pdb',handoff/'receptor.pdb')
  for record in read(d/'docking/results.json',[]):
   if record['status']!='ok':continue
-  target=handoff/record['id'];target.mkdir()
-  for name in ('poses.sdf','gnina.log'):
-   source=d/'docking/jobs'/record['id']/name
+  target=handoff/record.get('job_id',record['id']);target.mkdir()
+  for name in ('poses.sdf','job_record.json'):
+   source=d/'docking/jobs'/record.get('job_id',record['id'])/name
    if source.is_file():shutil.copyfile(source,target/name)
  env=os.environ.copy();env['PYTHONPATH']=str(SCREEN/'src')
  import tempfile
  env['ZVSS_SCRATCH']=tempfile.mkdtemp(prefix='yuanhe_zvss_')
  command([py,'-m','zvss.cli','--root',workspace,'run','--input',handoff,'--run-id','screen',
  '--target',workspace/'configs/targets'/f"{cfg['target_profile']}.yaml",'--budget',workspace/'configs/budgets'/f"{cfg.get('screening_budget','quick')}.yaml",
- '--host',workspace/'host.json','--hints',json.dumps({'receptor_file':str(d/'docking/receptor.pdb'),'receptor_sha256':digest(d/'docking/receptor.pdb'),'box':cfg['docking_box'],'seed':cfg['seed']})],workspace,cfg['timeout_seconds'],env)
+ '--host',workspace/'host.json','--hints',json.dumps({'engine':'vina','engine_version':'1.2.7','receptor_file':str(d/'docking/receptor.pdb'),'receptor_sha256':digest(d/'docking/receptor.pdb'),'box':cfg['docking_box'],'seed':cfg['seed']})],workspace,cfg['timeout_seconds'],env)
  state=read(workspace/'runs/screen/run_state.json',{})
  if state.get('errors'):raise RuntimeError('Screening module reported an error')
  files=list((workspace/'runs/screen').rglob('candidates.csv'))

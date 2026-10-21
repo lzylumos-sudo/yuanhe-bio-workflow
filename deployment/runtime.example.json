@@ -3,8 +3,32 @@
   "screen_python": "/opt/yuanhe/envs/chem/bin/python",
   "peptide_python": "/opt/yuanhe/envs/peptide2mol/bin/python",
   "reinvent_executable": "/opt/yuanhe/envs/reinvent4/bin/reinvent",
-  "gnina": "/opt/sbvs/vendor/gnina",
+  "vina": "vina",
   "gmx": "gmx",
   "prep_python": "/opt/yuanhe/envs/prep/bin/python",
-  "md_python": "/opt/yuanhe/envs/membrane/bin/python"
+  "md_python": "/opt/yuanhe/envs/membrane/bin/python",
+  "docking_engine": "vina",
+  "docking_cpu": 4,
+  "docking_workers": 1,
+  "docking_total_threads": 4,
+  "exhaustiveness": 32,
+  "num_modes": 9,
+  "energy_range": 3.0,
+  "docking_seeds": [
+    17
+  ],
+  "docking_box": {
+    "center": [
+      0,
+      0,
+      0
+    ],
+    "size": [
+      20,
+      20,
+      20
+    ],
+    "units": "angstrom",
+    "reviewed": false
+  }
 }

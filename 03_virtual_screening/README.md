@@ -2,7 +2,7 @@
 
 **Evidence-led candidate prioritization for structure-based drug discovery.**
 
-Turn GNINA poses into reviewable candidate decisions: what passed, what failed, what remains unknown, and what should receive the next calculation or experiment. The internal package and CLI remain `zvss` (historically Zhiyu Virtual Screening Studio); existing commands and imports are preserved.
+Turn Vina poses and engine-labelled historical GNINA poses into reviewable candidate decisions: what passed, what failed, what remains unknown, and what should receive the next calculation or experiment. The internal package and CLI remain `zvss` (historically Zhiyu Virtual Screening Studio); existing commands and imports are preserved.
 
 ## What this module contributes
 
@@ -18,7 +18,7 @@ Turn GNINA poses into reviewable candidate decisions: what passed, what failed, 
 
 ```mermaid
 flowchart TD
- A[GNINA poses and target profile] --> B[Pose QA and representative pose]
+ A[Vina poses and target profile] --> B[Pose QA and representative pose]
  B --> C[Target contacts / repeat support / strain / membrane evidence]
  C --> D{Required evidence passes?}
  D -->|Yes| E[Qualified pool]
@@ -57,7 +57,7 @@ Install into the chemistry environment from the repository root with `python -m 
 
 ```bash
 zvss --root . doctor --with-tools
-zvss --root . run --input /path/to/gnina/results --target configs/targets/ecmurj.yaml --budget configs/budgets/quick.yaml
+zvss --root . run --input /path/to/vina/results --target configs/targets/ecmurj.yaml --budget configs/budgets/quick.yaml
 zvss --root . serve --port 8770
 zvss --root . report --run-id YOUR_RUN_ID
 zvss --root . runs
@@ -74,6 +74,8 @@ Each run stores resolved configuration, logs, stage summaries and reports. Datab
 
 ## Integration and limits
 
-GNINA is the docking engine; this module supplies the screening decision layer. Standalone OpenMM and ZLIS consume explicit file contracts; the workbench provides a separate membrane/GROMACS path. Missing dependencies yield blocked/unsupported states. Use an ASCII scratch directory for RDKit/PoseBusters when needed. The membrane module's proxy is not a built membrane or experimentally sourced orientation.
+Official Vina 1.2.7 is the production docking engine; this module supplies the screening decision layer. Standalone OpenMM and ZLIS consume explicit file contracts; the workbench provides a separate membrane/GROMACS path. Missing dependencies yield blocked/unsupported states. Use an ASCII scratch directory for RDKit/PoseBusters when needed. The membrane module's proxy is not a built membrane or experimentally sourced orientation.
 
 No claim is made that these candidates are active drugs, that this is autonomous discovery, or that the workflow outperforms other screening platforms. Model training, ADMET prediction, prospective hit-rate improvement and a validated active-learning loop are outside the current demonstrated scope.
+
+New Vina scores use `vina_affinity_kcal_mol`, lower is better. CNN components are not applicable and are omitted from Vina ranking weights. Mixed-engine rankings are refused. For independent redocking install the sibling `02_docking` package (`local-sbvs`) as well as this module; the exported screening package includes it as `docking_backend/`. See [research migration](../docs/15_VINA_RESP_RESEARCH.md).

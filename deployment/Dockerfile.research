@@ -1,0 +1,11 @@
+# Source-only build recipe. Build with NVIDIA container runtime for CUDA acceptance.
+# No models, candidates or trajectories are included. Retain all dependency licenses.
+FROM mambaorg/micromamba:2.3.2
+COPY --chown=$MAMBA_USER:$MAMBA_USER deployment/research-environment.yml /tmp/environment.yml
+RUN micromamba install -y -n base -f /tmp/environment.yml && micromamba clean --all --yes
+ARG MAMBA_DOCKERFILE_ACTIVATE=1
+ENV AMBERHOME=/opt/conda
+WORKDIR /workspace
+COPY --chown=$MAMBA_USER:$MAMBA_USER . /workspace
+RUN python -c "import psi4,resp,openmm,meeko; print(psi4.__version__,openmm.__version__)" && vina --version
+CMD ["python", "deployment/doctor.py", "--help"]

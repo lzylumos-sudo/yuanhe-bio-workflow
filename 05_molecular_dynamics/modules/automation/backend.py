@@ -36,10 +36,10 @@ def _path(value):
 def dependency_report(config=None):
     """Probe native imports and actual external executables, without starting MD."""
     has_ligand = config is None or config.get("ligand") is not None
-    mmgbsa = has_ligand and (config is None or config.get("mmgbsa", {}).get("enabled", True))
+    mmgbsa = has_ligand and (config is None or config.get("mmgbsa", {}).get("enabled", True) or config.get("mmpbsa", {}).get("enabled", False))
     packages = ["yaml", "numpy", "pandas", "matplotlib.pyplot", "MDAnalysis", "MDAnalysis.lib.distances", "Bio.PDB.SASA", "openmm.app", "pdbfixer"]
     if has_ligand:
-        packages += ["rdkit.Chem", "rdkit.Chem.AllChem", "rdkit.Chem.rdFMCS", "rdkit.Chem.ChemicalFeatures", "openff.toolkit", "openmmforcefields.generators"]
+        packages += ["rdkit.Chem", "rdkit.Chem.AllChem", "rdkit.Chem.rdFMCS", "rdkit.Chem.ChemicalFeatures", "openff.toolkit", "openmmforcefields.generators", "psi4", "resp"]
     if mmgbsa:
         packages += ["parmed.tools.actions"]
     imports = []
@@ -56,9 +56,9 @@ def dependency_report(config=None):
             imports.append({"name": name, "available": True, "version": version})
         except Exception as exc:
             imports.append({"name": name, "available": False, "error": f"{type(exc).__name__}: {exc}"})
-    executables = ["antechamber", "parmchk2", "sqm", "tleap"] if has_ligand else []
+    executables = ["antechamber", "parmchk2", "tleap"] if has_ligand else []
     if mmgbsa:
-        executables += ["MMPBSA.py", "cpptraj", "sander"]
+        executables += ["MMPBSA.py", "cpptraj", "sander", "pbsa"]
     commands = [{"name": name, "available": shutil.which(name) is not None, "path": shutil.which(name)} for name in executables]
     # Include an inventory derived from the current executor, rather than relying
     # solely on an old requirements file. These are source observations, not imports.
@@ -334,36 +334,9 @@ def prepare(config, paths, plan):
 def build(config, paths):
     validate_config(config)
     from ..md import openmm_engine as engine
-    charge_provenance = None
-    original_factory = engine.ligand_template_generator
-    if config.get("ligand") is not None:
-        def explicit_charge_factory(ligand, settings, cache):
-            nonlocal charge_provenance
-            import numpy as np
-            from openff.toolkit.utils import AmberToolsToolkitWrapper
-            from openff.units import unit as offunit
-            ligand.assign_partial_charges(partial_charge_method="am1bcc", toolkit_registry=AmberToolsToolkitWrapper(),
-                                          normalize_partial_charges=True)
-            q = np.asarray(ligand.partial_charges.m_as(offunit.elementary_charge), dtype=float)
-            formal = float(ligand.total_charge.m_as(offunit.elementary_charge))
-            _require(np.isfinite(q).all() and abs(float(q.sum()) - formal) < 1e-5, "AM1-BCC charges are nonfinite or fail formal-charge normalization.")
-            charge_provenance = {"method": "AM1-BCC", "backend": "OpenFF AmberToolsToolkitWrapper / antechamber / sqm",
-                                 "normalize_partial_charges": True, "formal_charge_e": formal, "partial_charges_e": q.tolist()}
-            generator = original_factory(ligand, settings, cache)
-            def validated_assigned_charges(molecule):
-                _require(molecule.partial_charges is not None, "GAFF attempted parameterization without the explicitly assigned AmberTools charges.")
-                values = np.asarray(molecule.partial_charges.m_as(offunit.elementary_charge), dtype=float)
-                _require(np.isfinite(values).all() and abs(float(values.sum()) - formal) < 1e-5, "GAFF lost the verified charge vector.")
-                # Unlike the legacy helper, an exactly-zero but explicitly
-                # calculated charge vector must not trigger another toolkit.
-                return True
-            generator._molecule_has_user_charges = validated_assigned_charges
-            return generator
-        engine.ligand_template_generator = explicit_charge_factory
-    try:
-        engine.build_system(config, paths)
-    finally:
-        engine.ligand_template_generator = original_factory
+    engine.build_system(config, paths)
+    file = paths['md']/'system/charge_provenance.json'
+    charge_provenance = read_json(file) if file.exists() else None
     build_audit(config, paths, charge_provenance)
     # Validate selections against the actual built topology before any dynamics.
     import MDAnalysis as mda
@@ -417,7 +390,7 @@ def build_audit(config, paths, charge_provenance=None):
         _require(charge_provenance is not None, "Explicit AmberTools charge provenance is missing.")
         expected = np.asarray(charge_provenance["partial_charges_e"])
         _require(expected.shape == ligand_q.shape and np.allclose(expected, ligand_q, atol=1e-5, rtol=1e-6),
-                 "Applied ligand atom charges differ from the explicitly calculated AM1-BCC vector; inspect template mapping or stale parameter cache.")
+                 "Applied ligand atom charges differ from the explicitly calculated RESP vector; inspect template mapping or stale parameter cache.")
         report.update(ligand_formal_charge_e=formal, ligand_partial_charge_sum_e=float(ligand_q.sum()), charge_provenance=charge_provenance)
     atomic_json(base / "build_audit_v2.json", report)
     return report
@@ -434,6 +407,8 @@ def analyze(config, paths):
     from ..analysis.mmgbsa import analyze_mmgbsa
     geometric_analysis(config, paths)
     analyze_mmgbsa(config, paths)
+    from ..analysis.mmpbsa import analyze_mmpbsa
+    analyze_mmpbsa(config,paths)
     # The unchanged old analyzer emits some empty tables for disabled features;
     # retain them as data, but explicitly record status and never require them.
     for replica in range(1, config["replicates"] + 1):
@@ -444,6 +419,10 @@ def analyze(config, paths):
 def required_analysis_files(config):
     files = ["timeseries.csv", "summary.json", "quality.json", "optional_analysis.json", "MMGBSA.csv"]
     a = config["analysis"]
+    if config.get("ligand") is not None:
+        files += ["last100ns.json"]
+        if config.get("mmpbsa",{}).get("enabled"):
+            files += ["mmpbsa/results.json", "mmpbsa/FINAL_RESULTS.dat", "mmpbsa/frame_energies.csv"]
     if a["rmsd"]:
         files += ["RMSD.png"]
         if config.get("ligand") is not None:
@@ -548,6 +527,10 @@ def audit_run(config, paths, *, reload_checkpoint=True):
             for key in ("mean_kcal_mol", "std_kcal_mol", "sem_kcal_mol"):
                 _require(math.isfinite(float(result[key])), "Nonfinite MM/GBSA estimate.")
             _require(int(result["frames"]) >= 2, "Too few MM/GBSA frames.")
+        if config.get("mmpbsa",{}).get("enabled") and config.get("ligand") is not None:
+            pb=read_json(out/"mmpbsa/results.json")
+            _require(pb.get("entropy_included") is False and "EPB" in pb["components"],"Actual PB component required")
+            _require(math.isfinite(pb["components"]["DELTA TOTAL"]["mean"]),"Nonfinite PB estimate")
         for key in ("progress.json", progress["checkpoint"]):
             artifact_hashes[f"md/replica_{replica:02d}/{key}"] = digest(source / key)
         replicas.append({"replica": replica, "steps": total, "frames": frames, "binary_checkpoint_reloaded": reload_checkpoint,
@@ -556,6 +539,8 @@ def audit_run(config, paths, *, reload_checkpoint=True):
             "verification_level": "NATIVE_CHECKPOINT_AND_TRAJECTORY" if reload_checkpoint else "FILE_ONLY_NOT_ACCEPTED",
             "production_ns": total * timestep / 1000, "replicas": replicas, "artifact_sha256": artifact_hashes,
             "system_sha256": system_hash,
+            "formal_duration_met": total*timestep/1000 >= 500,
+            "research_interpretation":"Single trajectory; no independent-repeat uncertainty. Review last100ns.json and PB terms; duration or low SD alone is not convergence.",
             "dcd_time_definition": "Absolute time equals each segment-relative DCD time plus verified preceding committed steps times dt; CSV is global.",
             "claims": "Numerical workflow completion only; no convergence, affinity, pose, recruitment, or degradation inference."}
 

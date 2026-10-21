@@ -96,11 +96,13 @@ def write_all(ctx, state: dict[str, Any]) -> dict[str, Any]:
     ranking_csv = os.path.join(directory, "ranking.csv")
     _write_rows(
         ranking_csv,
-        ["rank", "compound_id", "tier", "evidence_score", "affinity", "cnn_pose", "cnn_affinity",
+        ["rank", "compound_id", "tier", "evidence_score", "engine", "score_unit", "cnn_status", "vina_affinity_kcal_mol", "affinity", "cnn_pose", "cnn_affinity",
          "mechanism", "pose_quality", "missing"],
         [
             {
                 "rank": entry.get("rank"),
+                "engine":entry.get("engine"), "score_unit":entry.get("score_unit"), "cnn_status":entry.get("cnn_status"),
+                "vina_affinity_kcal_mol":(entry.get("raw") or {}).get("affinity") if entry.get("engine")=="vina" else None,
                 "compound_id": entry["compound_id"],
                 "tier": entry["tier"],
                 "evidence_score": entry.get("evidence_score"),
@@ -197,7 +199,7 @@ def _blockers(md, redock, membrane) -> list[dict[str, Any]]:
         out.append({"stage": "redock", "code": redock.get("reason_code"), "detail": redock.get("note")})
     capability = (redock.get("capability") or {})
     if capability and not capability.get("available"):
-        out.append({"stage": "redock", "code": "gnina_unavailable", "detail": capability.get("reason")})
+        out.append({"stage": "redock", "code": "vina_unavailable", "detail": capability.get("reason")})
     md_cap = (membrane.get("md_capability") or {})
     if md_cap.get("status"):
         out.append({"stage": "md", "code": md_cap.get("status"), "detail": md_cap.get("note")})
@@ -217,6 +219,8 @@ def _markdown(ctx, state, ranking, selection, md, target, imported, qa, mech, re
         f"- Configuration digest: `{ctx.config.digest()}` | Code version `{ctx.config.code_version}`",
         f"- Budget: `{ctx.config.budget.budget_id}` | Selection version: `{(selection or {}).get('selection_version')}`",
         "",
+        "Current docking: official Vina; affinity in kcal/mol, lower is better. CNN fields are N/A for Vina. Historical engines are ranked separately.",
+        "MD research protocol: GAFF2 + HF/RESP; one 500 ns trajectory; core RMSD and PB window 400–500 ns. This screening report does not certify MD completion.",
         "## 1. Inputs and identity",
         "",
         f"- Files discovered: {len(imported.get('files') or [])} items",
@@ -277,13 +281,13 @@ def _markdown(ctx, state, ranking, selection, md, target, imported, qa, mech, re
             "- membrane_aware_score is an ordinal priority within this pool, not a binding free energy or activity probability.",
             "- Membrane evidence is applied after the existing tier and evidence score; formal qualification is unchanged except for explicitly configured additive requirements.",
             "",
-            "| Y-MAVS rank | Baseline | Shift | Compound | GNINA | Pocket region | Depth (Å) | Accessibility | Steric | Ensemble | Evidence | Formal |",
+            "| Y-MAVS rank | Baseline | Shift | Compound | Affinity kcal/mol | Pocket region | Depth (Å) | Accessibility | Steric | Ensemble | Evidence | Formal |",
             "| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |",
         ]
         for row in membrane_rows[:15]:
             lines.append(
                 f"| {row.get('membrane_aware_rank')} | {row.get('baseline_rank')} | {row.get('rank_shift')} | "
-                f"`{row.get('compound_id')}` | {row.get('gnina_affinity')} | {row.get('pocket_region')} | "
+                f"`{row.get('compound_id')}` | {row.get('docking_affinity_kcal_mol',row.get('gnina_affinity'))} | {row.get('pocket_region')} | "
                 f"{row.get('ligand_center_depth_A')} | {row.get('geometric_accessibility_status')} | "
                 f"{row.get('steric_compatibility_status')} | {row.get('ensemble_status')} | "
                 f"{row.get('membrane_evidence_status')} | {row.get('formal_qualified')} |"
@@ -360,7 +364,7 @@ def _markdown(ctx, state, ranking, selection, md, target, imported, qa, mech, re
     lines += [
         f"- Membrane orientation: {membrane.get('status', 'not_evaluated')}; source: {(membrane.get('plane') or {}).get('source', 'none')}. MD execution is assessed separately.",
         "- multiple seed Redocking: "
-        + ("Completed" if (redock.get("status") == "completed") else "Blocked by GNINA availability; no redocking evidence produced"),
+        + ("Completed" if (redock.get("status") == "completed") else "Blocked by Vina availability; no redocking evidence produced"),
         "",
         "## 7. Reproduction",
         "",

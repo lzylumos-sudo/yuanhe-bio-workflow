@@ -1,0 +1,16 @@
+.git
+**/runs
+**/results
+**/data/raw
+**/vendor
+**/node_modules
+**/__pycache__
+**/.env*
+**/runtime.json
+**/*.dcd
+**/*.xtc
+**/*.trr
+**/*.chk
+**/*.cpt
+**/*.ckpt
+**/*.prior

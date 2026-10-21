@@ -1,3 +1,5 @@
+CURRENT MIGRATION: use official Vina 1.2.7 and docs/15_VINA_RESP_RESEARCH.md. GNINA/CNN commands and old MD acceptance defaults below are archival and must not be used for new jobs. This source-only revision is untested on the target computer.
+
 Validated Linux x86_64 / Python 3.12 clean environment for workbench, docking and screening. This does not replace the separate generation-model and membrane environments.
 
 python3.12 -m venv /new/path/venv

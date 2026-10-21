@@ -15,3 +15,5 @@ This repository contains workflow orchestration, adapters and analysis code. Thi
 Pinned commits and weight hashes are in `deployment/model_dependencies.json`. Preserve upstream licenses and authorship when restoring dependencies. Source links identify provenance; they are not a complete license audit. See `LICENSE_SCOPE.txt` and `THIRD_PARTY_NOTICES.txt` for exclusions from the project license.
 
 Full-text papers are not redistributed. Original PDB coordinates and provenance are in `data/structures/manifest.json`. These structures were not determined by this team and do not establish experimental activity of generated compounds.
+
+Current production docking uses official AutoDock Vina 1.2.7. New preparation/MD/analysis dependencies include Meeko, RDKit, Psi4, cdsgroup RESP, AmberTools, OpenMM, ParmEd, MDAnalysis and GROMACS. Their component-specific license and distribution obligations remain; see `docs/16_RESEARCH_DEPENDENCY_LICENSES.md` at the repository root. Historical GNINA notices remain applicable to historical code and artifacts.

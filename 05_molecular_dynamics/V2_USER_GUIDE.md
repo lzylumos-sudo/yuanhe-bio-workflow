@@ -1,3 +1,5 @@
+Current research migration: official Vina 1.2.7 CPU docking; GAFF2 + HF/RESP; one 500 ns trajectory per selected complex; core analysis and actual PB at 400–500 ns. See docs/15_VINA_RESP_RESEARCH.md at the repository root. Previous short-run defaults below are historical. This revision is code-only; validate on the intended computer.
+
 # Nexus MD v2 user guide
 
 ## Install and validate

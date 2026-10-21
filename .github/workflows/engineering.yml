@@ -24,7 +24,7 @@ jobs:
         id: dependencies
         run: |
           python -m pip install -r deployment/validation_5090/pip-freeze.txt
-          python -m pip install openmm==8.5.1 parmed==4.3.0 meeko==0.8.0
+          python -m pip install openmm==8.6.1 parmed==4.3.1 meeko==0.8.0
           python -m pip install biopython==1.85 openpyxl==3.1.5 cairosvg==2.7.1 lxml==5.4.0
           python -m pip check
       - name: Generation contracts (no model inference)

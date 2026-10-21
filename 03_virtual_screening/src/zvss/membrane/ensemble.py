@@ -426,7 +426,9 @@ class MembraneEnsembleAnalyzer:
             compounds[compound_id] = {
                 "state_id": chosen.get("state_id"),
                 "pose_id": chosen["pose_id"],
-                "gnina_affinity": scores.get("minimizedAffinity"),
+                "engine": chosen.get("engine"),
+                "vina_affinity_kcal_mol":scores.get("vina_affinity_kcal_mol"),
+                "gnina_affinity":scores.get("minimizedAffinity") if chosen.get("engine")!="vina" else None,
                 "cnn_score": scores.get("CNNscore"),
                 "cnn_affinity": scores.get("CNNaffinity"),
                 "pose_qc_status": chosen.get("assess_status"),
@@ -506,7 +508,7 @@ class MembraneEnsembleAnalyzer:
                 record = entry.get("record") if entry else None
                 if not record:
                     continue
-                affinity = record.get("gnina_affinity")
+                affinity = record.get("vina_affinity_kcal_mol") if record.get("engine")=="vina" else record.get("gnina_affinity")
                 try:
                     affinity_value = float(affinity) if affinity is not None else None
                 except (TypeError, ValueError):
@@ -515,15 +517,17 @@ class MembraneEnsembleAnalyzer:
                     {
                         "compound_id": compound_id,
                         "pose_id": record.get("pose_id"),
-                        "gnina_affinity": affinity_value,
+                        "engine":record.get("engine","gnina"), "docking_affinity_kcal_mol":affinity_value,
+                        "gnina_affinity":affinity_value if record.get("engine")!="vina" else None,
                         "pose_qc_status": record.get("pose_qc_status"),
                     }
                 )
-            records.sort(key=lambda row: (row["gnina_affinity"] is None, row["gnina_affinity"] if row["gnina_affinity"] is not None else math.inf, row["compound_id"]))
+            if len({r["engine"] for r in records})>1:raise ValueError("Mixed-engine ensemble rankings require separate runs")
+            records.sort(key=lambda row: (row["docking_affinity_kcal_mol"] is None, row["docking_affinity_kcal_mol"] if row["docking_affinity_kcal_mol"] is not None else math.inf, row["compound_id"]))
             rankings[state["structure_id"]] = {
                 "conformational_state": state.get("conformational_state"),
                 "state_coverage": f"{len(records)}/{len(compounds)}" if compounds else "0/0",
-                "ranking_basis": "within-state GNINA affinity only; missing compounds are not scored",
+                "ranking_basis": "within-state engine-labelled affinity only; missing compounds are not scored",
                 "ranked": records,
             }
         return {

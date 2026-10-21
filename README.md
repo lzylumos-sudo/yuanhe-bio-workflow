@@ -12,24 +12,41 @@ Yuanhe Bio brings molecular generation, docking and evidence-led candidate revie
 
 [Screening decision layer](03_virtual_screening/README.md) · [项目价值与商业定位（中文）](docs/product/PRODUCT_VALUE_ZH.md) · [Code and documentation map](docs/product/CODE_AND_CONTENT_MAP.md) · [Public/private boundary](docs/commercialization/public_private_boundary.md)
 
+## Current source migration: Vina and single-trajectory research MD
+
+New tasks use official **AutoDock Vina 1.2.7** on CPU, chemistry-preserving Meeko
+preparation/export, Vina affinity in kcal/mol (lower is better), and no CNN model
+or GNINA fallback. MD defaults to **GAFF2 + HF/RESP, one 500 ns trajectory per
+selected complex**, with core RMSD statistics and actual MM/PBSA at 400–500 ns.
+OpenMM and the explicit-membrane GROMACS path remain separate supported entrypoints.
+
+This revision is **code/configuration/documentation delivery only** at the owner's
+request. No runtime acceptance is claimed; task-generated acceptance outputs were
+deleted. Validation will be performed on another computer. Historical release
+records below do not certify this migration. Public demo source is updated; a live
+website deployment is not part of this delivery.
+
+[Migration, methods and run/resume commands](docs/15_VINA_RESP_RESEARCH.md) ·
+[Dependency licenses](docs/16_RESEARCH_DEPENDENCY_LICENSES.md)
+
 ## Research workflow and current evidence
 
 [![Engineering checks](https://github.com/lzylumos-sudo/yuanhe-bio-workflow/actions/workflows/engineering.yml/badge.svg?branch=main)](https://github.com/lzylumos-sudo/yuanhe-bio-workflow/actions/workflows/engineering.yml)
 
-A research workbench for molecular generation, structure-based virtual screening and membrane-protein modeling. Connect Peptide2Mol, REINVENT4, GNINA and molecular dynamics through reviewed inputs, traceable file handoffs and a local browser interface.
+A research workbench for molecular generation, structure-based virtual screening and membrane-protein modeling. Connect Peptide2Mol, REINVENT4, AutoDock Vina and molecular dynamics through reviewed inputs, traceable file handoffs and a local browser interface.
 
 [Quick start](#start) · [Installation](docs/01_SETUP.md) · [Supported platforms](docs/12_SUPPORT_MATRIX.md) · [Validation evidence](docs/10_INTEGRATED_ACCEPTANCE.md) · [Questions and ideas](https://github.com/lzylumos-sudo/yuanhe-bio-workflow/discussions)
 
 ## What you can use it for
 
-- **Review and prioritize docking results:** import GNINA outputs, inspect pose quality, apply candidate qualification rules and export traceable selections.
+- **Review and prioritize docking results:** import Vina outputs and engine-labelled historical GNINA outputs, inspect pose quality, apply candidate qualification rules and export traceable selections.
 - **Connect molecular design stages:** review molecular cores, generate candidates through external model adapters, and preserve the relationship between structures, molecules and poses.
 - **Investigate membrane-protein workflows:** examine membrane orientation evidence, prepare reviewed membrane systems and connect screening to downstream dynamics. MurJ / 9NU4 is the recorded reference case; other targets need their own configuration and validation.
 - **Reuse individual components:** use docking, screening, interaction analysis or standalone OpenMM modules without adopting the entire workbench.
 
 The project's contribution is workflow integration, review checkpoints and evidence tracking. The underlying generation, docking and simulation methods belong to their respective upstream projects. This is research software with a noncommercial source-available license; it is not a validated predictor of binding affinity or biological activity.
 
-## Current evidence and release status
+## Historical release evidence (before this migration)
 
 **Release 0.4.0-rc1: reproducible research integration, with explicit scientific gates.** The browser workflow connects reviewed structures to generation, docking, screening, membrane construction, GROMACS, trajectory analysis and export. The fresh 9NU4 run completed all 16 generation attempts (one accepted), generated eight unique REINVENT molecules and docked nine molecules / 81 poses. Corrected, versioned reassessment of the archived three-seed redocking results yielded **two formally qualified screening candidates**. Qualification is distinct from MD quality and biological activity.
 
@@ -42,7 +59,7 @@ flowchart LR
  A[Complex and construct review] --> B[Peptide2Mol seeds]
  B --> C[Interactive core review]
  C --> D[REINVENT4 expansion]
- D --> E[GNINA batch docking]
+ D --> E[AutoDock Vina CPU docking]
  E --> F[Virtual screening]
  F --> G[Candidate and membrane review]
  G --> H[Build membrane system]
@@ -54,7 +71,7 @@ flowchart LR
 |---|---|
 | `00_workbench` | Unified UI, guided review, scheduling, membrane builder, GROMACS and analysis |
 | `01_molecule_generation` | Preparation, model adapters, core and chemistry checks |
-| `02_docking` | GNINA protocols, docking records and standalone tools |
+| `02_docking` | Official Vina protocols, docking records and standalone tools |
 | `03_virtual_screening` | Pose QC, evidence, diversity, qualification and ranking |
 | `04_interaction_analysis` | Optional ZLIS interaction visualization |
 | `05_molecular_dynamics` | Optional standalone OpenMM workflow |

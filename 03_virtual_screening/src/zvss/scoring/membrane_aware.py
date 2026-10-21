@@ -1,6 +1,6 @@
 """Y-MAVS membrane-aware evidence ranking.
 
-This is an evidence-ordering layer, not a new binding-energy model.  GNINA's raw
+This is an evidence-ordering layer, not a new binding-energy model.  Engine-labelled raw docking
 affinity/CNN columns are preserved verbatim.  The ranking is lexicographic:
 
 1. the existing evidence tier (pose QA / score / contact gate);
@@ -11,7 +11,7 @@ affinity/CNN columns are preserved verbatim.  The ranking is lexicographic:
 
 The first two keys are intentionally the original screening decision.  Membrane
 evidence can resolve equal baseline evidence, but it cannot turn a bad pose or a
-missing GNINA score into a good one.  ``membrane_aware_score`` is a normalised
+missing docking score into a good one.  ``membrane_aware_score`` is a normalised
 ordinal position in this final order, not an affinity, probability, or ΔG.
 """
 
@@ -167,7 +167,7 @@ class MembraneAwareScorer:
                 "membrane_aware_score is an ordinal position, not a binding free energy",
                 "membrane evidence resolves ties after the existing tier and evidence score",
                 "missing accessibility evidence is not proof that a ligand cannot bind",
-                "the original GNINA scores and baseline rank are preserved",
+                "the original engine-labelled scores and baseline rank are preserved",
             ],
         }
         return summary
@@ -312,7 +312,7 @@ class MembraneAwareScorer:
     def _reasons(self, entry: dict[str, Any]) -> list[str]:
         reasons = [
             f"baseline tier {entry.get('tier')}",
-            f"baseline GNINA evidence score {round(float(entry.get('evidence_score') or 0.0), 4)}",
+            f"baseline docking evidence score {round(float(entry.get('evidence_score') or 0.0), 4)}",
             f"membrane evidence {entry.get('membrane_evidence_status')}",
             f"pocket region {entry.get('pocket_region')}",
         ]
@@ -398,7 +398,10 @@ def write_ranking_files(ctx, ranking: dict[str, Any], selection: dict[str, Any])
                 "membrane_aware_rank": entry.get("membrane_aware_rank"),
                 "rank_shift": entry.get("rank_shift"),
                 "membrane_aware_score": entry.get("membrane_aware_score"),
-                "gnina_affinity": (entry.get("raw") or {}).get("affinity"),
+                "engine":entry.get("engine"), "score_unit":"kcal/mol", "cnn_status":entry.get("cnn_status"),
+                "docking_affinity_kcal_mol":(entry.get("raw") or {}).get("affinity"),
+                "vina_affinity_kcal_mol":(entry.get("raw") or {}).get("affinity") if entry.get("engine")=="vina" else None,
+                "gnina_affinity":(entry.get("raw") or {}).get("affinity") if entry.get("engine")!="vina" else None,
                 "cnn_score": (entry.get("raw") or {}).get("cnn_pose"),
                 "cnn_affinity": (entry.get("raw") or {}).get("cnn_affinity"),
                 "pocket_region": entry.get("pocket_region"),
@@ -416,7 +419,7 @@ def write_ranking_files(ctx, ranking: dict[str, Any], selection: dict[str, Any])
         )
     fields = [
         "compound_id", "state_id", "pose_id", "baseline_rank", "membrane_aware_rank", "rank_shift",
-        "membrane_aware_score", "gnina_affinity", "cnn_score", "cnn_affinity", "pocket_region",
+        "membrane_aware_score", "engine", "score_unit", "cnn_status", "docking_affinity_kcal_mol", "vina_affinity_kcal_mol", "gnina_affinity", "cnn_score", "cnn_affinity", "pocket_region",
         "ligand_center_depth_A", "ligand_core_fraction", "geometric_accessibility_status",
         "steric_compatibility_status", "ensemble_status", "membrane_evidence_status",
         "formal_qualified", "qualification_status", "exclusion_reason_code", "ranking_reasons",
@@ -483,7 +486,7 @@ def _write_html(path: str, ctx, rows: list[dict[str, Any]], summary: dict[str, A
             f"<td>{row.get('baseline_rank')}</td>"
             f"<td>{row.get('rank_shift')}</td>"
             f"<td><code>{esc(str(row.get('compound_id')))}</code></td>"
-            f"<td>{_fmt(row.get('gnina_affinity'))}</td>"
+            f"<td>{_fmt(row.get('docking_affinity_kcal_mol'))}</td>"
             f"<td>{_fmt(row.get('cnn_score'))}</td>"
             f"<td>{esc(str(row.get('pocket_region')))}</td>"
             f"<td>{_fmt(row.get('ligand_center_depth_A'))}</td>"
@@ -527,8 +530,8 @@ qualification rules and is not upgraded by this ranking. Pose reselection:
 <code>{esc(str((summary.get('pose_reselection') or {}).get('status', 'unknown')))}</code>.</p>
 <table>
 <thead><tr>
-<th>Y-MAVS rank</th><th>Baseline rank</th><th>Shift</th><th>Compound</th><th>GNINA affinity</th>
-<th>CNNscore</th><th>Pocket region</th><th>Ligand center depth (Å)</th><th>Core fraction</th>
+<th>Y-MAVS rank</th><th>Baseline rank</th><th>Shift</th><th>Compound</th><th>Docking affinity (kcal/mol)</th>
+<th>Historical CNNscore (N/A for Vina)</th><th>Pocket region</th><th>Ligand center depth (Å)</th><th>Core fraction</th>
 <th>Accessibility</th><th>Steric</th><th>Ensemble</th><th>Membrane evidence</th>
 <th>Formal</th><th>Qualification</th><th>Warnings</th>
 </tr></thead>

@@ -9,7 +9,7 @@ def receptor_to_pdbqt(prepared_pdb: str | Path, out_stem: str | Path) -> Path:
     from meeko import PDBQTWriterLegacy  # noqa: F401  (import check)
     import subprocess, sys, shutil
     exe = shutil.which("mk_prepare_receptor.py") or str(Path(sys.executable).parent / "mk_prepare_receptor.py")
-    r = subprocess.run([sys.executable, exe, "--read_pdb", str(prepared_pdb), "-o", str(out_stem), "-p", "--allow_bad_res"],
+    r = subprocess.run([sys.executable, exe, "--read_pdb", str(prepared_pdb), "-o", str(out_stem), "-p"],
                        capture_output=True, text=True)
     out = Path(str(out_stem) + ".pdbqt")
     if r.returncode != 0 or not out.is_file() or out.stat().st_size == 0:

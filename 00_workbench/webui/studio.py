@@ -178,7 +178,7 @@ def md_structure(rid,system_id):
  return {'atoms':atoms,'caption':'Actual built coordinates: protein CA (green), ligand heavy atoms (gold), lipid phosphorus (purple), ions (blue). Water and remaining atoms are omitted only from this preview. Full coordinates remain in system.pdb.','system_id':system_id,'source_sha256':meta['files']['system.pdb']}
 
 def environment_save(payload):
- allowed={'chem_python','screen_python','prep_python','md_python','peptide_python','reinvent_executable','gnina','gmx'}
+ allowed={'chem_python','screen_python','prep_python','md_python','peptide_python','reinvent_executable','vina','gmx'}
  if set(payload)-allowed:raise ValueError('Unknown environment setting')
  if any(not isinstance(v,str) or len(v)>2000 for v in payload.values()):raise ValueError('Invalid executable path')
  cfg=w.read(w.ROOT/'deployment/runtime.json',{});cfg.update(payload);w.atomic(w.ROOT/'deployment/runtime.json',cfg)

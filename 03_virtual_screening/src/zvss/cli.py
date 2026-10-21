@@ -17,7 +17,7 @@ def _json_print(payload: Any) -> None:
 
 def cmd_doctor(args: argparse.Namespace) -> int:
     from . import compat
-    from .redock import gnina
+    from .redock import vina
 
     report: dict[str, Any] = {"version": __version__, "python": sys.version.split()[0]}
     report["scratch"] = {"root": compat.scratch_root(), "ascii": compat.ascii_scratch_available()}
@@ -38,7 +38,7 @@ def cmd_doctor(args: argparse.Namespace) -> int:
         from .runctx import load_context
 
         ctx = load_context(root=args.root, target_profile=args.target, create=False)
-        report["gnina"] = gnina.detect_gnina(ctx).to_dict()
+        report["vina"] = vina.detect_vina(ctx).to_dict()
     _json_print(report)
     return 0
 

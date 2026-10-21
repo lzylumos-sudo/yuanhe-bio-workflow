@@ -20,7 +20,7 @@ def cmd_doctor(a):
     except Exception:
         rd = None
     _p({"paths": {k: str(v) for k, v in rp.__dict__.items()}, "arch": platform.machine(), "rdkit": rd,
-        "engines": {n: engine_status(n) for n in ("gnina", "vina")}, "gpu": gpu_status()})
+        "engines": {n: engine_status(n) for n in ("vina",)}, "gpu": gpu_status()})
 
 
 def cmd_new(a):

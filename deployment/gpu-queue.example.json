@@ -1,0 +1,10 @@
+{
+  "jobs": [
+    {
+      "id": "complex_A_single500",
+      "cwd": "/absolute/path/yuanhe-bio-workflow/05_molecular_dynamics",
+      "argv": ["bash", "run_md.sh", "--input", "/absolute/path/handoff/complex.pdb", "--config", "config/default.yaml", "--run-id", "complex_A_single500", "--non-interactive"],
+      "resume_argv": ["bash", "run_md.sh", "--resume", "runs/complex_A_single500", "--non-interactive"]
+    }
+  ]
+}

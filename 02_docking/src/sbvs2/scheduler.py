@@ -15,7 +15,7 @@ from pathlib import Path
 from .hashing import hash_obj, sha256_file, atomic_write_json, write_checksums
 from .docking.box import Box
 from .docking.protocol import Protocol
-from .docking.run_gnina import run_gnina_job, GninaError
+from .docking.vina_official import run_vina_job, validate_resources, VERSION
 from .docking.execute import Cancelled
 
 TERMINAL = {"COMPLETED", "FAILED", "CANCELLED", "PARTIAL"}
@@ -74,14 +74,17 @@ def plan_jobs(stage: Path, seeds, limit_confs=0):
     return [{"name": f"{l.stem}_seed{s}", "ligand": l.name, "seed": int(s)} for l in ligs for s in seeds]
 
 
-def make_spec(stage, *, engine_path, device, seeds, operation="redock", exhaustiveness=16, num_modes=9, cpu=4,
+def make_spec(stage, *, engine_path, device, seeds, operation="redock", exhaustiveness=32, num_modes=9, cpu=4,
               timeout=1800, cnn_model="crossdock_default2018_1_3", lib_dirs=(), limit_confs=0, max_attempts=2,
-              min_free_gb=5.0, slot="gpu0", tag=""):
+              min_free_gb=5.0, slot="cpu", tag="", energy_range=3.0):
+    if device != "cpu": raise ValueError("Official Vina requires device=cpu")
+    validate_resources(cpu)
+    if operation!="redock":raise ValueError("Only Vina redock is supported for new tasks")
     stage = Path(stage)
     man = stage / "STAGE_MANIFEST.json"
-    spec = {"stage_dir": str(stage), "stage_manifest_sha256": sha256_file(man), "engine_path": str(engine_path),
+    spec = {"engine":"vina", "engine_version":VERSION, "energy_range":energy_range, "scoring":"vina", "stage_dir": str(stage), "stage_manifest_sha256": sha256_file(man), "engine_path": str(engine_path),
             "device": device, "seeds": [int(s) for s in seeds], "operation": operation, "exhaustiveness": exhaustiveness,
-            "num_modes": num_modes, "cpu": cpu, "timeout": timeout, "cnn_model": cnn_model, "lib_dirs": list(lib_dirs),
+            "num_modes": num_modes, "cpu": cpu, "timeout": timeout, "cnn_status":"not_applicable", "lib_dirs": [],
             "jobs": plan_jobs(stage, seeds, limit_confs), "max_attempts": max_attempts, "min_free_gb": min_free_gb,
             "slot": slot if device == "gpu" else "cpu", "tag": tag}
     spec["run_id"] = "r_" + hash_obj({k: v for k, v in spec.items() if k not in ("min_free_gb", "timeout", "max_attempts")})[:16]
@@ -190,7 +193,7 @@ def worker(rd: Path, registry: Registry | None = None):
     box = Box(tuple(b["center"]), tuple(b["size"]), b["source"], b["revision"], b["approved_reference_pose"])
     if box.hash() != b["hash"]:
         state("FAILED"); log("BOX_HASH_MISMATCH"); return 2
-    proto = Protocol("gnina_" + spec["operation"], "gnina", spec["exhaustiveness"], spec["num_modes"], tuple(spec["seeds"]), "rescore", cnn_model=spec["cnn_model"])
+    proto = Protocol("vina_" + spec["operation"], "vina", spec["exhaustiveness"], spec["num_modes"], tuple(spec["seeds"]), "none", energy_range=spec["energy_range"])
     env = {"LD_LIBRARY_PATH": os.pathsep.join(list(spec["lib_dirs"]) + [os.environ.get("LD_LIBRARY_PATH", "")])} if spec["lib_dirs"] else {}
     slot = _Slot(rd.parent / f".slot_{spec['slot']}.lock")
     out = {"reused": 0, "ran": 0, "failed": [], "waiting_storage": False}
@@ -218,7 +221,7 @@ def worker(rd: Path, registry: Registry | None = None):
             if not slot.acquire(cancelled):
                 state("CANCELLED"); return 3
             try:
-                r = run_gnina_job(spec["engine_path"], stage / "receptor_prepared.pdb", stage / "ligands" / j["ligand"], box, proto, j["seed"], jd,
+                r = run_vina_job(spec["engine_path"], stage / "receptor_prepared.pdb", stage / "ligands" / j["ligand"], box, proto, j["seed"], jd,
                                   device=spec["device"], cpu=spec["cpu"], timeout=spec["timeout"], operation=spec["operation"], env_extra=env,
                                   nvidia_smi=shutil.which("nvidia-smi") if spec["device"] == "gpu" else None, cancel_file=rd / "CANCEL",
                                   meta={"ligand": j["ligand"], "attempt": a})

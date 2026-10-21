@@ -1,4 +1,6 @@
-# GNINA/SBVS docking module
+# Official AutoDock Vina docking module
+
+Current production engine: Vina 1.2.7, CPU, exhaustiveness 32, explicit seeds/box/thread budget. CNN fields are N/A. Historical GNINA results remain archived. See [migration and commands](../docs/15_VINA_RESP_RESEARCH.md). This source revision has no retained runtime acceptance results.
 
 This module contains the main docking implementation, preparation/review utilities, protocol records and standalone classroom/research interface. The unified project starts from the root `start_windows.cmd`; standalone module entry points and old WSL runtime scripts have their own environment requirements.
 

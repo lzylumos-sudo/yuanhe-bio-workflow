@@ -511,11 +511,13 @@ def _import_single(ctx, raw, bundle, hints, templates, report):
     box = report.box or {}
     box_hash = sha256_text(str(box.get("center")) + str(box.get("size")))
     protocol = {
-        "engine": (hints.get("engine") or "gnina"),
+        "engine": ("vina" if raw.scores.get("vina_affinity_kcal_mol") is not None else hints.get("engine") or "gnina"),
+        "engine_version": raw.props.get("engine_version") or hints.get("engine_version"),
         "scoring_function": (hints.get("scoring_function") or "vina"),
-        "cnn_model": hints.get("cnn_model") or "crossdock_default2018_1_3",
+        "cnn_model": None if raw.scores.get("vina_affinity_kcal_mol") is not None else hints.get("cnn_model") or "crossdock_default2018_1_3",
         "exhaustiveness": hints.get("exhaustiveness"),
         "num_modes": hints.get("num_modes"),
+        "energy_range":hints.get("energy_range"), "cpu":hints.get("cpu"),
         "seed": hints.get("seed"),
     }
     seed = safe_int(raw.extras.get("seed")) if raw.extras.get("seed") is not None else safe_int(hints.get("seed"))
@@ -541,7 +543,7 @@ def _import_single(ctx, raw, bundle, hints, templates, report):
             "protocol_hash": sha256_text(str(sorted(protocol.items()))),
             "seed": seed,
             "engine": protocol["engine"],
-            "engine_version": hints.get("engine_version") or _engine_version(hints),
+            "engine_version": protocol["engine_version"] or _engine_version(hints),
             "model_id": protocol["cnn_model"],
             "scoring_function": protocol["scoring_function"],
             "source": os.path.basename(raw.source_file),

@@ -162,7 +162,7 @@ def test_live_record_rejects_pid_reuse(case,monkeypatch):
 def test_review_update_preserves_bound_receptor_hash(case):
  _,rid,d=case
  w.review(rid,'docking',{'receptor_review':{'sha256':'abc','reviewed':True}})
- w.review(rid,'docking',{'gnina':'/bin/gnina'})
+ w.review(rid,'docking',{'vina':'/bin/vina'})
  assert w.read(d/'reviews/docking.json')['receptor_review']['sha256']=='abc'
 
 def test_md_checkpoint_resume_skips_finished_phases(case,monkeypatch):

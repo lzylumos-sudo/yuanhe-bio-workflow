@@ -17,13 +17,25 @@ def ligand_template_generator(ligand, settings, cache):
     name = settings["ligand_forcefield"]
     if name == "openff-2.2.1":
         generator = SMIRNOFFTemplateGenerator
-    elif name == "gaff-2.11":
+    elif name in ("gaff-2.11", "gaff-1.81"):
         generator = GAFFTemplateGenerator
     else:
         raise WorkflowError("Unsupported ligand force field.")
     if name not in generator.INSTALLED_FORCEFIELDS:
         raise WorkflowError(f"The installed openmmforcefields package does not supply {name}.")
-    return generator(molecules=[ligand], forcefield=name, cache=str(cache))
+    from ..parameterization.hf_resp import compute
+    from openff.units import unit as offunit
+    import numpy as np
+    q, provenance = compute(ligand.to_rdkit(), Path(cache).parent/'resp', settings)
+    ligand.partial_charges = q * offunit.elementary_charge
+    atomic_json(Path(cache).parent/'charge_provenance.json', {"method":"HF/6-31G* two-stage RESP", "partial_charges_e":q.tolist(), "formal_charge_e":float(sum(q)), "calculation":provenance})
+    result = generator(molecules=[ligand], forcefield=name, cache=str(cache))
+    def assigned(molecule):
+        if molecule.partial_charges is None or not np.allclose(molecule.partial_charges.m_as(offunit.elementary_charge),q,atol=1e-8,rtol=0):
+            raise WorkflowError("GAFF attempted to replace the RESP charge vector")
+        return True
+    result._molecule_has_user_charges = assigned
+    return result
 
 def build_system(config, paths):
     import numpy as np
@@ -64,7 +76,7 @@ def build_system(config, paths):
         template = ligand_template_generator(ligand,settings,folder / "ligand_parameters.json")
         forcefield.registerTemplateGenerator(template.generator)
     from .amber_export import export_amber
-    if has_ligand and config.get("mmgbsa", {}).get("enabled", True):
+    if has_ligand and (config.get("mmgbsa", {}).get("enabled", True) or config.get("mmpbsa", {}).get("enabled", False)):
         export_amber(forcefield, model, protein_count, len(ligand_indices), folder)
     else:
         atomic_json(folder / "amber_export.json", {
@@ -79,6 +91,11 @@ def build_system(config, paths):
               nonbondedCutoff=settings["nonbonded_cutoff_nm"]*unit.nanometer,
               switchDistance=settings["switch_distance_nm"]*unit.nanometer,
               constraints=app.HBonds, rigidWater=True, removeCMMotion=True)
+    if config.get('mmpbsa',{}).get('enabled',False):
+        import parmed
+        export_system = forcefield.createSystem(model.topology, nonbondedMethod=app.PME, nonbondedCutoff=settings['nonbonded_cutoff_nm']*unit.nanometer, constraints=None, rigidWater=False)
+        full = parmed.openmm.load_topology(model.topology,export_system,xyz=model.positions)
+        full.save(str(folder/'system.prmtop'),overwrite=False)
     for index in range(system.getNumParticles()):
         if system.isVirtualSite(index):
             raise WorkflowError("Stage 1 analysis does not support virtual-site models.")
@@ -96,6 +113,10 @@ def build_system(config, paths):
                        for i in range(len(atoms))]
     if charges is None:
         raise WorkflowError("No particle charges found.")
+    if has_ligand:
+        expected = read_json(folder/'charge_provenance.json')['partial_charges_e']
+        if not np.allclose(np.asarray(charges)[ligand_indices],expected,atol=1e-6,rtol=0):
+            raise WorkflowError('Final OpenMM topology does not retain RESP atom charges')
     protein_indices = [i for i in range(protein_count) if atoms[i].residue.name not in ("HOH","WAT")]
     heavy_protein = [i for i in protein_indices if elements[i] != "H"]
     heavy_ligand = [i for i in ligand_indices if elements[i] != "H"]
@@ -216,7 +237,7 @@ def initialize_new_state(simulation, settings, seed):
     # Langevin integrators can offset sampled velocities using the current force.
     # Sampling before minimization retains an enormous velocity offset after
     # coordinate relaxation (demonstrated by the CHARMM36 public regression).
-    simulation.context.setVelocitiesToTemperature(settings["temperature"]*unit.kelvin, seed)
+    simulation.context.setVelocitiesToTemperature(settings.get("initial_temperature",settings["temperature"])*unit.kelvin, seed)
     simulation.context.applyVelocityConstraints(1e-6)
     initialized = numerical_preflight(simulation, settings["temperature"])
     return {"initialization_order":"minimize_then_velocities", "seed":seed,
@@ -224,14 +245,17 @@ def initialize_new_state(simulation, settings, seed):
 
 def platform_for(settings):
     import openmm as mm
-    names = [settings["platform"]] if settings["platform"] != "auto" else ["CUDA","CPU","Reference"]
+    names = [settings["platform"]] if settings["platform"] != "auto" else (["CUDA","OpenCL"] if settings.get("require_gpu",True) else ["CUDA","OpenCL","CPU"])
     failures = []
+    if settings.get("require_gpu",True) and settings["platform"] not in ("auto","CUDA","OpenCL"):
+        raise WorkflowError("Research mode requires an actual GPU; use require_gpu=false only for explicit short tests.")
     for name in names:
         try:
             p = mm.Platform.getPlatformByName(name)
             props = {}
             if name in ("CUDA","OpenCL"):
                 props["Precision"] = settings["precision"]
+                props["DeviceIndex"] = str(os.environ.get("YUANHE_GPU_INDEX",settings.get("device_index","0")))
             if name == "CPU":
                 props["Threads"] = str(settings["cpu_threads"])
             test = mm.System()
@@ -295,6 +319,7 @@ def run_replica(config, paths, replica):
     topology = app.PDBFile(str(base / "topology.pdb")).topology
     sim = app.Simulation(topology, system, integ, platform, properties)
     state["platform"] = platform.getName()
+    state["platform_properties"] = {key: platform.getPropertyValue(sim.context,key) for key in platform.getPropertyNames()}
     if state["phase"] != "new":
         checkpoint = target / state["checkpoint"]
         if digest(checkpoint) != state["checkpoint_sha256"]:
@@ -329,7 +354,15 @@ def run_replica(config, paths, replica):
                     step=True, time=True, potentialEnergy=True, temperature=True, volume=True, density=True, separator=",")
         sim.reporters = [reporter]
         try:
-            sim.step(nsteps)
+            if name=="nvt" and md.get("heating_duration"):
+                heat=steps(md["heating_duration"],md["timestep"]);done=0
+                for boundary in range(1,21):
+                    end=round(heat*boundary/20)
+                    if end<=done:continue
+                    integ.setTemperature((md.get("initial_temperature",50)+(md["temperature"]-md.get("initial_temperature",50))*boundary/20)*unit.kelvin)
+                    sim.step(end-done);done=end
+                integ.setTemperature(md["temperature"]*unit.kelvin);sim.step(nsteps-heat)
+            else:sim.step(nsteps)
         finally:
             sim.reporters = []
             handle.close()
@@ -357,7 +390,7 @@ def run_replica(config, paths, replica):
         sim.context.setTime(0*unit.picosecond)
         checkpoint("production", "production_start")
     interval = steps(md["report_interval"], md["timestep"])
-    chunk = steps(md["checkpoint_interval"], md["timestep"])
+    chunk = steps(md.get("segment_length", md["checkpoint_interval"]), md["timestep"])
     total = stages["production"]
     while state["production_steps"] < total:
         index = len(state["segments"])
@@ -369,6 +402,7 @@ def run_replica(config, paths, replica):
         with csv.open("w") as log:
             sim.reporters = [
                 app.DCDReporter(str(dcd), interval, enforcePeriodicBox=False),
+                app.CheckpointReporter(str(target / "inflight.chk"), steps(md["checkpoint_interval"],md["timestep"])),
                 app.StateDataReporter(log, interval, step=True, time=True, potentialEnergy=True,
                                      kineticEnergy=True, temperature=True, volume=True, density=True, separator=",")
             ]
@@ -385,7 +419,7 @@ def run_replica(config, paths, replica):
             raise WorkflowError("Non-finite production energy.")
         state["production_steps"] += count
         state["segments"].append({"dcd":dcd.name, "csv":csv.name, "steps":count,
-                                 "dcd_sha256":digest(dcd), "csv_sha256":digest(csv)})
+                                 "dcd_sha256":digest(dcd), "csv_sha256":digest(csv), "checkpoint_policy":"atomic segment commit; interrupted segment replayed from previous committed checkpoint"})
         checkpoint("production", label)
         print(f"replica {replica}: {state['production_steps']}/{total} production steps", flush=True)
     write_pdb(topology, sim.context.getState(getPositions=True, enforcePeriodicBox=True).getPositions(),

@@ -5,21 +5,17 @@ import yaml
 from .paths import ROOT,rootpath,sha,write_json,read_json
 from .config import validate
 from .preparation.ligands import inputs,prepare,conformers,states as enumerate_states
-from .engines import vina,gnina
+from .engines import vina
 from .engines.common import Cancelled
 from .ranking import aggregate,csvwrite
 from .qc import pose_qc
 def fingerprint(cfg):
  from importlib.metadata import version
- data={'config':cfg,'receptor':sha(rootpath(cfg['receptor'])),'box':sha(rootpath(cfg['box'])),'engine_binary':sha(Path('/opt/sbvs/vendor')/cfg['engine']),'preparation_packages':{p:version(p) for p in ('rdkit','meeko','numpy')}}
+ data={'config':cfg,'receptor':sha(rootpath(cfg['receptor'])),'box':sha(rootpath(cfg['box'])),'engine_binary':sha(Path(shutil.which(cfg.get('executable','vina')) or cfg.get('executable','vina'))),'preparation_packages':{p:version(p) for p in ('rdkit','meeko','numpy')}}
  return hashlib.sha256(json.dumps(data,sort_keys=True).encode()).hexdigest()
 def create(source,cfg,out=None):
  cfg=dict(cfg)
- if cfg['engine']=='gnina' and cfg.get('device')=='auto':
-  caps=read_json(ROOT/'reports/gnina_capabilities.json') if (ROOT/'reports/gnina_capabilities.json').exists() else {}
-  if caps.get('gpu_passed'):cfg.update(device='gpu',device_resolution='automatic: verified GPU')
-  elif caps.get('cpu_passed'):cfg.update(device='cpu',device_resolution='automatic fallback to verified GNINA CPU CNN; engine/scoring unchanged')
-  else:raise ValueError('GNINA CNN device must pass a smoke test on this host')
+ if cfg['engine']!='vina':raise ValueError('Historical GNINA runs are read-only; create a Vina run')
  validate(cfg);rid=time.strftime('%Y%m%d_%H%M%S')+'_'+uuid.uuid4().hex[:10]
  out=rootpath(out) if out else ROOT/'runs'/rid
  if out.exists():raise ValueError('Run destination exists')
@@ -72,7 +68,7 @@ def _run(out,resume=False,cancel=lambda:False,update=lambda m:None):
       try:
        info=prepare(item,dest,seed);prepared.append(dict(info,parent_id=pid,state_id=sid,conformer_id=sid+f'_C{ci:02d}',prep_status='success'))
        m['status']='running';write_json(out/'run_manifest.json',m);update(m)
-       result=(vina if cfg['engine']=='vina' else gnina).dock(cfg,box,dest,seed,cancel);entryrows=[]
+       result=vina.dock(cfg,box,dest,seed,cancel);entryrows=[]
        for i,r in enumerate(result,1):
         mol=r.pop('mol');raw=r.pop('raw_properties',None);poseid=key+f'_pose{i:03d}';posepath=dest/f'pose_{i:03d}.sdf';w=Chem.SDWriter(str(posepath));w.write(mol);w.close()
         flags=info['qc_flags']+pose_qc(mol,info['identity'],box,recxyz)

@@ -36,14 +36,13 @@ def environment(d,c,p,out):
  'peptide_cuda':[c['peptide_python'],'-c','import torch; from torch_scatter import scatter_add; from torch_cluster import radius_graph; assert torch.cuda.is_available(); x=torch.tensor([[0.,0.,0.],[1.,0.,0.]],device="cuda"); print(radius_graph(x,2)); print(scatter_add(torch.ones(2,device="cuda"),torch.tensor([0,0],device="cuda"))); torch.cuda.synchronize(); print(torch.cuda.get_device_name())'],
  'reinvent':[c['reinvent_executable'],'--help'],
  'receptor':[c['prep_python'],'-c','import pdbfixer,openmm; print(openmm.__version__)'],
- 'gnina':[c['gnina'],'--version'],
+ 'vina':[c['vina'],'--version'],
  'gromacs':[c['gmx'],'--version'],
- 'membrane':[c['md_python'],'-c','import openmm,parmed,MDAnalysis; from openff.toolkit import Molecule; from openmmforcefields.generators import GAFFTemplateGenerator; import shutil; assert shutil.which("antechamber") and shutil.which("parmchk2"); print(openmm.__version__)']}
+ 'membrane':[c['md_python'],'-c','import openmm,parmed,MDAnalysis,psi4,resp; from openff.toolkit import Molecule; from openmmforcefields.generators import GAFFTemplateGenerator; import shutil; assert shutil.which("antechamber") and shutil.which("parmchk2"); print(openmm.__version__)']}
  results={}
  for key,argv in probes.items():
   try:
    env=os.environ.copy()
-   if key=='gnina':env.update(w.gnina_environment())
    env['PATH']=str(Path(argv[0]).parent)+os.pathsep+env.get('PATH','')
    r=subprocess.run(argv,capture_output=True,text=True,timeout=90,env=env);results[key]={'passed':r.returncode==0,'detail':(r.stdout+r.stderr)[-6000:]}
   except Exception as e:results[key]={'passed':False,'detail':str(e)}

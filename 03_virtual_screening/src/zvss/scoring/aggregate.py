@@ -42,7 +42,7 @@ def representative_pose(poses: list[dict[str, Any]]) -> dict[str, Any]:
     """
     def key(pose):
         scores = pose.get("scores") or {}
-        affinity = safe_float(scores.get("minimizedAffinity"))
+        affinity = safe_float(scores.get("vina_affinity_kcal_mol") if scores.get("vina_affinity_kcal_mol") is not None else scores.get("minimizedAffinity"))
         cnn = safe_float(scores.get("CNNscore"))
         return (
             {"pass": 0, "flag": 1, "fail": 3}.get(str(pose.get("assess_status")), 2),
@@ -58,11 +58,15 @@ def run(ctx) -> dict[str, Any]:
     from .. import data
 
     poses = data.pose_rows(ctx)
+    engines = {p.get("engine") or "unknown" for p in poses}
+    if len(engines)>1: raise ValueError("Mixed docking engines must be scored in separate runs")
     weights = dict(DEFAULT_WEIGHTS)
     weights.update(ctx.config.get("scoring.weights", {}) or {})
     if any(safe_float(w) is None or float(w) < 0 for w in weights.values()) or not any(float(w) > 0 for w in weights.values()):
         raise ValueError("Scoring weights must be finite, nonnegative and not all zero")
     weights = {key: float(value) for key, value in weights.items()}
+    if engines == {"vina"}:
+        weights.pop("cnn_pose", None); weights.pop("cnn_affinity", None)
     cutoff_affinity = safe_float(ctx.config.get("scoring.affinity_floor")) or 0.0
 
     by_compound: dict[str, list[dict[str, Any]]] = {}
@@ -87,15 +91,17 @@ def run(ctx) -> dict[str, Any]:
         tier, tier_reasons = _tier(pose, qa, mech, motion)
         entry = {
             "compound_id": compound_id,
+            "engine": pose.get("engine"), "score_unit":"kcal/mol",
+            "cnn_status":"not_applicable" if pose.get("engine")=="vina" else "historical",
             "state_id": pose["state_id"],
             "pose_id": pose["pose_id"],
             "poses_available": len(group),
-            "representative_policy": "qa_then_affinity_cnn_pose_id/v2",
+            "representative_policy": "qa_then_vina_affinity_pose_id/v3" if pose.get("engine")=="vina" else "qa_then_affinity_cnn_pose_id/v2",
             "representative_qa": pose.get("assess_status", "not_evaluated"),
             "tier": tier,
             "tier_reasons": tier_reasons,
             "raw": {
-                "affinity": safe_float(scores.get("minimizedAffinity")),
+                "affinity": safe_float(scores.get("vina_affinity_kcal_mol") if scores.get("vina_affinity_kcal_mol") is not None else scores.get("minimizedAffinity")),
                 "cnn_pose": safe_float(scores.get("CNNscore")),
                 "cnn_affinity": safe_float(scores.get("CNNaffinity")),
                 "mechanism": safe_float(mech.get("region_contacts_total")),

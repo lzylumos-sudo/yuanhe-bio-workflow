@@ -6,25 +6,27 @@ from sbvs2 import scheduler as S
 
 STUB = textwrap.dedent('''\
     #!{py}
+    # TEST ONLY: copies prepared ligand coordinates, proves scheduler behavior only.
     import sys, os, time, pathlib
     a = sys.argv[1:]
-    if "--version" in a: print("stub-gnina 0.0 (TEST ONLY)"); sys.exit(0)
+    if "--version" in a: print("AutoDock Vina v1.2.7"); sys.exit(0)
     g = lambda k: a[a.index(k) + 1]
-    mode = os.environ.get("STUB_MODE", "ok") or "ok"
     marker = pathlib.Path(os.environ.get("STUB_DIR", ".")) / "mode"
-    if marker.exists(): mode = marker.read_text().strip()
-    lig = pathlib.Path(g("-l")).read_text()
-    out = pathlib.Path(g("-o"))
+    mode = marker.read_text().strip() if marker.exists() else "ok"
     if mode == "sleep": time.sleep(60)
     if mode == "fail": sys.stderr.write("boom\\n"); sys.exit(7)
+    out = pathlib.Path(g("--out"))
     if mode == "empty": out.write_text(""); sys.exit(0)
-    body = lig.replace("$$$$", "") .rstrip("\\n")
-    out.write_text(body + "\\n> <minimizedAffinity>\\n-7.5\\n\\n> <CNNscore>\\n0.5\\n\\n> <CNNaffinity>\\n5.5\\n\\n$$$$\\n")
+    lig = pathlib.Path(g("--ligand")).read_text()
+    out.write_text("MODEL 1\\nREMARK VINA RESULT: -7.500 0.000 0.000\\n" + lig + "ENDMDL\\n")
 ''')
 
-
 @pytest.fixture
-def env(tmp_path):
+def env(tmp_path, monkeypatch):
+    from sbvs2.docking import vina_official
+    def prepared(source, stem):
+        path=pathlib.Path(str(stem)+".pdbqt");path.write_text("RECEPTOR TEST STUB\n");return path
+    monkeypatch.setattr(vina_official,"receptor_to_pdbqt",prepared)
     stage = tmp_path / "stage"; (stage / "ligands").mkdir(parents=True)
     from rdkit import Chem
     from rdkit.Chem import AllChem

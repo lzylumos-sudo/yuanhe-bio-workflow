@@ -1,6 +1,6 @@
 """All-atom membrane building, GROMACS execution/restart, and trajectory analysis.
 
-OpenMM builds the solvated membrane; GAFF2/AM1-BCC parameterises the ligand;
+OpenMM builds the solvated membrane; GAFF2/HF-RESP parameterises the ligand;
 ParmEd exports the same System to GROMACS. No surrogate energies or trajectories.
 """
 from __future__ import annotations
@@ -120,11 +120,11 @@ def build_prepared(d,c,p,out,row,ligand_path,receptor,source_revision=None):
  if lipid not in {'POPE','POPC','DPPC','DOPC'}:raise ValueError('Unsupported lipid')
  salt=number(p,'salt_M',.15,0,1);padding=number(p,'padding_nm',1.2,1,3)
  temp=number(p,'temperature_K',310,273,350)
- production=number(p,'production_ns',1,.01,1000);equil=number(p,'equilibration_ns',1,.1,100)
+ production=number(p,'production_ns',500,.01,1000);equil=number(p,'equilibration_ns',1,.1,100)
  ident='MD_'+uuid.uuid4().hex[:12];folder=system_dir(d,ident);folder.mkdir(parents=True)
  import shutil
  shutil.copyfile(ligand_path,folder/'ligand.sdf');shutil.copyfile(receptor,folder/'receptor.pdb')
- meta={'source_revision':source_revision,'molecule_id':row.get('molecule_id'),'id':ident,'compound_id':row['compound_id'],'pose_id':row.get('pose_id'),'qualification':row.get('qualification'),'qualification_provenance':row.get('qualification_provenance'),'status':'building','source_hashes':{'receptor':w.digest(receptor),'ligand':w.digest(ligand_path)},'parameters':{**p,'temperature_K':temp,'production_ns':production,'equilibration_ns':equil},'force_fields':['amber14-all.xml','amber14/tip3p.xml','gaff-2.11'],'membrane_model':lipid+' single-lipid idealised bilayer','orientation_rotation':rot.tolist(),'orientation_center_A':center.tolist(),'scientific_validation':'requires_review'}
+ meta={'source_revision':source_revision,'molecule_id':row.get('molecule_id'),'id':ident,'compound_id':row['compound_id'],'state_id':row.get('state_id'),'pose_id':row.get('pose_id'),'qualification':row.get('qualification'),'qualification_provenance':row.get('qualification_provenance'),'status':'building','source_hashes':{'receptor':w.digest(receptor),'ligand':w.digest(ligand_path)},'parameters':{**p,'temperature_K':temp,'production_ns':production,'equilibration_ns':equil},'force_fields':['amber14-all.xml','amber14/tip3p.xml','gaff-2.11'],'membrane_model':lipid+' single-lipid idealised bilayer','orientation_rotation':rot.tolist(),'orientation_center_A':center.tolist(),'scientific_validation':'requires_review'}
  w.atomic(folder/'system.json',meta);w.atomic(out/'result.json',{'system_id':ident})
  mol=Chem.SDMolSupplier(str(ligand_path),removeHs=False)[0]
  if mol is None:raise ValueError('Ligand SDF cannot be read')
@@ -135,14 +135,24 @@ def build_prepared(d,c,p,out,row,ligand_path,receptor,source_revision=None):
  off=Molecule.from_rdkit(mol,allow_undefined_stereo=False)
  off.name='LIG'
  for atom in off.atoms:atom.metadata['residue_name']='LIG'
- print('MD_BUILD: AM1-BCC ligand charges',flush=True)
- off.assign_partial_charges('am1bcc')
+ import sys
+ shared=next((parent/'05_molecular_dynamics' for parent in Path(__file__).resolve().parents if (parent/'05_molecular_dynamics/modules').is_dir()),None)
+ if shared is None:raise RuntimeError('Shared 05_molecular_dynamics source is required')
+ sys.path.insert(0,str(shared))
+ from modules.parameterization.hf_resp import compute
+ print('MD_BUILD: HF/6-31G* ESP and two-stage RESP',flush=True)
+ q,resp_record=compute(mol,folder/'resp',p)
+ off.partial_charges=q*offunit.elementary_charge
  charges=off.partial_charges.m_as(offunit.elementary_charge)
  if not np.isfinite(charges).all() or abs(float(sum(charges))-Chem.GetFormalCharge(mol))>1e-4:raise ValueError('Ligand partial charges do not match its formal charge')
- meta['ligand_chemistry']={'isomeric_smiles':Chem.MolToSmiles(Chem.RemoveHs(mol),isomericSmiles=True),'formal_charge':Chem.GetFormalCharge(mol),'partial_charge_sum':float(sum(charges)),'charge_method':'AM1-BCC','protonation':'as screened; no pH state enumeration','exploratory':row.get('qualification')!='formal'}
+ meta['ligand_chemistry']={'isomeric_smiles':Chem.MolToSmiles(Chem.RemoveHs(mol),isomericSmiles=True),'formal_charge':Chem.GetFormalCharge(mol),'partial_charge_sum':float(sum(charges)),'charge_method':'HF/6-31G* two-stage RESP','resp':resp_record,'protonation':'as screened; no pH state enumeration','exploratory':row.get('qualification')!='formal'}
  w.atomic(folder/'system.json',meta)
  off.to_file(str(folder/'parameterized_ligand.sdf'),file_format='sdf')
  gaff=GAFFTemplateGenerator(molecules=off,forcefield='gaff-2.11',cache=str(folder/'gaff-cache.json'))
+ def checked_user_charges(molecule):
+  if molecule.partial_charges is None or not np.allclose(molecule.partial_charges.m_as(offunit.elementary_charge),q,atol=1e-8,rtol=0):raise ValueError('GAFF must retain RESP charges')
+  return True
+ gaff._molecule_has_user_charges=checked_user_charges
  ff=ForceField('amber14-all.xml','amber14/tip3p.xml');ff.registerTemplateGenerator(gaff.generator)
  pdb=PDBFile(str(receptor));model=Modeller(pdb.topology,pdb.positions)
  coords=(np.asarray(pdb.positions.value_in_unit(unit.angstrom))-center)@rot.T
@@ -167,8 +177,10 @@ def build_prepared(d,c,p,out,row,ligand_path,receptor,source_revision=None):
  class InsertionMinimizer:
   @staticmethod
   def minimize(context,tolerance,maxIterations):return old_minimizer.minimize(context,tolerance,max(300,maxIterations))
- platform=Platform.getPlatformByName('CUDA');platform.setPropertyDefaultValue('Precision','double')
- meta['membrane_builder']={'platform':'CUDA','precision':'double','seed':c['seed'],'insertion_timestep_fs':0.5,'initial_minimization_max_iterations':300,'insertion_elapsed_time':'same as OpenMM 8.5.1 default; twice as many integration steps'}
+ from modules.md.openmm_engine import platform_for
+ platform,properties=platform_for({'platform':p.get('platform','auto'),'require_gpu':True,'precision':p.get('precision','mixed'),'device_index':p.get('gpu_id','0'),'cpu_threads':4})
+ for key,value in properties.items():platform.setPropertyDefaultValue(key,value)
+ meta['membrane_builder']={'platform':platform.getName(),'properties':properties,'seed':c['seed'],'insertion_timestep_fs':0.5,'initial_minimization_max_iterations':300,'insertion_elapsed_time':'same as OpenMM 8.5.1 default; twice as many integration steps'}
  w.atomic(folder/'system.json',meta)
  try:
   modeller_module.LangevinIntegrator=InsertionIntegrator;modeller_module.LocalEnergyMinimizer=InsertionMinimizer
@@ -179,13 +191,21 @@ def build_prepared(d,c,p,out,row,ligand_path,receptor,source_revision=None):
  # Preserve bond/angle terms for ParmEd. GROMACS applies H-bond constraints
  # and SETTLE from the exported topology at runtime.
  system=ff.createSystem(model.topology,nonbondedMethod=PME,nonbondedCutoff=1*unit.nanometer,constraints=None,rigidWater=False)
+ force=next(f for f in system.getForces() if type(f).__name__=='NonbondedForce')
+ ligand_ids=[a.index for a in model.topology.atoms() if a.residue.name=='LIG']
+ actual=[float(force.getParticleParameters(i)[0].value_in_unit(unit.elementary_charge)) for i in ligand_ids]
+ if not np.allclose(actual,q,atol=1e-6,rtol=0):raise ValueError('Final membrane topology changed RESP charges')
  meta['lipid_charge_rounding']=normalize_lipid_rounding(model.topology,system,lipid)
  w.atomic(folder/'system.json',meta)
  structure=parmed.openmm.load_topology(model.topology,system,xyz=model.positions)
  # Save the complete pre-export model so converter failures retain evidence.
  (folder/'system.xml').write_text(XmlSerializer.serialize(system))
  with (folder/'system.pdb').open('w') as f:PDBFile.writeFile(model.topology,model.positions,f,keepIds=True)
+ structure.save(str(folder/'system.prmtop'),overwrite=False)
  structure.save(str(folder/'system.top'),overwrite=False);structure.save(str(folder/'system.gro'),overwrite=False)
+ converted=parmed.load_file(str(folder/'system.top'),xyz=str(folder/'system.gro'))
+ if not np.allclose([a.charge for a in converted.atoms],[a.charge for a in structure.atoms],atol=1e-6,rtol=0):raise ValueError('Topology conversion changed atom charges')
+ if converted.defaults.comb_rule != 2 or abs(converted.defaults.fudgeQQ-1/1.2)>1e-6 or abs(converted.defaults.fudgeLJ-.5)>1e-6:raise ValueError('Incompatible GROMACS nonbonded rules')
  add_restraints(folder/'system.top')
  (folder/'system.xml').write_text(XmlSerializer.serialize(system))
  with (folder/'system.pdb').open('w') as f:PDBFile.writeFile(model.topology,model.positions,f,keepIds=True)
@@ -210,7 +230,7 @@ def build_prepared(d,c,p,out,row,ligand_path,receptor,source_revision=None):
  meta['net_charge_e']=sum(float(system.getForce(i).getParticleParameters(j)[0].value_in_unit(unit.elementary_charge)) for i in range(system.getNumForces()) if system.getForce(i).__class__.__name__=='NonbondedForce' for j in range(system.getNumParticles()))
  if abs(meta['net_charge_e'])>1e-3:raise ValueError('Built system is not neutral')
  if meta['residue_counts'].get('LIG')!=1:raise ValueError('Exactly one ligand required')
- meta.update(status='built',atom_count=system.getNumParticles(),groups=groups,files={name:w.digest(folder/name) for name in ['system.top','system.gro','system.xml','system.pdb','index.ndx','ligand.sdf','receptor.pdb']})
+ meta.update(status='built',atom_count=system.getNumParticles(),groups=groups,files={name:w.digest(folder/name) for name in ['system.top','system.gro','system.prmtop','system.xml','system.pdb','index.ndx','ligand.sdf','receptor.pdb']})
  w.atomic(folder/'system.json',meta)
  return {'system_id':ident,'atom_count':system.getNumParticles(),'note':'Membrane and topology built; review the system before minimization/Equilibration'}
 
@@ -218,11 +238,11 @@ def mdp(phase,p,seed):
  temp=float(p['temperature_K']);ns=float(p['production_ns'] if phase=='production' else p['equilibration_ns'])
  em=phase=='em';nvt=phase=='nvt';restrained=phase!='production'
  steps=5000 if em else max(1,round((.1 if nvt else ns if phase=='production' else ns/2)*500000))
- lines=['integrator = '+('steep' if em else 'md'),f'nsteps = {steps}','dt = 0.002','emtol = 1000','emstep = 0.01','cutoff-scheme = Verlet','nstlist = 20','rlist = 1.0','coulombtype = PME','rcoulomb = 1.0','vdwtype = Cut-off','rvdw = 1.0','DispCorr = EnerPres','pbc = xyz','constraints = h-bonds','constraint-algorithm = lincs','nstenergy = 500','nstlog = 500','nstxout-compressed = 5000','compressed-x-grps = System','nstxout = 0','nstvout = 0','nstfout = 0']
+ lines=['integrator = '+('steep' if em else 'md'),f'nsteps = {steps}','dt = 0.002','emtol = 1000','emstep = 0.01','cutoff-scheme = Verlet','nstlist = 20','rlist = 1.0','coulombtype = PME','rcoulomb = 1.0','vdwtype = Cut-off','rvdw = 1.0','DispCorr = EnerPres','pbc = xyz','constraints = h-bonds','constraint-algorithm = lincs','nstenergy = 500','nstlog = 500','nstxout-compressed = '+str(round(float(p.get('output_interval_ps',10))/.002)),'compressed-x-grps = System','nstxout = 0','nstvout = 0','nstfout = 0']
  if restrained:lines+=['define = -DPOSRES -DPOSRES_FC='+('100' if phase=='npt_soft' else '1000'),'refcoord-scaling = com']
  if not em:
   lines+=[f'ld-seed = {seed}','tcoupl = V-rescale','tc-grps = System','tau-t = 1.0',f'ref-t = {temp}','continuation = '+('no' if nvt else 'yes'),'gen-vel = '+('yes' if nvt else 'no')]
-  if nvt:lines +=[f'gen-temp = {temp}',f'gen-seed = {seed}']
+  if nvt:lines +=['gen-temp = 50',f'gen-seed = {seed}','annealing = single','annealing-npoints = 2','annealing-time = 0 100',f'annealing-temp = 50 {temp}']
   lines+=['pcoupl = '+('no' if nvt else 'Parrinello-Rahman' if phase=='production' else 'C-rescale')]
   if not nvt:lines+=['pcoupltype = semiisotropic','tau-p = 5.0','ref-p = 1.0 1.0','compressibility = 4.5e-5 4.5e-5']
  return '\n'.join(lines)+'\n'
@@ -310,7 +330,7 @@ def run(d,c,p,out):
   tpr_hash=w.digest(folder/(phase+'.tpr'))
   if record.get('tpr_sha256',tpr_hash)!=tpr_hash:raise ValueError('TPR validation failed')
   progress['phases'][phase]={'status':'running','tpr_sha256':tpr_hash};w.atomic(folder/'progress.json',progress)
-  argv=[gmx,'mdrun','-deffnm',phase,'-ntmpi','1','-ntomp',str(int(os.environ.get('YUANHE_MD_THREADS','12'))),'-cpt','2','-nb','gpu']
+  argv=[gmx,'mdrun','-deffnm',phase,'-ntmpi','1','-ntomp',str(int(os.environ.get('YUANHE_MD_THREADS','12'))),'-cpt',str(meta['parameters'].get('checkpoint_minutes',2)),'-nb','gpu','-gpu_id',str(os.environ.get('YUANHE_GPU_INDEX',meta['parameters'].get('gpu_id','0')))]
   if phase!='em':argv+=['-pme','gpu','-bonded','gpu']
   if (folder/(phase+'.cpt')).exists():argv+=['-cpi',phase+'.cpt','-append']
   elif record.get('status')=='running' and (folder/(phase+'.log')).exists():raise ValueError('No checkpoint after interruption; create a new system to preserve partial output')
@@ -348,6 +368,17 @@ def analyze(d,c,p,out):
   for name,sha in record.get('files',{}).items():
    if w.digest(folder/name)!=sha:raise ValueError('Simulation output changed; analysis refused')
  dest=folder/'analysis';dest.mkdir(exist_ok=True)
+ import sys
+ shared=next((parent/'05_molecular_dynamics' for parent in Path(__file__).resolve().parents if (parent/'05_molecular_dynamics/modules').is_dir()),None)
+ if shared is None:raise RuntimeError('Shared 05_molecular_dynamics source is required')
+ sys.path.insert(0,str(shared))
+ from modules.analysis.research import analyze as research_analyze
+ formal=research_analyze(folder/'system.prmtop',[folder/'production.xtc'],dest/'research',alignment=meta['parameters'].get('alignment_selection','protein and backbone'))
+ if meta['parameters'].get('mmpbsa',{}).get('enabled'):
+  from modules.analysis.mmpbsa import run as pb_run
+  pb_settings=meta['parameters']['mmpbsa']
+  if not pb_settings.get('membrane'):raise ValueError('Explicit membrane system requires membrane-aware PB parameters')
+  pb_run(folder/'system.prmtop',[folder/'production.xtc'],dest/'mmpbsa',pb_settings)
  execute([c['gmx'],'trjconv','-s','production.tpr','-f','production.xtc','-o','analysis/whole.xtc','-n','index.ndx','-pbc','mol','-center'],folder,input_text='Protein\nSystem\n')
  # Preserved PDB avoids TPR-version coupling and retains construct residue IDs.
  u=mda.Universe(str(folder/'system.pdb'),str(dest/'whole.xtc'))
@@ -356,14 +387,14 @@ def analyze(d,c,p,out):
  ligheavy=ligand.select_atoms('not name H*');ca=protein.select_atoms('name CA')
  if len(back)<3 or not len(ligheavy):raise ValueError('Analysis selection is empty')
  u.trajectory[0];reference=back.positions.copy();ref_center=reference.mean(0);q=reference-ref_center
- ref_lig=ligheavy.positions.copy();ref_lig=ref_center+minimize_vectors(ref_lig-ref_center,u.dimensions)
+ ref_lig=ligheavy.positions.copy();delta=ref_lig.mean(0)-ref_center;ref_lig+=minimize_vectors(delta[None,:],u.dimensions)[0]-delta
  stride=max(1,len(u.trajectory)//200);series=[];frames=[];aligned=[];contact={};lipid_p=u.select_atoms('resname POPE POPC DPPC DOPC POP DPP DOP and name P')
  frame_ids=sorted(set(range(0,len(u.trajectory),stride))|{len(u.trajectory)-1})
  for frame_id in frame_ids:
   ts=u.trajectory[frame_id]
   b=back.positions.copy();center=b.mean(0);P=b-center;U,S,V=np.linalg.svd(P.T@q);R=U@V
   if np.linalg.det(R)<0:U[:,-1]*=-1;R=U@V
-  bx=P@R+ref_center;l=center+minimize_vectors(ligheavy.positions-center,ts.dimensions);lx=(l-center)@R+ref_center
+  bx=P@R+ref_center;l=ligheavy.positions.copy();delta=l.mean(0)-center;l+=minimize_vectors(delta[None,:],ts.dimensions)[0]-delta;lx=(l-center)@R+ref_center
   cap=(ca.positions-center)@R+ref_center;aligned.append(cap)
   dist=distance_array(protein.positions,ligheavy.positions,box=ts.dimensions);touched=set(str(a.resid) for a,x in zip(protein,dist.min(axis=1)) if x<4.5)
   for r in touched:contact[r]=contact.get(r,0)+1
@@ -402,5 +433,6 @@ def analyze(d,c,p,out):
  fig.suptitle(meta['id']+' | Exploratory MD; qualification unchanged')
  fig.savefig(dest/'analysis_panels.png',dpi=180);fig.savefig(dest/'analysis_panels.pdf');plt.close(fig)
  w.atomic(dest/'thermodynamics.json',thermo)
+ summary['last100ns']=formal
  w.atomic(dest/'summary.json',summary);w.atomic(dest/'series.json',series);w.atomic(dest/'frames.json',{'atoms':[{'chain':'REC','name':'CA','resid':int(a.resid)} for a in ca]+[{'chain':'LIG','name':a.name} for a in ligheavy],'frames':frames})
  return summary

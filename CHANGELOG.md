@@ -1,3 +1,12 @@
+## 2026-10-21 — Vina / RESP research source migration
+
+- Official Vina 1.2.7 CPU jobs, mapped Meeko SDF export, explicit affinity semantics and engine-separated history/caches.
+- Preserve Y-MAVS and local UI improvements; remove CNN dependencies from new scoring and execution paths.
+- HF/6-31G* ESP, two-stage RESP and GAFF2 charge-preserving topology preparation.
+- One 500 ns production trajectory, explicit GPU selection/checkpoint recovery, 400–500 ns RMSD statistics and actual PB backend.
+- Update configuration, installation/container recipes, reports, public demo source and license notes.
+- Code-only delivery by request. Task-generated acceptance results removed; target-host testing and production remain deferred. See docs/17_CODE_DELIVERY_20261021.md.
+
 # Changelog
 
 ## Unreleased — repository maintenance, 2026-10-19
