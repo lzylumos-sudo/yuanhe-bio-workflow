@@ -1,52 +1,52 @@
-# Linux / WSL2 显卡电脑：公开最小验收
+# Linux / WSL2 GPU deployment: public minimal acceptance
 
-这套入口重建独立环境，运行 **1CRN + 乙醇 → 真实 Vina 对接 → 筛选与导出 → HF/RESP + GAFF2 建模 → 极短 CUDA MD → 分析与检查点审计**。
+This entrypoint recreates an independent environment and runs **1CRN + ethanol -> real Vina docking -> screening/export -> HF/RESP + GAFF2 parameterization -> short CUDA MD -> analysis and native checkpoint audit**.
 
-这是命令行计算链路验收，不是整个平台全部模块的验收。生成模型、网页操作、膜体系、长时间 MD、MM/PBSA 和 MM/GBSA 不在本次范围内。乙醇是公开工程对照，不能据此评价亲和力或稳定性；筛选正式合格数可以为零，MD 使用明确标记的工程对照，不修改正式筛选门槛。
+This is command-line engineering acceptance, not acceptance of every platform module. Generation models, browser interactions, membrane systems, production-duration MD, MM/PBSA and MM/GBSA are outside this run. Ethanol is a public engineering control, not evidence of affinity or stability. Formal screening may qualify zero candidates: the explicit engineering MD control does not override scientific screening gates.
 
-## 目标电脑准备
+## Target computer
 
-- Linux x86_64，或 Windows 下的 WSL2 Linux；本次实测 Ubuntu 22.04 / RTX 5080。
-- 已安装 NVIDIA 驱动，Linux/WSL 内能识别 GPU。锁包含 CUDA 13.4 用户态库，目标驱动必须兼容；脚本实际创建 CUDA 上下文检查，失败即停止，不静默回退 CPU。本包不安装驱动或更改系统环境。
-- Git、Bash、micromamba，以及可访问 conda-forge、PyPI、GitHub、RCSB 和 Molekula 的网络。micromamba 按其[官方安装说明](https://mamba.readthedocs.io/en/latest/installation/micromamba-installation.html)准备即可，不要求初始化 shell。
-- 完整科学依赖环境需要数 GB 存储；“最小”指计算量，不代表下载体积小。
+- Linux x86_64, or Linux under Windows WSL2. Locally validated on Ubuntu 22.04 / RTX 5080.
+- An installed NVIDIA driver with the GPU accessible inside Linux/WSL. The lock includes CUDA 13.4 user-space libraries; the target driver must be compatible. The runner creates a CUDA context and stops on failure rather than silently using CPU MD. It does not install drivers or change system environments.
+- Git, Bash, micromamba, and network access to conda-forge, PyPI, GitHub, RCSB and Molekula. Follow the [official micromamba installation instructions](https://mamba.readthedocs.io/en/latest/installation/micromamba-installation.html); shell initialization is not required.
+- Several GB of storage for scientific dependencies. Minimal refers to computation, not download size.
 
-## 安装和运行
+## Install and run
 
-以下命令均在 Linux / WSL 终端执行。使用仓库中包含本目录的版本；在仓库根目录执行后两条命令。
+Run these commands in a Linux / WSL terminal:
 
 ```bash
 git clone https://github.com/lzylumos-sudo/yuanhe-bio-workflow.git
 cd yuanhe-bio-workflow
 
-# 若 micromamba 不在 PATH，先设置为它的实际可执行文件路径：
+# If micromamba is not on PATH, set its actual executable path first:
 # export MICROMAMBA=/absolute/path/to/micromamba
 bash deployment/public_minimal/install.sh "$HOME/yuanhe-public-env"
 bash deployment/public_minimal/run_public.sh "$HOME/yuanhe-public-env" "$HOME/yuanhe-public-run-001"
 ```
 
-环境路径和结果路径必须是新的绝对路径，脚本拒绝覆盖。安装失败后保留现场，修复网络或依赖原因，再选择一个新环境路径重试；运行失败后检查日志，再选择新的结果路径。没有自动断点续跑，也不会自动安装、激活或修改原有研究环境。所有缓存、量化临时文件、公开来源快照和结果与原研究项目分开。
+The environment and output paths must be new absolute paths; existing paths are rejected. Installation failures retain diagnostic files: resolve the cause and retry with a new environment path. For run failures, inspect the logs and retry with a new output path. Automatic resume is not implemented. Existing research environments are not installed into, activated or modified. Caches, quantum-chemistry scratch files, public source snapshots and results remain separate from research projects.
 
-可设置 `CUDA_VISIBLE_DEVICES=0` 选择一张卡。该验收只使用单 GPU；不包含多 GPU 扩展验证。Vina 为 CPU 单线程，MD 为 OpenMM CUDA。安装中存在 CPU PyTorch 依赖，但没有运行生成模型。
+Use `CUDA_VISIBLE_DEVICES=0` to select one GPU if needed. This is a single-GPU acceptance run, not multi-GPU scaling validation. Vina uses one CPU thread; MD uses OpenMM CUDA. The environment includes CPU PyTorch dependencies but does not run generation models.
 
-## 固定版本与来源
+## Pinned dependencies and sources
 
-- `linux-64.lock`：300 个 Conda 包的确切构建 URL 和校验值；不是重新求解的宽松环境文件。
-- `pip-requirements.txt`：16 个 pip 包的固定版本/提交。RESP 固定上游提交和源码 SHA-256；安装后强制 `pip check`。
-- 主要版本：Python 3.11.17、NumPy 1.26.4、SciPy 1.15.2、Biopython 1.85、OpenMM 8.6.1、AmberTools 26.0、Psi4 1.11、RDKit 2026.03.1、Meeko 0.8.0、Vina 1.2.7。
-- 公开 1CRN 和 Vina 下载执行 SHA-256 检查。供应商库存页面每次重新获取，核对乙醇身份和 InStock 字段，留存抓取时间与哈希。页面变更、无法访问或无库存时失败，不伪造供应证据；未购买任何商品。
-- 不附带第三方二进制、供应商网页、模型权重或私有分子。各依赖沿用上游许可证，参阅[研究依赖许可说明](../../docs/16_RESEARCH_DEPENDENCY_LICENSES.md)。
+- `linux-64.lock`: exact build URLs and checksums for 300 Conda packages, without a fresh dependency solve.
+- `pip-requirements.txt`: 16 pip packages pinned by version or commit. RESP uses an exact upstream commit and source SHA-256. Installation requires `pip check` to pass.
+- Main versions: Python 3.11.17, NumPy 1.26.4, SciPy 1.15.2, Biopython 1.85, OpenMM 8.6.1, AmberTools 26.0, Psi4 1.11, RDKit 2026.03.1, Meeko 0.8.0, Vina 1.2.7.
+- Downloads of public 1CRN and Vina are checked against fixed SHA-256 values. Each run fetches a fresh supplier page, verifies ethanol identity and InStock data, and records fetch time and hash. Unavailable or changed pages, or missing stock evidence, fail closed. No stock evidence is fabricated and no purchase is made.
+- Third-party binaries, supplier pages, model weights and private molecules are not bundled in Git. Dependencies retain their upstream licenses; see [research dependency licenses](../../docs/16_RESEARCH_DEPENDENCY_LICENSES.md).
 
-## 最小计算参数与通过条件
+## Minimal settings and success criteria
 
-| 步骤 | 设置 / 结果要求 |
+| Stage | Setting / requirement |
 | --- | --- |
-| 对接 | 1 个分子、1 个姿势、CPU 1 线程、exhaustiveness 1、seed 17 |
-| 对接区域 | 1CRN 表面 10 Å 立方框，仅作工程检查，不是经验证的结合口袋 |
-| 参数化 | 真正 HF/6-31G* 优化和两阶段 RESP，GAFF2，单线程 |
-| MD | ff14SB / TIP3P；最小化上限 100 步；NVT 0.1 ps；NPT 0.1 ps；生产 0.2 ps（200 步，1 fs） |
-| 分析 | 4 个生产帧，RMSD / RMSF / 接触 / 氢键 / SASA 等，原生审计通过且检查点可重载 |
+| Docking | One molecule, one pose, one CPU thread, exhaustiveness 1, seed 17 |
+| Region | A 10 angstrom cube at the 1CRN surface; an engineering region, not a validated binding pocket |
+| Parameterization | Real HF/6-31G* optimization and two-stage RESP, GAFF2, one thread |
+| MD | ff14SB / TIP3P; at most 100 minimization iterations; NVT 0.1 ps; NPT 0.1 ps; production 0.2 ps (200 steps at 1 fs) |
+| Analysis | Four production frames; RMSD, RMSF, contacts, hydrogen bonds and SASA; passing native audit with checkpoint reload |
 
-成功时结果目录生成 `COMPLETED.json`，状态为 `PUBLIC_ENGINEERING_PATH_PASSED`。同时检查 `pip-check.txt`、`gpu.json`、`md_audit.json`、各阶段日志和 `artifact_hashes.json`。失败记录为 `FAILED.json`，不得把部分文件存在当成运行完成。
+Success creates `COMPLETED.json` with status `PUBLIC_ENGINEERING_PATH_PASSED`. Inspect `pip-check.txt`, `gpu.json`, `md_audit.json`, phase logs and `artifact_hashes.json`. Failures create `FAILED.json`; partial artifacts alone do not demonstrate completion. See [recorded local validation](VALIDATION.json).
 
-通过后，说明这台电脑能运行这条公开计算链路。正式研究仍需使用自己的经审查蛋白、口袋、化学状态和科学参数，在独立研究任务中执行；不要把本目录的 0.2 ps 参数用于正式结论。原始科研默认配置没有被这套验收修改。
+Passing validates this public computational path on the target machine. Formal research still requires reviewed proteins, pockets, chemical states and scientific settings in a separate research task. Do not use the 0.2 ps settings to support scientific conclusions. The original research default configuration is not modified by this acceptance run.
