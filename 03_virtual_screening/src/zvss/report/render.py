@@ -42,11 +42,17 @@ def write_all(ctx, state: dict[str, Any]) -> dict[str, Any]:
     }
     membrane_files = {name: path for name, path in membrane_files.items() if os.path.isfile(path)}
 
+    import json
+    provenance={}
+    for item in ctx.db.query('SELECT compound_id, meta FROM compound'):
+        proof=json.loads(item.get('meta') or '{}').get('predocking')
+        if proof:provenance[item['compound_id']]=proof
+    atomic_write_json(os.path.join(directory,'predocking_evidence.json'),provenance)
     candidates = os.path.join(directory, "candidates.csv")
     _write_rows(
         candidates,
         ["role", "order", "compound_id", "state_id", "pose_id", "tier", "qualification", "evidence_score",
-         "components_used", "components_missing", "selection_version"],
+         "components_used", "components_missing", "selection_version", "acquisition_labels", "predocking_sha256", "source_core", "generation_batch"],
         [
             {
                 "role": entry.get("selection_role"),
@@ -60,6 +66,10 @@ def write_all(ctx, state: dict[str, Any]) -> dict[str, Any]:
                 "components_used": ";".join(entry.get("components_used") or []),
                 "components_missing": ";".join(entry.get("components_missing") or []),
                 "selection_version": entry.get("selection_version"),
+                "acquisition_labels": ";".join(provenance.get(entry['compound_id'],{}).get('availability',{}).get('labels',[])),
+                "predocking_sha256": provenance.get(entry['compound_id'],{}).get('record_sha256'),
+                "source_core": provenance.get(entry['compound_id'],{}).get('provenance',{}).get('source_core'),
+                "generation_batch": provenance.get(entry['compound_id'],{}).get('provenance',{}).get('generation_batch'),
             }
             for entry in (selection.get("primary") or [])
             + (selection.get("preliminary") or [])
@@ -148,6 +158,11 @@ def write_all(ctx, state: dict[str, Any]) -> dict[str, Any]:
 
     markdown = _markdown(ctx, state, ranking, selection, md, target, imported, qa, mech, redock, membrane, membrane_ranking)
     report_path = os.path.join(directory, "report.md")
+    if provenance:
+        markdown+='\n\n## Pre-docking acquisition evidence\n\n'
+        for cid,proof in provenance.items():
+            markdown+=f"- {cid}: {'; '.join(proof['availability']['labels'])}; evidence SHA256 {proof['record_sha256']}\n"
+        markdown+='\nFull alerts, routes, supply records and origin are in predocking_evidence.json. Computational route support does not confer wet-lab eligibility; final acquisition review remains required.\n'
     atomic_write_text(report_path, markdown)
     payload = {
         "run_id": ctx.run_id,

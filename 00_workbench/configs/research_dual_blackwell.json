@@ -37,7 +37,6 @@
   "selection_mode": "diversity",
   "risk_rules": [],
   "risk_rules_review": null,
-  "acquisition_evidence": [],
   "supplier_library": "",
   "receptor_ensemble": [],
   "disk_reserve_gb": 50,

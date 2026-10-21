@@ -10,10 +10,11 @@ def derive(rid,changes):
     allowed={'refine_limit','review_limit','md_limit','wetlab_min','wetlab_max','selection_mode'}
     if set(changes)-allowed:raise ValueError('Reuse currently supports selection-only changes; create a new run for scientific input changes')
     rc=resolve({**rc,**changes});cfg={**cfg,'research':rc};cfg.pop('input_sha256',None)
+    if w.digest(w.ROOT/cfg['structure'])!=w.read(parent/'config.json')['input_sha256']:raise ValueError('Original input structure changed; reuse refused')
     # Validate all upstream artifacts before creating a derived run.
-    for stage in ('prepare','peptide2mol','reinvent4'):w.require(parent,stage)
+    for stage in ('prepare','peptide2mol','reinvent4','risk','availability'):w.require(parent,stage)
     child=w.create(cfg)['id'];d=w.run_dir(child)
-    for stage in ('prepare','peptide2mol','reinvent4'):
+    for stage in ('prepare','peptide2mol','reinvent4','risk','availability'):
         shutil.copytree(parent/stage,d/stage)
         rec=w.read(d/stage/'stage.json');rec.update(config_sha256=w.digest(d/'config.json'),reused_from=rid,source_stage_sha256=w.digest(parent/stage/'stage.json'))
         w.atomic(d/stage/'stage.json',rec)

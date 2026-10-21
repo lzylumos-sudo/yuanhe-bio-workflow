@@ -81,6 +81,8 @@ def make_spec(stage, *, engine_path, device, seeds, operation="redock", exhausti
     validate_resources(cpu)
     if operation!="redock":raise ValueError("Only Vina redock is supported for new tasks")
     stage = Path(stage)
+    from yuanhe_preflight.gate import require_ligand
+    for ligand in (stage/'ligands').glob('*.sdf'): require_ligand(ligand)
     man = stage / "STAGE_MANIFEST.json"
     spec = {"engine":"vina", "engine_version":VERSION, "energy_range":energy_range, "scoring":"vina", "stage_dir": str(stage), "stage_manifest_sha256": sha256_file(man), "engine_path": str(engine_path),
             "device": device, "seeds": [int(s) for s in seeds], "operation": operation, "exhaustiveness": exhaustiveness,
@@ -198,6 +200,8 @@ def worker(rd: Path, registry: Registry | None = None):
     slot = _Slot(rd.parent / f".slot_{spec['slot']}.lock")
     out = {"reused": 0, "ran": 0, "failed": [], "waiting_storage": False}
     for j in spec["jobs"]:
+        from yuanhe_preflight.gate import require_ligand
+        require_ligand(stage/"ligands"/j["ligand"])
         if cancelled():
             state("CANCELLED"); log("cancelled"); return 3
         done = None

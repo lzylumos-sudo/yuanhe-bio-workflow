@@ -155,3 +155,7 @@ See the [18-month, evidence-gated roadmap](docs/product/ROADMAP.md). The local s
 We welcome method evaluation and research collaboration around reproducible, target-specific candidate prioritization. Discuss public, nonsensitive questions through [GitHub Issues](https://github.com/lzylumos-sudo/yuanhe-bio-workflow/issues). Arrange a private channel before sharing unpublished structures, molecules or customer data. No commercial service-level agreement or validated efficacy is currently offered.
 
 Public visibility does not grant unrestricted commercial use. Commercial deployment requires review of original-code rights, prior grants, dependency code, model weights and data terms. See the unchanged license documents above and the [commercialization boundary](docs/commercialization/public_private_boundary.md).
+
+
+对接前新增风险子结构与获取路径门槛（2026-10-21）
+REINVENT4 → 标准化与去重 → risk → availability → AutoDock Vina。配置、真实供应目录字段、本地 AiZynthFinder 资产、复核／缓存／CLI 运行说明见 docs/PREDOCKING_PREFLIGHT.md。未配置真实证据时不自动放行；本次不变更 MD 代码或参数。

@@ -502,7 +502,21 @@ def _import_single(ctx, raw, bundle, hints, templates, report):
                 )
                 notes.append("pose chemistry disagrees with declared template")
 
-    compound_row, state_row = _identity(mol, note=raw.parent_label)
+    proof_path=raw.source_file+'.qualification.json'
+    proof=None
+    if os.path.isfile(proof_path):
+        import sys
+        from pathlib import Path
+        sys.path.insert(0,str(Path(__file__).resolve().parents[4]/'02_docking/src'))
+        from yuanhe_preflight.gate import validate_evidence
+        from yuanhe_preflight.common import canonical
+        proof=validate_evidence(proof_path,canonical(mol))
+    compound_row, state_row = _identity(mol, note='' if proof else raw.parent_label)
+    if proof:
+        compound_row.update(compound_id=proof['identity']['compound_id'],canonical_smiles=proof['identity']['smiles'])
+        state_row.update(compound_id=proof['identity']['compound_id'],state_id=proof['identity']['state_id'],canonical_smiles=proof['identity']['smiles'])
+        compound_row['meta']['predocking']=proof
+        raw.props['predocking_evidence']=proof
     # Foreign keys are enforced: compound -> state -> job -> pose, in that order.
     ctx.db.upsert_compound(compound_row)
     ctx.db.upsert_state(state_row)
@@ -602,6 +616,7 @@ def _base_pose_row(
         "reason_code": str(reason_code) if reason_code else None,
         "reason": "; ".join(notes) if notes else None,
         "meta": {
+            "predocking_evidence": raw.props.get('predocking_evidence'),
             "score_provenance": raw.score_provenance,
             "parent_label": raw.parent_label,
             "resname": raw.resname,

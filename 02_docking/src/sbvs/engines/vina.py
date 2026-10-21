@@ -6,6 +6,8 @@ from .common import execute
 from ..paths import rootpath
 def dock(cfg,box,folder,seed,cancel):
  folder=Path(folder);out=folder/'poses.pdbqt'
+ from yuanhe_preflight.gate import require_ligand
+ require_ligand(folder/'input.sdf')
  from sbvs2.docking.vina_official import vina_version
  executable=cfg.get('executable','vina');vina_version(executable)
  argv=[executable,'--receptor',str(rootpath(cfg['receptor'])),'--ligand',str(folder/'input.pdbqt'),'--scoring','vina']

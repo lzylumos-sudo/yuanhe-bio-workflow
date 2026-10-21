@@ -1,6 +1,5 @@
 """Auditable chemical identities and evidence gates. Never infer availability from scores."""
 import csv, hashlib, json, sqlite3
-from pathlib import Path
 from .config import fingerprint
 
 def identity(smiles):
@@ -97,58 +96,66 @@ def supplier_rows(root,path,limit):
         if handle:handle.close()
 
 def qualify(root,d,cfg,generated,out):
-    from rdkit import Chem
-    rc=cfg['research'];out.mkdir(parents=True,exist_ok=True)
-    # Reuse the project's real pre-docking rule/catalog/retrosynthesis implementation.
-    import sys
-    sys.path.insert(0,str(root/'02_docking/src'))
-    from yuanhe_preflight.toxicity_substructure_filter import RiskRules
-    from yuanhe_preflight.availability_synthesis_filter import AvailabilityFilter
-    from yuanhe_preflight.config import validate
-    from yuanhe_preflight.common import file_hash
-    pc=json.loads(json.dumps(rc['predocking']))
-    for key in ('rules_path','cache_dir'):
-        if not Path(pc[key]).is_absolute():pc[key]=str(root/pc[key])
-    validate(pc)
-    rules=RiskRules(pc['rules_path'],pc['risk_policies'])
-    availability=AvailabilityFilter(pc,file_hash(pc['rules_path']))
-    if rc['risk_rules']:risk(Chem.MolFromSmiles('C'),rc['risk_rules'],rc['risk_rules_review'])
+    from webui.workflow import read,require
+    from yuanhe_preflight.gate import require_ligand
+    require(d,'risk');require(d,'availability')
+    out.mkdir(parents=True,exist_ok=True)
+    risk_rows=read(d/'risk/records.json',[]);available=read(d/'availability/records.json',[])
+    parents={r['compound_id']:r for r in read(d/'risk/parent_index.json',[])}
+    counts={'valid':len(parents),'unique':len(parents),'chemistry_passed':len(parents),
+            'toxicity_structure_passed':sum(r['decision']=='pass' for r in risk_rows),
+            'acquisition_screening_qualified':0,'screening_qualified':0}
+    rows=[]
     db=sqlite3.connect(out/'compounds.sqlite3')
-    db.execute('CREATE TABLE IF NOT EXISTS compounds (compound_id TEXT PRIMARY KEY, smiles TEXT, stereo TEXT, row_json TEXT)')
-    db.execute('CREATE TABLE IF NOT EXISTS sources (compound_id TEXT, source_hash TEXT, record TEXT, PRIMARY KEY(compound_id,source_hash))')
-    counts={'valid':0,'unique':0,'chemistry_passed':0,'toxicity_structure_passed':0,'acquisition_screening_qualified':0,'screening_qualified':0}
+    db.execute('CREATE TABLE compounds (compound_id TEXT PRIMARY KEY, smiles TEXT, record TEXT)')
+    with db, (out/'qualification.jsonl').open('w') as journal:
+        for record in available:
+            cid=record['compound_id'];parent=parents.get(cid,{})
+            a=record['availability'];passed=record['decision']=='pass'
+            status='acquisition_pending'
+            if passed:
+                require_ligand(record['source_sdf'],record['qualification_evidence'])
+                if any(x.startswith('可买') for x in a['labels']):status='purchasable_verified'
+                elif any(x.get('review') for x in a.get('routes',[])):status='synthesizable_reviewed'
+                else:status='synthesizable_predicted'
+            item={**parent,**record,'sdf':record['source_sdf'],
+                  'risk':{'status':'risk_screen_passed','evidence':record['risk']},
+                  'acquisition':{'status':status,'evidence':a},'screening_qualified':passed}
+            journal.write(json.dumps(item)+'\n')
+            db.execute('INSERT INTO compounds VALUES (?,?,?)',(cid,item['smiles'],json.dumps(item)))
+            if passed:rows.append(item);counts['acquisition_screening_qualified']+=1;counts['screening_qualified']+=1
+    db.close()
+    return rows,counts
+
+
+def prepare_risk(root,d,cfg,out):
+    """Normalize parent identities before the shared, visible pre-docking stages."""
     from itertools import chain
-    try:
-        with db:
-            for row in chain(generated,supplier_rows(root,rc['supplier_library'],rc['external_limit'])):
-                try:cid,canon,stereo=identity(row['smiles'])
-                except ValueError:continue
-                counts['valid']+=1
-                db.execute('INSERT OR IGNORE INTO compounds VALUES (?,?,?,?)',(cid,canon,stereo,json.dumps(row)))
-                db.execute('INSERT OR IGNORE INTO sources VALUES (?,?,?)',(cid,fingerprint(row),json.dumps(row)))
-        qualified=[]
-        with (out/'qualification.jsonl').open('w') as log:
-            for cid,canon,stereo,raw in db.execute('SELECT * FROM compounds ORDER BY compound_id'):
-                row=json.loads(raw);counts['unique']+=1;counts['chemistry_passed']+=1
-                raw_risk=rules.screen(canon,[e for e in pc['risk_exceptions'] if e.get('structure_smiles')==canon])
-                r={'status':{'pass':'risk_screen_passed','exclude':'risk_blocked'}.get(raw_risk['decision'],'risk_flagged_review'),'evidence':raw_risk}
-                if rc['risk_rules']:
-                    extra=risk(Chem.MolFromSmiles(canon),rc['risk_rules'],rc['risk_rules_review']);r['additional_rules']=extra
-                    if extra['status']!='risk_screen_passed':r['status']=extra['status']
-                a=acquisition(root,canon,rc['acquisition_evidence'])
-                if a['status']=='acquisition_pending' and r['status']=='risk_screen_passed':
-                    raw=availability.screen(canon)
-                    a={'status':'acquisition_pending','evidence':raw}
-                    if raw['decision']=='pass':
-                        if any(x.startswith('可买') for x in raw.get('labels',[])):a['status']='purchasable_verified'
-                        else:a['status']='synthesizable_reviewed' if raw.get('status')=='synthesizable_reviewed' else 'synthesizable_predicted'
-                counts['toxicity_structure_passed']+=r['status']=='risk_screen_passed'
-                counts['acquisition_screening_qualified']+=a['status']!='acquisition_pending'
-                item={**row,'id':cid,'compound_id':cid,'smiles':canon,'stereochemistry':stereo,'risk':r,'acquisition':a,
-                      'sources':[json.loads(x[0]) for x in db.execute('SELECT record FROM sources WHERE compound_id=?',(cid,))]}
-                eligible=r['status']=='risk_screen_passed' and a['status']!='acquisition_pending'
-                item['screening_qualified']=eligible
-                log.write(json.dumps(item)+'\n')
-                if eligible:qualified.append(item);counts['screening_qualified']+=1
-        return qualified,counts
-    finally:db.close()
+    from rdkit import Chem
+    from rdkit.Chem import AllChem
+    from webui.workflow import read,atomic
+    from yuanhe_preflight.pipeline import risk_stage
+    rc=cfg['research'];rows=[];seen={}
+    inputs=out/'standardized';inputs.mkdir(parents=True,exist_ok=True)
+    for source in chain(read(d/'reinvent4/candidates.json',[]),supplier_rows(root,rc['supplier_library'],rc['external_limit'])):
+        try:cid,canon,stereo=identity(source['smiles'])
+        except ValueError:continue
+        if cid in seen:
+            seen[cid]['sources'].append(source);continue
+        mol=Chem.AddHs(Chem.MolFromSmiles(canon));params=AllChem.ETKDGv3();params.randomSeed=cfg['seed']
+        if AllChem.EmbedMolecule(mol,params)!=0:continue
+        target=inputs/(cid+'.sdf')
+        with Chem.SDWriter(str(target)) as writer:writer.write(mol)
+        row={**source,'id':cid,'compound_id':cid,'smiles':canon,'stereochemistry':stereo,'sdf':str(target.relative_to(d)),'sources':[source]}
+        seen[cid]=row;rows.append(row)
+    atomic(out/'parent_index.json',rows)
+    result=risk_stage(rows,cfg['predocking'],out,base=d,batch_id=d.name)
+    if rc['risk_rules']:
+        records=read(out/'records.json',[])
+        for record in records:
+            extra=risk(Chem.MolFromSmiles(record['smiles']),rc['risk_rules'],rc['risk_rules_review'])
+            record['additional_rules']=extra
+            if extra['status']!='risk_screen_passed':record['decision']='exclude' if extra['status']=='risk_blocked' else 'review'
+        from yuanhe_preflight.pipeline import export,counts
+        export(out,records);result=counts(records);atomic(out/'summary.json',result)
+    return result

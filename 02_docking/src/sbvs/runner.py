@@ -41,6 +41,16 @@ def _run(out,resume=False,cancel=lambda:False,update=lambda m:None):
  out=rootpath(out);m=read_json(out/'run_manifest.json');cfg=m['config'];validate(cfg)
  if fingerprint(cfg)!=m['protocol_fingerprint']:raise ValueError('Protocol/environment changed; create new run')
  if sha(out/m['input'])!=m['input_sha256']:raise ValueError('Original inputs changed')
+ from yuanhe_preflight.common import canonical
+ from yuanhe_preflight.gate import validate_evidence
+ manifest=cfg.get('qualification_manifest')
+ if not manifest:raise ValueError('qualification_manifest (preflight qualified.json) required for formal CLI/API docking')
+ qualified={r['smiles']:r for r in read_json(rootpath(manifest))}
+ def evidence_for(smiles):
+  row=qualified.get(canonical(smiles))
+  if not row:raise ValueError('No pre-docking evidence for exact chemical state')
+  return validate_evidence(row['qualification_evidence'],smiles)
+ for original in inputs(out/m['input']):evidence_for(original['smiles'])
  box=read_json(rootpath(cfg['box']));rows=[];failures=[];prepared=[]
  m['status']='preparing';m['started']=time.time();write_json(out/'run_manifest.json',m);update(m)
  recxyz=[]
@@ -61,6 +71,8 @@ def _run(out,resume=False,cancel=lambda:False,update=lambda m:None):
      for seed in cfg['seeds']:
       key=f'{sid}_C{ci:02d}_seed{seed}';dest=out/'entries'/key;dest.mkdir(parents=True,exist_ok=True)
       if cancel():raise Cancelled()
+      proof=evidence_for(Chem.MolToSmiles(Chem.RemoveHs(item['mol']),isomericSmiles=True))
+      write_json(dest/'input.sdf.qualification.json',proof)
       prior=m['completed_entries'].get(key)
       if resume and prior and all((out/p).is_file() and sha(out/p)==h for p,h in prior['hashes'].items()):
        rows.extend(read_json(dest/'rows.json'));prepared.append(read_json(dest/'preparation.json'));continue

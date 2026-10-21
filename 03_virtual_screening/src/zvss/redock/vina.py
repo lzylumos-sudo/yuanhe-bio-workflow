@@ -246,6 +246,18 @@ def run_redock(ctx, plan: list[dict[str, Any]]) -> dict[str, Any]:
             root = Path(__file__).resolve().parents[4]
             sys.path.insert(0, str(root/'02_docking/src'))
             from sbvs2.docking.vina_official import run_vina_job
+            from yuanhe_preflight.gate import validate_evidence
+            from yuanhe_preflight.common import sdf_smiles
+            proof=None
+            for pid in item.get('pose_ids',[]):
+                dbrow=ctx.db.one('SELECT meta FROM pose WHERE pose_id=?',(pid,))
+                if dbrow:
+                    import json
+                    proof=json.loads(dbrow['meta'] or '{}').get('predocking_evidence')
+                    if proof:break
+            validate_evidence(proof,sdf_smiles(ligand_path),input_file=ligand_path)
+            evidence_file=Path(str(ligand_path)+'.qualification.json')
+            atomic_write_json(str(evidence_file),proof)
             from sbvs2.docking.protocol import Protocol
             from sbvs2.docking.box import Box
             protocol = Protocol.preset('standard', seeds=(seed,), exhaustiveness=int(engine.get('exhaustiveness',32)),

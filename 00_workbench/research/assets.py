@@ -15,7 +15,7 @@ def snapshot(root,cfg):
                 elif isinstance(val,(list,dict)):collect(val)
         elif isinstance(value,list):
             for item in value:collect(item)
-    collect(pc['catalogs']);collect(pc['stock_catalogs']);collect(rc['acquisition_evidence']);collect(rc['ligand_states']);collect(rc['receptor_ensemble'])
+    collect(pc['catalogs']);collect(pc['stock_catalogs']);collect(rc['ligand_states']);collect(rc['receptor_ensemble'])
     result={}
     for value in sorted(paths):
         p=Path(value)

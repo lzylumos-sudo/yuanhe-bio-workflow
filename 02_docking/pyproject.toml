@@ -13,3 +13,6 @@ analysis = ["pandas>=2.1", "scipy>=1.11", "matplotlib>=3.8"]
 where = ["src"]
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+
+[tool.setuptools.package-data]
+yuanhe_preflight = ["configs/*.json"]

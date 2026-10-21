@@ -59,6 +59,7 @@ def run(root,d,cfg,out,executable):
         path=prepared/(row['compound_id']+'.sdf')
         if AllChem.EmbedMolecule(mol,p)!=0:raise ValueError('Conformer generation failed for '+row['compound_id'])
         with Chem.SDWriter(str(path)) as writer:writer.write(mol)
+        shutil.copyfile(row['qualification_evidence'],str(path)+'.qualification.json')
         row['sdf']=str(path.relative_to(d));row['state_id']=fingerprint(row['smiles'])[:20]
         row['states']=[{'sdf':row['sdf'],'state_id':row['state_id'],'smiles':row['smiles']}]
         for state in rc['ligand_states'].get(row['compound_id'],[]):
@@ -71,6 +72,10 @@ def run(root,d,cfg,out,executable):
             sid=fingerprint(exact)[:20]
             if any(x['state_id']==sid for x in row['states']):continue
             target=prepared/(row['compound_id']+'_'+sid+'.sdf');shutil.copyfile(source,target)
+            evidence=(root/state.get('qualification_evidence','')).resolve()
+            from yuanhe_preflight.gate import require_ligand
+            require_ligand(target,evidence)
+            shutil.copyfile(evidence,str(target)+'.qualification.json')
             row['states'].append({'sdf':str(target.relative_to(d)),'state_id':sid,'smiles':exact,'review':state})
     resources=detect(d);workers=min(rc['vina_workers'],resources['effective_cpus']//rc['vina_cpu'])
     if workers<1:raise ValueError('CPU quota is smaller than one Vina worker')
@@ -89,6 +94,8 @@ def run(root,d,cfg,out,executable):
                     'exhaustiveness':settings['exhaustiveness'],'num_modes':settings['num_modes'],'energy_range':cfg['energy_range'],
                     'engine':'vina','version':version,'executable_sha256':exe_hash,'cpu':rc['vina_cpu'],
                     'adapter_sha256':digest(root/'02_docking/src/sbvs2/docking/vina_official.py')}
+            from yuanhe_preflight.gate import require_ligand
+            require_ligand(d/row['sdf'])
             key=fingerprint(inputs);folder=cache/key;manifest=folder/'reuse.json'
             prior=read(manifest)
             if prior:
