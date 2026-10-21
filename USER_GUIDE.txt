@@ -1,39 +1,38 @@
-Current research migration: official Vina 1.2.7 CPU docking; GAFF2 + HF/RESP; one 500 ns trajectory per selected complex; core analysis and actual PB at 400–500 ns. See docs/15_VINA_RESP_RESEARCH.md at the repository root. Previous short-run defaults below are historical. This revision is code-only; validate on the intended computer.
+元核生物：通过管理员提供的 UI 链接使用
 
-Yuanhe Research Workbench: daily UI guide
-Version 0.4.0-rc1
+管理员从 GitHub 部署项目并配置依赖、模型、GPU 和数据目录后，将工作台链接发给使用者。打开该链接即可手动操作，也可以让 Codex 操作同一个页面。不需要在使用者电脑安装计算环境、打开终端或另建运行入口。
 
-Complete initial installation using deployment/validation_5070/INSTALL_AND_VALIDATE.txt. Target-machine inference, docking and membrane dynamics remain untested by this release; do not label the candidate release fully accepted before those checks.
+1. 新建研究任务
+选择结构、链和残基范围，确认真实输入。已有 GNINA、AM1-BCC 或短 MD 任务保留历史身份，不转换为新协议。迁移后新建任务。
 
-1. Launch start_windows.cmd, choose the prepared WSL distribution and open the displayed local address. Use Environment and diagnostics to save chemistry, screening, model, receptor-preparation, membrane-analysis, GNINA and GROMACS paths. Changes apply to newly created runs. The membrane dependency installer is available here after base setup.
+2. 准备受体与搜索框
+完成复合物准备，在工具①中检查受体、质子化假设、缺失原子、膜蛋白构建体及搜索框。框中心和边长均为 Å。预览后保存审阅。
 
-2. Create a research run using data/structures/9nu4.pdb, receptor A, peptide B and the reviewed construct range (current default 3-500). Upload another PDB if required. Inspect the actual coordinates. The current construct mutations remain; no silent WT reversion occurs.
+3. 生成与对接
+按流程生成分子并在工具②审阅需保留的分子核心。对接阶段设置使用官方 AutoDock Vina 1.2.7；默认 exhaustiveness=32、num_modes=9、energy_range=3 kcal/mol。CPU 任务并发数 × 每任务线程数不得超过总线程预算。可填写对接随机种子数组；这不会增加 MD 重复数。
+结果的 vina_affinity_kcal_mol 越低越优，CNN 字段为不适用。查看实际日志、失败原因和选中姿势；历史 GNINA 分数不能直接混排。
 
-3. Run Complex preparation. Inspect the full receptor, local pocket and peptide reference. In Receptor preparation and docking box, choose the pH assumption, inspect missing-atom/terminus reports and explicitly permit side-chain completion only when justified. Missing loops or nonstandard residues block automatic preparation. Generate a box from reviewed residues, rotate the preview, adjust and approve it.
+4. 筛选与姿势交接
+在工具③选择筛选深度，区分初步候选、正式候选和探索性候选。确认 compound_id、state_id、pose_id 与最终选择姿势一致。对接得分和筛选资格都不代表生物活性。
 
-4. Run Peptide2Mol. In Select molecular core, choose an actual seed, select numbered heavy atoms and record the chemical rationale. Save the core and run REINVENT4. Budget is per selected core. Invalid chemistry and conformer failures remain separately counted.
+5. 建立一条 MD 轨迹
+在工具④选择最终候选，审阅膜取向、脂质、盐浓度和温度。默认 GAFF2 + HF/6-31G* ESP / 两阶段 RESP，单条 500 ns 生产轨迹，最小化、升温和平衡另计。QM 优化构象只用于参数化，不替换结合姿势；失败不会回退 AM1-BCC。
+页面可配置初始速度种子、GPU 编号、输出间隔、检查点间隔、QM 线程及稳定骨架/跨膜核心对齐选择。默认输出间隔 10 ps、检查点间隔 2 分钟。
+MurJ 使用显式膜。内置单脂质膜不等同完整细菌混合膜。填写膜 PB 厚度、介电、孔道模型及其依据，并审阅后再构建。
 
-5. Run GNINA with the reviewed full receptor and box. Inspect actual engine logs, unique-molecule counts, failures and pose-level scores. Original first poses and screening-selected poses are labeled separately. GPU detection alone is not proof of GPU CNN execution.
+6. 运行与续跑
+在工具⑤预览已构建体系并确认身份、参数、取向和模拟协议，然后选择“Start / Resume from checkpoint”，或指定到第六阶段执行。默认只运行该体系的一条轨迹；不需要在工具⑦创建额外轨迹。
+停止后等待检查点写入；重新打开同一任务和同一体系，再使用相同按钮续跑。不要新建体系代替续跑，也不要改动已冻结的输入。缺少匹配检查点或输入发生变化时，界面会阻止续跑。
 
-6. Choose Quick screening, Redocking trial or Full screening. Quick screening skips redocking; other plans use their declared caps and seeds. Review candidates, exclusions and qualification. Preliminary/exploratory candidates are counted separately from formally qualified ones. Computation complete does not mean all scientific requirements passed.
+7. 分析与查看
+使用“Analyze completed production trajectory”，在工具⑥查看轨迹、曲线和原始记录。核心指标为 400–500 ns 内，经指定蛋白骨架/跨膜核心对齐后的配体重原子 RMSD 均值和样本标准差；单条轨迹的重复间统计不适用。
+MM/PBSA 使用同一轨迹，默认分析 400–500 ns，每 10 个已保存帧抽取一帧。可在构建前调整 PB 窗口、抽帧间隔和介电参数；膜体系必须使用经审阅的膜 PB 模型。报告区分帧间标准差和考虑时间相关性的均值误差，不包含熵。
+不足 500 ns 不生成正式末段结论。达到 500 ns 或标准差较低，也不等于稳定、收敛、结合强或有效；结果可能需要延长模拟。
 
-7. Select a candidate in the membrane wizard. Supply the membrane normal, center and source/rationale, then preview and review. Default coordinates are editable starting values, not established orientation. Select an idealized POPC/POPE membrane and explicitly approve exploratory simulation for unqualified candidates. Build parameters, topology, coordinates and atom groups; failed parameterization is not success.
+8. 导出
+使用“Export reproduction records”导出输入、冻结配置、日志与分析。需要原始轨迹时勾选完整归档。安装环境和模型权重由管理员另外保管。
 
-8. Review the built system, candidate mapping and protocol. Select it for stage six or use Run and resume. The built-in path executes minimization, NVT, two NPT stages, production and analysis. Failed minimization, incomplete step counts, changed inputs or mismatched checkpoints block continuation. The default short production run is an engineering probe, not sufficient scientific sampling.
-
-9. Inspect trajectory frames, backbone-aligned protein/ligand RMSD, RMSF, temperature, pressure, energy, distance-contact occupancy and membrane thickness proxy. Distance contacts are not hydrogen bonds; a proxy does not establish complete membrane stability. Compare independent replicas separately.
-
-10. Export reproduction records. Review archives include input, frozen settings, reviews, logs and small results; full archives add large artifacts. Omitted files are listed with hashes. Neither archive includes installed environments or model weights, which need separate preservation.
-
-Recovery: stop requests allow checkpoint writing before forced termination. Do not unplug while stopping. Reopening the UI checks persistent Linux process identity. Failed stage directories are archived under attempts. Changed source code or frozen inputs require a new run. Interrupted MD resumes only from a matching checkpoint; partial output without one must not be overwritten.
-
-Validation order: environment/operator checks, small real model batch, reviewed-core expansion, actual GNINA docking, quick screening, fixed-set multiseed redocking, then one reviewed membrane system and a short complete trajectory. Use disposable runs for cancellation/tamper tests, followed by an independent same-settings reproduction. Record platform and GPU differences; reproducibility means traceable protocols and assessed agreement, not guaranteed bitwise equality.
-
-
-2026-10-18: screened pose to membrane MD
-Use Verify upstream and continue MD when continuing a preserved upstream run. Select the screened candidate; review membrane orientation and explicitly acknowledge exploratory status if formal qualification is absent. Build, preview and review the membrane system, then select it for stage six. Stage six runs minimization, staged equilibration, an independent checkpoint probe, production and analysis. Inspect first/last frames and analysis plots; export the full run including trajectories. Completed MD does not upgrade candidate qualification. See docs/07_MODULE_CONTRACTS.md and docs/08_MEMBRANE_MD_ACCEPTANCE.md.
-
-MODULES, CONTROLS AND REPEATS
-Open tool 7 for an independent 1DRF docking control, archived screening reassessment, peptide-contact evidence, or independent velocity replicas. Select a built reviewed system, acknowledge the shared starting coordinates, create repeats, select them and assign them to stage six. Run stage six through the main workflow. After all repeats complete, select the same systems and compare their trajectories. Preserve the reported criterion failures. A completed MD calculation is not an activity prediction.
-
-For 9NU4, an available hashed PPM3 orientation populates the membrane settings; review it before building. A different receptor does not inherit this orientation automatically. The full export preserves raw trajectories; the smaller review export supports inspection.
+本次仅修改代码、配置和文档，不运行计算或测试；本任务生成的验收结果已删除。部署及后续计算由管理员/使用者在目标机器安排。项目历史数据保留。
+方法与配置迁移：docs/15_VINA_RESP_RESEARCH.md
+组件许可：docs/16_RESEARCH_DEPENDENCY_LICENSES.md
+页面操作详解：docs/18_UI_RESEARCH_WORKFLOW.md

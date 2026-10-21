@@ -13,6 +13,13 @@ Historical project results remain historical and are not reclassified.
 Minimization, heating and equilibration are additional. There is no requirement to
 create three repeats. One trajectory cannot provide between-repeat uncertainty.
 
+## User workflow
+
+The administrator deploys this GitHub source and supplies the workbench URL. Users
+operate the existing UI manually or with Codex; no separate compute-computer entry
+is required. See [the UI guide](18_UI_RESEARCH_WORKFLOW.md). Commands below document
+existing backends for administrators and maintainers, not required user steps.
+
 ## Docking and score migration
 
 New workbench jobs, SBVS/SBVS2 jobs and screening redocking use official
@@ -56,7 +63,7 @@ Docking charges are preparation artifacts, not MD charges. Keep compound_id,
 state_id, pose_id, the selected pose SDF and handoff hashes together. Do not
 substitute a different conformer after selection.
 
-## Installation on the compute computer
+## Administrator reference: dependency configuration
 
 The pinned core environment is `deployment/research-environment.yml`. The
 standalone MD and membrane environment files include Psi4 and RESP as well.
@@ -213,7 +220,7 @@ Membrane PB runtime and parameter suitability remain for target-host validation.
 End-state PB values support comparisons under the same protocol; they are not
 experimental binding free energies or entropy-complete affinities.
 
-## Future validation commands (not executed for this delivery)
+## Optional maintainer tools (not executed for this delivery)
 
 `deployment/validate_vina_reference.py` runs a public 1DRF/FOL reference redocking
 with symmetry-aware RMSD in the unchanged receptor frame. `deployment/validate_research_gpu.py`

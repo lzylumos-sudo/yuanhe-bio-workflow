@@ -120,7 +120,15 @@ def build_prepared(d,c,p,out,row,ligand_path,receptor,source_revision=None):
  if lipid not in {'POPE','POPC','DPPC','DOPC'}:raise ValueError('Unsupported lipid')
  salt=number(p,'salt_M',.15,0,1);padding=number(p,'padding_nm',1.2,1,3)
  temp=number(p,'temperature_K',310,273,350)
- production=number(p,'production_ns',500,.01,1000);equil=number(p,'equilibration_ns',1,.1,100)
+ production=number(p,'production_ns',500,.01,1000);equil=number(p,'equilibration_ns',2,.1,100)
+ output_interval=number(p,'output_interval_ps',10,.002,1000);checkpoint_minutes=number(p,'checkpoint_minutes',2,.1,60)
+ qm_threads=p.get('qm_threads',4);velocity_seed=p.get('replica_seed',17)
+ if type(qm_threads)!=int or qm_threads<1:raise ValueError('qm_threads must be a positive integer')
+ if type(velocity_seed)!=int or not 1<=velocity_seed<=2147483647:raise ValueError('Initial velocity seed must be a positive integer')
+ gpu_id=str(p.get('gpu_id','0'))
+ if not gpu_id.isdigit():raise ValueError('Choose one nonnegative GPU device index')
+ if not str(p.get('alignment_selection','protein and backbone')).strip():raise ValueError('Stable protein alignment selection is required')
+ p={**p,'output_interval_ps':output_interval,'checkpoint_minutes':checkpoint_minutes,'qm_threads':qm_threads,'replica_seed':velocity_seed,'gpu_id':gpu_id}
  ident='MD_'+uuid.uuid4().hex[:12];folder=system_dir(d,ident);folder.mkdir(parents=True)
  import shutil
  shutil.copyfile(ligand_path,folder/'ligand.sdf');shutil.copyfile(receptor,folder/'receptor.pdb')
@@ -140,6 +148,13 @@ def build_prepared(d,c,p,out,row,ligand_path,receptor,source_revision=None):
  if shared is None:raise RuntimeError('Shared 05_molecular_dynamics source is required')
  sys.path.insert(0,str(shared))
  from modules.parameterization.hf_resp import compute
+ if p.get('mmpbsa',{}).get('enabled'):
+  from modules.analysis.mmpbsa import pb_input
+  pb=p['mmpbsa']
+  if not pb.get('membrane'):raise ValueError('MurJ requires membrane-aware PB settings')
+  start=float(pb.get('start_ns',400));end=float(pb.get('end_ns',500));stride=pb.get('stride',10)
+  if not 0<=start<end<=production or type(stride)!=int or stride<1:raise ValueError('PB sampling window must lie within production; stride must be a positive integer')
+  pb_input(pb,2,':1',':2')
  print('MD_BUILD: HF/6-31G* ESP and two-stage RESP',flush=True)
  q,resp_record=compute(mol,folder/'resp',p)
  off.partial_charges=q*offunit.elementary_charge
@@ -374,11 +389,12 @@ def analyze(d,c,p,out):
  sys.path.insert(0,str(shared))
  from modules.analysis.research import analyze as research_analyze
  formal=research_analyze(folder/'system.prmtop',[folder/'production.xtc'],dest/'research',alignment=meta['parameters'].get('alignment_selection','protein and backbone'))
+ pb_result=None
  if meta['parameters'].get('mmpbsa',{}).get('enabled'):
   from modules.analysis.mmpbsa import run as pb_run
   pb_settings=meta['parameters']['mmpbsa']
   if not pb_settings.get('membrane'):raise ValueError('Explicit membrane system requires membrane-aware PB parameters')
-  pb_run(folder/'system.prmtop',[folder/'production.xtc'],dest/'mmpbsa',pb_settings)
+  pb_result=pb_run(folder/'system.prmtop',[folder/'production.xtc'],dest/'mmpbsa',pb_settings)
  execute([c['gmx'],'trjconv','-s','production.tpr','-f','production.xtc','-o','analysis/whole.xtc','-n','index.ndx','-pbc','mol','-center'],folder,input_text='Protein\nSystem\n')
  # Preserved PDB avoids TPR-version coupling and retains construct residue IDs.
  u=mda.Universe(str(folder/'system.pdb'),str(dest/'whole.xtc'))
@@ -405,14 +421,14 @@ def analyze(d,c,p,out):
   series.append({'time_ns':float(ts.time/1000),'backbone_rmsd_A':float(np.sqrt(np.mean(np.sum((bx-reference)**2,axis=1)))),'ligand_rmsd_A':float(np.sqrt(np.mean(np.sum((lx-ref_lig)**2,axis=1)))),'minimum_contact_A':float(dist.min()),'membrane_thickness_proxy_A':thickness})
   frames.append({'time_ns':float(ts.time/1000),'positions':np.concatenate([cap,lx]).round(3).tolist()})
  arr=np.asarray(aligned);rmsf=np.sqrt(np.mean(np.sum((arr-arr.mean(0))**2,axis=2),axis=0))
- summary={'molecule_id':meta.get('molecule_id'),'pose_id':meta.get('pose_id'),'qualification':meta['qualification'],'formal_qualification_changed':False,'production_span_ns':series[-1]['time_ns']-series[0]['time_ns'],'system_id':meta['id'],'compound_id':meta['compound_id'],'sampled_frames':len(series),'trajectory_frames':len(u.trajectory),'alignment':'protein backbone least squares; ligand not independently fitted','rmsf':[{'resid':int(a.resid),'rmsf_A':float(v)} for a,v in zip(ca,rmsf)],'contact_occupancy_4_5A':{r:n/len(series) for r,n in contact.items()},'limitations':['Contact occupancy uses a 4.5 Å distance cutoff, not a hydrogen-bond definition','Membrane thickness is a phosphorus-layer separation proxy','Analysis references the first production frame; compare replicas separately'],'source_hashes':{x:w.digest(folder/x) for x in ['production.tpr','production.xtc','system.pdb']}}
+ summary={'molecule_id':meta.get('molecule_id'),'pose_id':meta.get('pose_id'),'qualification':meta['qualification'],'formal_qualification_changed':False,'production_span_ns':series[-1]['time_ns']-series[0]['time_ns'],'production_end_ns':series[-1]['time_ns'],'first_saved_frame_ns':series[0]['time_ns'],'system_id':meta['id'],'compound_id':meta['compound_id'],'sampled_frames':len(series),'trajectory_frames':len(u.trajectory),'alignment':'protein backbone least squares; ligand not independently fitted','rmsf':[{'resid':int(a.resid),'rmsf_A':float(v)} for a,v in zip(ca,rmsf)],'contact_occupancy_4_5A':{r:n/len(series) for r,n in contact.items()},'limitations':['Contact occupancy uses a 4.5 Å distance cutoff, not a hydrogen-bond definition','Membrane thickness is a phosphorus-layer separation proxy','Analysis references the first production frame; compare replicas separately'],'source_hashes':{x:w.digest(folder/x) for x in ['production.tpr','production.xtc','system.pdb']}}
  execute([c['gmx'],'energy','-f','production.edr','-o','analysis/thermodynamics.xvg'],folder,input_text='Temperature\nPressure\nPotential\nTotal-Energy\nDensity\nBox-X\nBox-Y\nBox-Z\n0\n')
  thermo=energy_series(dest/'thermodynamics.xvg')
  summary['thermodynamics']={key:{'mean':float(np.mean([r[key] for r in thermo])),'std':float(np.std([r[key] for r in thermo])),'min':min(r[key] for r in thermo),'max':max(r[key] for r in thermo)} for key in thermo[0] if key!='time_ns'}
  summary['limitations'].append('Review temperature, pressure and energy time series; finite values and means do not establish equilibration or convergence')
  summary['units']={'time':'ns','RMSD_RMSF_distance':'angstrom','Temperature':'K','Pressure':'bar','Potential':'kJ/mol','Density':'kg/m3','Box':'nm'}
  summary['checkpoint_acceptance']=w.read(folder/'checkpoint_acceptance/acceptance.json',{})
- summary['quality_observations']={'finite_trajectory':bool(np.isfinite(np.asarray([f['positions'] for f in frames])).all()),'expected_duration_ns':meta['parameters']['production_ns'],'actual_duration_ns':series[-1]['time_ns']-series[0]['time_ns'],'constraint_warnings':bool(re.search(r'LINCS WARNING|Fatal error',(folder/'production.log').read_text(errors='replace'))),'last_backbone_rmsd_A':series[-1]['backbone_rmsd_A'],'last_ligand_rmsd_A':series[-1]['ligand_rmsd_A'],'interpretation':'Descriptive engineering checks; no activity or binding validation is inferred'}
+ summary['quality_observations']={'finite_trajectory':bool(np.isfinite(np.asarray([f['positions'] for f in frames])).all()),'expected_duration_ns':meta['parameters']['production_ns'],'actual_duration_ns':series[-1]['time_ns'],'constraint_warnings':bool(re.search(r'LINCS WARNING|Fatal error',(folder/'production.log').read_text(errors='replace'))),'last_backbone_rmsd_A':series[-1]['backbone_rmsd_A'],'last_ligand_rmsd_A':series[-1]['ligand_rmsd_A'],'interpretation':'Descriptive engineering checks; no activity or binding validation is inferred'}
  import csv
  for name,rows in [('trajectory_metrics',series),('thermodynamics',thermo),('residue_rmsf',summary['rmsf'])]:
   with (dest/(name+'.csv')).open('w',newline='') as f:
@@ -434,5 +450,7 @@ def analyze(d,c,p,out):
  fig.savefig(dest/'analysis_panels.png',dpi=180);fig.savefig(dest/'analysis_panels.pdf');plt.close(fig)
  w.atomic(dest/'thermodynamics.json',thermo)
  summary['last100ns']=formal
+ summary['mmpbsa']=pb_result
+ summary['preview_alignment']='Backbone fit for interactive preview; core statistics use last100ns.alignment_selection'
  w.atomic(dest/'summary.json',summary);w.atomic(dest/'series.json',series);w.atomic(dest/'frames.json',{'atoms':[{'chain':'REC','name':'CA','resid':int(a.resid)} for a in ca]+[{'chain':'LIG','name':a.name} for a in ligheavy],'frames':frames})
  return summary

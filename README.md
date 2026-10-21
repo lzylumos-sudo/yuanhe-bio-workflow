@@ -22,11 +22,12 @@ OpenMM and the explicit-membrane GROMACS path remain separate supported entrypoi
 
 This revision is **code/configuration/documentation delivery only** at the owner's
 request. No runtime acceptance is claimed; task-generated acceptance outputs were
-deleted. Validation will be performed on another computer. Historical release
+deleted. The administrator deploys this GitHub source and provides the workbench UI URL; users operate that page manually or with Codex. Historical release
 records below do not certify this migration. Public demo source is updated; a live
 website deployment is not part of this delivery.
 
-[Migration, methods and run/resume commands](docs/15_VINA_RESP_RESEARCH.md) ·
+[Use the administrator-provided UI link](docs/18_UI_RESEARCH_WORKFLOW.md) ·
+[Migration and methods](docs/15_VINA_RESP_RESEARCH.md) ·
 [Dependency licenses](docs/16_RESEARCH_DEPENDENCY_LICENSES.md)
 
 ## Research workflow and current evidence
@@ -82,13 +83,16 @@ flowchart LR
 
 ## Quick Start
 
-After initial dependency installation, double-click `start_windows.cmd` and select the configured WSL distribution. On Linux use `bash start_linux.sh`. For a UI-only preview with Python 3.11+, run:
+For a deployed installation, open the **workbench UI URL supplied by the
+administrator**. Create a run, review inputs and parameters, start or resume the
+selected system, inspect analysis and export records through that page. You can
+operate it manually or ask Codex to operate the same UI. No separate client-side
+compute installation or launch entry is required. See the
+[UI workflow](docs/18_UI_RESEARCH_WORKFLOW.md).
 
-```bash
-python3 00_workbench/run_webui.py --no-browser
-```
-
-Open the displayed local address, normally http://127.0.0.1:8777. The UI starts without launching calculations. Configure environments once, then prepare, review, execute, stop, resume, inspect trajectories and export records through the interface.
+Administrators deploy from GitHub and configure environments, data paths and GPU
+access using the existing [setup documentation](docs/01_SETUP.md). The public
+static demo is distinct from the deployed research workbench.
 
 - [Setup](docs/01_SETUP.md)
 - [Platform support and test commands](docs/12_SUPPORT_MATRIX.md)

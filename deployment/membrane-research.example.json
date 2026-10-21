@@ -8,6 +8,8 @@
   "gpu_id": "0",
   "precision": "mixed",
   "output_interval_ps": 10,
+  "checkpoint_minutes": 2,
+  "replica_seed": 17,
   "charge_method": "resp",
   "qm_threads": 4,
   "center": [0, 0, 0],

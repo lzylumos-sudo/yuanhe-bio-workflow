@@ -119,7 +119,7 @@ def rescreen(rid):
 def create(config):
  allowed=set(defaults());unknown=set(config)-allowed
  if unknown:raise ValueError('Unknown configuration field: '+','.join(sorted(unknown)))
- cfg={**defaults(),**config};source=(ROOT/cfg['structure']).resolve()
+ cfg={**defaults(),**config};validate_docking_settings(cfg);source=(ROOT/cfg['structure']).resolve()
  if not source.is_relative_to(ROOT.resolve()) or not source.is_file() or source.suffix.lower()!='.pdb':raise ValueError('Structure must be a project-local PDB')
  if cfg['receptor_chain']==cfg['peptide_chain']:raise ValueError('Receptor and peptide chains must differ')
  for k in ('receptor_chain','peptide_chain'):
@@ -298,6 +298,19 @@ REVIEW_FIELDS={
  'screening':['screen_python','screening_budget'],
  'gromacs':['gmx','gromacs_tpr','gromacs_system_reviewed','md_system_ids'],
 }
+def validate_docking_settings(cfg):
+ import math
+ if cfg.get('docking_engine')!='vina':raise ValueError('New tasks require official AutoDock Vina')
+ for key in ('docking_cpu','docking_workers','docking_total_threads','exhaustiveness','num_modes'):
+  value=cfg.get(key)
+  if type(value)!=int or value<1:raise ValueError(key+' must be a positive integer')
+ if cfg['num_modes']>100:raise ValueError('num_modes must not exceed 100')
+ if cfg['docking_cpu']*cfg['docking_workers']>cfg['docking_total_threads']:raise ValueError('Concurrent Vina tasks exceed the CPU thread budget')
+ value=cfg.get('energy_range')
+ if type(value) not in (int,float) or not math.isfinite(value) or value<0:raise ValueError('energy_range must be finite and nonnegative in kcal/mol')
+ seeds=cfg.get('docking_seeds',[])
+ if not isinstance(seeds,list) or any(type(v)!=int or not 0<=v<=2147483647 for v in seeds) or len(seeds)!=len(set(seeds)):raise ValueError('Docking seeds must be distinct integers from 0 to 2147483647')
+
 def review(rid,stage,payload):
  d=run_dir(rid)
  if 'screening_budget' in payload and payload['screening_budget'] not in {'quick','redock_trial','full'}:raise ValueError('Invalid screening budget')
@@ -308,6 +321,7 @@ def review(rid,stage,payload):
   if any(not 4<=x<=50 for x in b['size']):raise ValueError('Docking box side lengths must lie within 4–50 Å')
  if stage not in REVIEW_FIELDS or set(payload)-set(REVIEW_FIELDS[stage]):raise ValueError('Invalid stage parameters')
  if not (d/'run.json').is_file():raise ValueError('Run not found')
+ if stage=='docking':validate_docking_settings({**read(d/'config.json'),**read(d/'reviews/docking.json',{}),**payload})
  with _lock:
   if rid in _active:raise RuntimeError('Process has not exited')
   if (d/stage).exists() and read(d/stage/'stage.json',{}).get('status') not in {'failed','blocked','cancelled'}:raise RuntimeError('Stage started or completed; settings are immutable')

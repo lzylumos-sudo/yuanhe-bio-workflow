@@ -2,7 +2,7 @@ Current research migration: official Vina 1.2.7 CPU docking; GAFF2 + HF/RESP; on
 
 # Unified research workbench
 
-Start from the repository root with `python3 00_workbench/run_webui.py --no-browser`, or use the platform launcher.
+Users open the workbench UI URL supplied by the administrator and operate the existing interface, manually or with Codex. See [the UI workflow](../docs/18_UI_RESEARCH_WORKFLOW.md). Administrators retain the existing deployment entrypoint; no additional client launcher is needed.
 
 `webui/workflow.py` manages the pipeline; `pipeline_bridge.py` invokes real stages. `webui/studio.py` supplies guided preparation and review tools; `scientific/` implements membrane construction and GROMACS analysis. `webui/static/index.html` is the main page.
 
