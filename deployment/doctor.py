@@ -22,7 +22,7 @@ def main():
  checks['peptide_cuda']=probe([paths['peptide_python'],'-c','import torch,torch_geometric,torch_scatter,torch_cluster,lightning,hydra,rdkit,rootutils,lmdb; assert torch.cuda.is_available(), "CUDA unavailable"; x=torch.ones((8,8),device="cuda"); print(torch.__version__,torch.version.cuda,torch.cuda.get_device_name(0),float((x@x).sum()))'])
  checks['reinvent_cli']=probe([paths['reinvent_executable'],'--help'])
  sys.path.insert(0,str(ROOT/'00_workbench'))
- 
+
  checks['preparation']=probe([paths['prep_python'],'-c','import pdbfixer,openmm; print(openmm.__version__)'])
  checks['membrane']=probe([paths['md_python'],'-c','import openmm,openmmforcefields,openff.toolkit,parmed,MDAnalysis,psi4,resp; print("membrane imports OK")'])
  checks['vina']=probe([paths['vina'],'--version'],env=os.environ.copy());checks['vina']['ok']=checks['vina']['ok'] and 'AutoDock Vina v1.2.7' in checks['vina'].get('output','');checks['gromacs']=probe([paths['gmx'],'--version'])

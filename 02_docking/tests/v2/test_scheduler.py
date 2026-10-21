@@ -33,6 +33,31 @@ def env(tmp_path, monkeypatch):
     for i, smi in enumerate(["CCO", "CCN"]):
         m = Chem.AddHs(Chem.MolFromSmiles(smi)); AllChem.EmbedMolecule(m, randomSeed=1)
         w = Chem.SDWriter(str(stage / "ligands" / f"L{i}_c0.sdf")); w.write(m); w.close()
+    # Simulated supply fixtures exercise the actual pre-docking gate. The engine
+    # remains a stub; no procurement or docking-science claim is made.
+    import csv, shutil
+    from datetime import date
+    from yuanhe_preflight.config import defaults
+    from yuanhe_preflight.common import file_hash, read
+    from yuanhe_preflight.pipeline import risk_stage, availability_stage
+    evidence=tmp_path/'simulated_supply.txt'
+    evidence.write_text('SIMULATED UNIT TEST SUPPLY; not a real supplier quote')
+    catalog=tmp_path/'simulated_catalog.csv'
+    rows=[dict(smiles=s,vendor='SIMULATED',sku='TEST_'+str(i),supply_type='in_stock',
+               checked_at=str(date.today()),catalog_date=str(date.today()),
+               evidence_kind='stock_confirmation',evidence_file=str(evidence),
+               evidence_sha256=file_hash(evidence)) for i,s in enumerate(['CCO','CCN'])]
+    with catalog.open('w',newline='') as handle:
+        writer=csv.DictWriter(handle,fieldnames=list(rows[0]));writer.writeheader();writer.writerows(rows)
+    cfg=defaults(tmp_path)
+    cfg['catalogs']=[{'path':str(catalog),'version':'unit-v1','source':'unit-test-only','license':'unit-fixture','trusted':True}]
+    inputs=[{'id':'L'+str(i),'smiles':s,'sdf':str(stage/'ligands'/f'L{i}_c0.sdf')} for i,s in enumerate(['CCO','CCN'])]
+    risk_stage(inputs,cfg,tmp_path/'risk',base=tmp_path,batch_id='SIMULATED')
+    availability_stage(read(tmp_path/'risk/records.json'),cfg,tmp_path/'availability')
+    qualified={r['original_id']:r for r in read(tmp_path/'availability/qualified.json')}
+    assert set(qualified)=={'L0','L1'}
+    for i in range(2):
+        shutil.copyfile(qualified['L'+str(i)]['qualification_evidence'],str(stage/'ligands'/f'L{i}_c0.sdf')+'.qualification.json')
     (stage / "receptor_prepared.pdb").write_text("END\n")
     from sbvs2.docking.box import Box
     b = Box((0.0, 0.0, 0.0), (10.0, 10.0, 10.0), "manual")
@@ -216,3 +241,9 @@ r.db.close()
         for proc in children:
             if proc.poll() is None:
                 proc.kill(); proc.wait()
+
+
+def test_scheduler_rejects_missing_qualification_evidence(env):
+    from yuanhe_preflight.gate import QualificationError
+    next((env['stage']/'ligands').glob('*.qualification.json')).unlink()
+    with pytest.raises(QualificationError,match='predocking_evidence_required'):spec_for(env)

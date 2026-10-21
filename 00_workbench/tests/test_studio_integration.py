@@ -9,6 +9,10 @@ from scientific import membrane
 
 @pytest.fixture
 def case(tmp_path,monkeypatch):
+ # Include the actual packaged rules; run creation must still snapshot them.
+ rules=Path(__file__).resolve().parents[2]/'02_docking/src/yuanhe_preflight/configs/risk_rules.v1.json'
+ target=tmp_path/'02_docking/src/yuanhe_preflight/configs/risk_rules.v1.json'
+ target.parent.mkdir(parents=True);target.write_bytes(rules.read_bytes())
  monkeypatch.setattr(w,'ROOT',tmp_path);monkeypatch.setattr(w,'RUNS',tmp_path/'runs')
  (tmp_path/'test.pdb').write_text('HEADER TEST\nATOM      1  CA  ALA A   3       1.000   2.000   3.000  1.00 20.00           C\nEND\n')
  rid=w.create({'structure':'test.pdb'})['id'];return tmp_path,rid,w.run_dir(rid)
@@ -30,7 +34,7 @@ def test_finite_box_and_screen_budget(case):
  _,rid,d=case
  with pytest.raises(ValueError):w.review(rid,'docking',{'docking_box':{'center':[0,float('nan'),0],'size':[20]*3}})
  with pytest.raises(ValueError):w.review(rid,'screening',{'screening_budget':'../../other'})
- assert w.review(rid,'screening',{'screening_budget':'full'})['saved']
+ with pytest.raises(ValueError,match='Frozen execution parameters'):w.review(rid,'screening',{'screening_budget':'full'})
 
 def test_compute_lock_is_cross_instance(case):
  lease=w.acquire_compute()
@@ -99,7 +103,7 @@ def test_md_requires_review_and_safe_identifier(case):
 
 def test_no_md_or_receptor_work_before_prerequisite(case):
  _,rid,d=case
- with pytest.raises(RuntimeError,match='(?i)upstream'):studio.launch(rid,'md_build',{})
+ with pytest.raises(RuntimeError,match='(?i)upstream'):studio.launch(rid,'md_build',{'production_ns':500})
  assert not (d/'operations').exists()
 
 def test_environment_rejects_arbitrary_keys(case):

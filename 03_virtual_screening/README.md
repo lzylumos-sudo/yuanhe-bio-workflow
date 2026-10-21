@@ -1,4 +1,4 @@
-# Yuanhe Screening | 元核虚拟筛选
+# Yuanhe Screening
 
 **Evidence-led candidate prioritization for structure-based drug discovery.**
 

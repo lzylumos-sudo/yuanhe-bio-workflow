@@ -1,36 +1,36 @@
-# 从 UI 链接使用研究工作台
+# Using the research workbench through a UI link
 
-管理员从 GitHub 部署工作台并提供链接。使用者打开该链接，手动操作，或授权 Codex 操作同一个页面。计算与文件存储发生在部署机器；使用者无需另装环境或创建另一套启动入口。公开静态演示页只展示流程，实际任务使用管理员提供的研究工作台。
+An administrator deploys the workbench from GitHub and provides its URL. Users open that URL and operate the page manually, or authorize Codex to operate the same page. Computation and file storage run on the deployment machine; users do not need a separate environment or launch entry point. The public static demo only illustrates the workflow. Real tasks use the administrator-provided research workbench.
 
-## 日常流程
+## Daily workflow
 
-| 页面步骤 | 操作及需确认的内容 |
+| Page step | Actions and required review |
 |---|---|
-| 新建任务 | 选择结构、链、范围；迁移后新建 Vina / RESP 任务，保留历史任务 |
-| 工具①与复合物准备 | 准备受体，审阅质子化、构建体及搜索框；中心、边长均为 Å |
-| 分子生成与工具② | 审阅生成分子及保留的核心原子 |
-| 对接阶段设置 | 官方 Vina 1.2.7；exhaustiveness 32 起；CPU 预算与种子数组；保存后执行 |
-| 工具③与筛选 | 查看 Vina affinity、资格与姿势；确认 compound_id / state_id / pose_id |
-| 工具④ | 选择最终姿势，审阅膜取向、脂质、GAFF2 / HF-RESP、GPU、单条 500 ns、输出及检查点间隔 |
-| 工具⑤ | 预览已构建体系，确认后开始；中断后对同一体系使用 Start / Resume from checkpoint |
-| 工具⑤、⑥ | 触发分析，查看 400–500 ns 配体 RMSD、样本标准差、全程曲线、接触、氢键及真正 PB 结果 |
-| 导出 | 导出复现记录；按需包含原始轨迹 |
+| New run | Select the structure, chains and ranges. Create a new Vina / RESP run after migration and retain historical runs. |
+| Tool 1 and complex preparation | Prepare the receptor and review protonation, construct and search box. Centers and side lengths are in angstroms. |
+| Generation and Tool 2 | Review generated molecules and retained core atoms. |
+| Docking stage settings | Official Vina 1.2.7; start at exhaustiveness 32; configure the CPU budget and seed array; save, then execute. |
+| Tool 3 and screening | Inspect Vina affinity, qualification and poses; verify compound_id / state_id / pose_id. |
+| Tool 4 | Select the final pose; review membrane orientation, lipids, GAFF2 / HF-RESP, GPU, one 500 ns trajectory, output and checkpoint intervals. |
+| Tool 5 | Preview the built system and confirm before starting. Resume the same system with Start / Resume from checkpoint. |
+| Tools 5 and 6 | Trigger analysis; inspect ligand RMSD over 400–500 ns, sample standard deviation, full curves, contacts, hydrogen bonds and actual PB results. |
+| Export | Export reproduction records; include raw trajectories when needed. |
 
-工具⑦中的对照和附加轨迹是可选工具，不是完成单条 500 ns 工作流的前置步骤。对接多种子与 MD 轨迹数是两个独立设置。
+Controls and additional trajectories in Tool 7 are optional, not prerequisites for completing one 500 ns workflow. Docking seeds and MD trajectory counts are independent settings.
 
-## 参数与解释
+## Parameters and interpretation
 
-- **对接**：Vina affinity 单位 kcal/mol，越低越优。CNN 不适用；历史 GNINA 与新结果按引擎分开处理。并发任务数乘每任务线程数不得超过 CPU 总预算。
-- **参数化**：独立配体 HF/6-31G* 优化、ESP、两阶段 RESP、GAFF2；绑定姿势保留，最终拓扑须保留 RESP 电荷。不支持的化学类型或失败会阻止继续。
-- **模拟**：每个选定复合物一条 500 ns，平衡另计。默认每 10 ps 保存轨迹，每 2 分钟写 GROMACS 检查点。记录初始速度种子、GPU 与实际执行信息；续跑保留速度和时间轴。
-- **核心统计**：指定稳定骨架/跨膜核心对齐后，400–500 ns 配体重原子 RMSD 均值与样本标准差。单轨迹重复间统计为不适用。短轨迹不会冒用最后一段作为正式结果。
-- **PB**：同一轨迹默认 400–500 ns，抽帧每 10 帧。构建前可调整 PB 窗口、抽帧、介电与膜参数；盐参数取所选体系盐浓度。MurJ 必须审阅膜厚、介电、孔道及几何依据；不自动套用水溶蛋白模型。未计算熵。
-- **判读**：轨迹完成和低标准差不证明结合强、有效或收敛；可以标记尚未稳定、需要延长。内置理想单脂质膜不等同真实细菌混合膜。
+- **Docking:** Vina affinity is in kcal/mol; lower is better. CNN is not applicable. Historical GNINA and new results are separated by engine. Concurrent tasks multiplied by threads per task must not exceed the total CPU budget.
+- **Parameterization:** Optimize the isolated ligand at HF/6-31G*, calculate ESP, fit two-stage RESP charges, and use GAFF2. Preserve the bound pose and RESP charges in the final topology. Unsupported chemistry or failures block continuation.
+- **Simulation:** One 500 ns production trajectory per selected complex, excluding equilibration. Save trajectory frames every 10 ps and GROMACS checkpoints every 2 minutes by default. Record the initial velocity seed, GPU and execution information; resuming preserves velocities and the time axis.
+- **Core statistics:** Align the specified stable backbone/transmembrane core, then report the mean and sample standard deviation of ligand heavy-atom RMSD over 400–500 ns. Between-replica statistics are not applicable to one trajectory. Short trajectories must not substitute their last segment for the formal window.
+- **PB:** Use the same trajectory, default window 400–500 ns and every tenth saved frame. PB window, sampling, dielectric and membrane parameters are adjustable before building; salt follows the selected system. MurJ requires review of membrane thickness, dielectric, pore model and geometric evidence. Do not automatically apply a soluble-protein model. Entropy is not calculated.
+- **Interpretation:** Completion and low standard deviation do not prove strong binding, activity or convergence. Results may remain unstable and require extension. The built-in ideal single-lipid membrane is not a realistic mixed bacterial membrane.
 
-## 恢复与职责
+## Recovery and responsibilities
 
-关闭浏览器不会改变后端任务身份。停止任务后等待检查点落盘，再打开原任务、原体系续跑。输入变化、检查点不匹配或依赖缺失时，保留日志，由管理员处理；不要覆盖旧任务或重新生成初始速度来拼接轨迹。
+Closing the browser does not change backend run identity. After stopping, wait for the checkpoint to be written, then reopen the original run and system to resume. If inputs change, checkpoints mismatch or dependencies are missing, retain logs for the administrator. Do not overwrite old runs or regenerate initial velocities to concatenate trajectories.
 
-管理员负责 GitHub 版本部署、环境与模型安装、GPU 分配、路径及访问权限；工作台的环境设置是管理员配置。既有独立 OpenMM 和 GROMACS 命令仍是后端维护接口，不要求使用者操作终端。
+The administrator manages GitHub deployment, dependencies and models, GPU allocation, paths and access permissions. Workbench environment settings are administrator configuration. Existing standalone OpenMM and GROMACS commands remain backend maintenance interfaces; users do not need a terminal.
 
-本次只交付源代码与文件，未运行修改后的计算、测试或构建，不提供验收结果。详见[方法与配置迁移](15_VINA_RESP_RESEARCH.md)和[组件许可](16_RESEARCH_DEPENDENCY_LICENSES.md)。
+The original migration delivered source files only, without running the modified calculations, tests or builds. It did not establish runtime acceptance. See [method and configuration migration](15_VINA_RESP_RESEARCH.md) and [component licenses](16_RESEARCH_DEPENDENCY_LICENSES.md).

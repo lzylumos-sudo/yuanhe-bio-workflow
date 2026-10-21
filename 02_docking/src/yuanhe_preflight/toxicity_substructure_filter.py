@@ -57,7 +57,7 @@ class RiskRules:
                      'matched_atom_indices': {a['rule_id']: a['matched_atom_indices'] for a in alerts},
                      'atom_index_basis': 'zero-based atoms of canonical isomeric SMILES; explicit H omitted',
                      'severity': next((v for v in ('high','medium','low') if any(a['severity']==v for a in alerts)), 'none'),
-                     'reason': '未命中当前规则' if not alerts else '; '.join(a['rule_id'] + ':' + a['action'] for a in alerts),
+                     'reason': 'No match to current rules' if not alerts else '; '.join(a['rule_id'] + ':' + a['action'] for a in alerts),
                      'smiles': smiles, 'rule_version': self.version, 'rules_sha256': self.sha256,
                      'policy_sha256': hash_obj(self.policies), 'rdkit_version': rdBase.rdkitVersion, 'exceptions': valid_exceptions})
 

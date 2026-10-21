@@ -240,6 +240,11 @@ def stage_screening(d,cfg,out):
  if cfg.get('research') and not cfg.get('_screen_receptor'):
   from research.screening import run
   return run(stage_screening,d,cfg,out)
+ docking_records=read(d/'docking/results.json')
+ if docking_records == []:
+  atomic(out/'candidates.json',[])
+  csv_write(out/'molecules.csv',[],['compound_id','state_id','pose_id','qualification'])
+  return {'input':0,'remaining':0,'formal':0}
  screen_receptor=Path(cfg['_screen_receptor']['path']) if cfg.get('_screen_receptor') else d/'docking/receptor.pdb'
  py=executable(cfg.get('screen_python') or cfg['chem_python'],'Virtual screening Python')
  # Separate stage-local database prevents cross-run counts and candidate contamination.
@@ -269,9 +274,9 @@ def stage_screening(d,cfg,out):
  for record in read(d/'docking/results.json',[]):
   if cfg.get('_screen_receptor') and record.get('receptor_sha256')!=cfg['_screen_receptor']['sha256']:continue
   if record['status']!='ok':continue
-  target=handoff/record.get('job_id',record['id']);target.mkdir()
+  target=handoff/(record.get('job_id') or record['id']);target.mkdir()
   for name in ('poses.sdf','poses.sdf.qualification.json','job_record.json'):
-   source=d/'docking/jobs'/record.get('job_id',record['id'])/name
+   source=d/'docking/jobs'/(record.get('job_id') or record['id'])/name
    if source.is_file():shutil.copyfile(source,target/name)
  env=os.environ.copy();env['PYTHONPATH']=str(SCREEN/'src')
  import tempfile

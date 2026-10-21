@@ -50,7 +50,7 @@ def test_rule_examples_and_classification(smiles,decision,category):
     if category=='assay_interference':assert 'toxicity_risk' not in r['alert_types']
 
 def test_no_alert_wording():
-    assert RiskRules().screen('CCO')['reason']=='未命中当前规则'
+    assert RiskRules().screen('CCO')['reason']=='No match to current rules'
 
 def test_rule_invalid_and_example_validation(tmp_path):
     rules=RiskRules().data;rules['rules'][0]['positive_examples']=['CCO'];p=tmp_path/'bad.json';write(p,rules)
@@ -182,7 +182,7 @@ def test_identity_recipe_matches_existing_zvss():
 def test_stage_order_and_settings_roundtrip(tmp_path,cfg,monkeypatch):
     from webui import workflow as w
     keys=[x[0] for x in w.STAGES];assert keys[keys.index('reinvent4')+1:keys.index('docking')]==['risk','availability']
-    monkeypatch.setattr(w,'RUNS',tmp_path);d=tmp_path/'case';write(d/'run.json',{'id':'case'})
+    monkeypatch.setattr(w,'RUNS',tmp_path);d=tmp_path/'case';write(d/'run.json',{'id':'case'});write(d/'config.json',{})
     w.review('case','risk',{'predocking':cfg});assert read(d/'reviews/risk.json')['predocking']==cfg
     write(d/'risk/stage.json',{'status':'completed'});write(d/'reinvent4/candidates.json',[{'id':'unchanged'}]);before=file_hash(d/'reinvent4/candidates.json')
     w.revise_preflight('case','risk');assert not (d/'risk').exists();assert file_hash(d/'reinvent4/candidates.json')==before
@@ -266,3 +266,17 @@ def test_template_regioselectivity_requires_review(tmp_path):
     t={'type':'mol','smiles':'CCOC','children':[{'type':'reaction','metadata':{'template':'[C:1]-[O:2]>>[C:1].[O:2]'},'children':[{'type':'mol','smiles':'CC'},{'type':'mol','smiles':'CO'}]}]}
     stock=Catalog([catalog(tmp_path,['CC','CO','C','CCO'])]);r=validate_route(t,'CCOC',stock)
     assert 'template_selectivity_requires_review' in r['problems'] and r['status']=='needs_review'
+
+
+def test_research_qualification_uses_status_not_display_labels(tmp_path,cfg,monkeypatch):
+    """Changing presentation text must not reclassify verified purchase evidence."""
+    from research.qualification import qualify
+    from webui import workflow
+    row=eligible(tmp_path,cfg)
+    row['availability']['labels']=['Presentation text can change']
+    write(tmp_path/'availability/records.json',[row])
+    write(tmp_path/'risk/parent_index.json',[{'compound_id':row['compound_id'],'smiles':row['smiles']}])
+    monkeypatch.setattr(workflow,'require',lambda *args:None)
+    result,counts=qualify(tmp_path,tmp_path,{},[],tmp_path/'qualification')
+    assert counts['screening_qualified']==1
+    assert result[0]['acquisition']['status']=='purchasable_verified'

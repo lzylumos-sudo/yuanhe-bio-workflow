@@ -1,73 +1,73 @@
-# 元核生物：产品价值、创新与商业孵化判断
+# Yuanhe Bio: product value, innovation and commercial incubation
 
-2026-10-19｜基于本地代码与历史记录的产品定位。商业结论是待验证的判断，不是市场调研结果或投资回报承诺。
+2026-10-19 assessment, translated for the English-language repository. The historical filename is retained for existing links. Positioning is based on local code and historical records. Commercial conclusions are hypotheses to validate, not market research results or return-on-investment promises.
 
-## 1. 解决什么痛点：从“算出很多分子”到“知道下一步该验证谁”
+## 1. The problem: moving from many computed molecules to defensible next experiments
 
-最核心的痛点，是有限的人力、算力和实验预算下，如何把分散的计算结果变成可信、可复核的候选决策。工具会输出分数，研究者仍要处理结构准备、分子身份、文件转换、坏构象、重复运行、膜环境、候选去重、结果解释和交接。高分、可计算、正式通过筛选、具有实验活性是不同概念。
+The central problem is turning fragmented computational results into credible, reviewable candidate decisions under limited staffing, compute and experimental budgets. Tools produce scores, but researchers still handle structure preparation, molecular identity, file conversion, poor conformers, repeated runs, membrane context, deduplication, interpretation and handoff. A high score, computational feasibility, formal screening qualification and experimental activity are distinct.
 
-| 具体痛点 | 元核已有的解决路径 | 怎样证明有价值 |
+| Specific problem | Existing Yuanhe approach | Evidence needed to establish value |
 |---|---|---|
-| 工具衔接反复人工整理 | 统一工作台、阶段接口、生成到筛选及 MD 交接 | 同任务人工操作时间、交接次数、失败恢复时间 |
-| 对接高分掩盖构象或证据问题 | QA、作用区域、复核、应变、膜环境与资格门槛 | 独立标准下问题候选比例；不能用自己的门槛循环证明自己更准 |
-| 排名前列被相似分子占满 | 化学多样性与候选预算分配 | 相同预算的骨架覆盖、后续活性与成本 |
-| 换人后结果无法解释或复现 | 分子/构象身份、配置、日志、版本与排除原因 | 另一人复现成功率和复核用时 |
+| Repeated manual work connecting tools | Shared workbench, stage interfaces, generation-to-screening and MD handoff | Manual time, handoff count and recovery time for the same task |
+| High docking scores hide pose/evidence problems | QA, interaction regions, review, strain, membrane context and qualification gates | Problematic-candidate rate under independent criteria; internal gates cannot circularly prove greater accuracy |
+| Similar molecules dominate rankings | Chemical diversity and candidate-budget allocation | Scaffold coverage, subsequent activity and cost under equal budgets |
+| Results become hard to interpret or reproduce after personnel changes | Molecule/pose identity, configuration, logs, versions and exclusion reasons | Independent reproduction success and review time |
 
-**痛到什么程度取决于客户。** 偶尔对接几个分子的学生，痛感可能不足以付费；持续做多个靶点、缺少计算专员、要把候选交给实验团队的小型团队，痛点更集中。成熟药企已有平台和专家，替换成本高，不是首批最容易成交的客户。仓库尚无访谈、付费试点或节时实测，不能声称“普遍节省 80%”或“命中率提高数倍”。
+**Severity depends on the customer.** A student docking a few molecules occasionally may have little willingness to pay. Small teams repeatedly studying targets, lacking computational specialists and handing candidates to experimental colleagues face a more concentrated need. Established pharmaceutical companies have platforms and experts with high switching costs, making them less accessible first customers. The repository contains no customer interviews, paid pilots or measured time savings; claims such as "80% savings" or "several-fold hit-rate improvement" are unsupported.
 
-为什么用我们：客户愿意采用的前提，是元核在其实际任务中以更少人工、更清楚的证据和可接受的总成本完成交付。用户也可以自行拼装工具或使用成熟平台；我们必须在明确场景里赢得选择，不能宣称非用不可。
+Adoption requires Yuanhe to complete a real customer task with less manual effort, clearer evidence and acceptable total cost. Customers can assemble tools themselves or use established platforms. Preference must be earned within a defined use case, not asserted as necessity.
 
-## 2. 亮点与创新：自己的筛选决策层具有价值
+## 2. Strengths and innovation: a candidate-decision layer
 
-**我们不仅连接工具，也实现了候选决策规则和研究证据管理。** `03_virtual_screening/src/zvss/select/qualify.py` 定义正式资格，`select/pipeline.py` 分配候选和记录排除，`scoring/aggregate.py` 汇总构象证据，`report/render.py` 输出可复核结果。工作台通过桥接代码连接实际阶段，并保留人工审核节点。
+**The project implements candidate-decision rules and research-evidence management in addition to connecting tools.** `03_virtual_screening/src/zvss/select/qualify.py` defines formal qualification; `select/pipeline.py` allocates candidates and records exclusions; `scoring/aggregate.py` combines pose evidence; `report/render.py` produces reviewable results. Workbench bridges connect actual stages while retaining human review.
 
-| 层次 | 可以成立的定位 | 不应夸大的内容 |
+| Level | Defensible positioning | Limits |
 |---|---|---|
-| 工程亮点 | 多阶段接口、可追溯交接、失败状态与审核流程 | 不能把工程集成称为自研生成模型 |
-| 流程与产品创新 | 把多类证据变成明确候选决策，区分正式/初筛/探索候选 | 这是自己的实现，不自动等于世界首创 |
-| 场景差异化 | MurJ 等具有膜环境和肽结合信息的研究场景 | MurJ 一个案例不能证明膜蛋白通用性或替代肽功能 |
-| 方法学创新潜力 | 结构约束、多目标评价、预算感知主动学习 | 目前没有充分比较证明独特算法或性能领先 |
+| Engineering | Multi-stage interfaces, traceable handoff, failure states and review workflows | Integration is not a proprietary generative model |
+| Workflow/product innovation | Explicit candidate decisions from multiple evidence types, distinguishing formal/preliminary/exploratory candidates | An original implementation does not establish world-first novelty |
+| Use-case differentiation | Research involving membrane context and peptide-binding information, such as MurJ | One MurJ case does not establish generality across membrane proteins or replacement of peptide function |
+| Methodological potential | Structural constraints, multi-objective evaluation and budget-aware active learning | Comparative evidence of algorithmic uniqueness or superior performance is not yet sufficient |
 
-虚拟筛选流程可以成为创新的一部分，但“对接→筛选→MD”这一顺序本身不构成强新颖性。需要明确提出一个新的决策策略，解释为什么合理，并在同预算、独立测试集、消融实验和后续实验中显示收益。通用 Pareto、加权评分、多样性选择都是已有方法，不能换名后宣称原创。
+Virtual screening can contribute to innovation, but the sequence "docking → screening → MD" alone is not strong novelty. A new decision strategy needs a clear rationale and gains on equal-budget independent tests, ablations and subsequent experiments. Pareto optimization, weighted scores and diversity selection are existing methods and cannot become original merely by renaming them.
 
-目前最有说服力的意义：让计算候选的产生、淘汰和下一步投入有依据，帮助研究者作决策。既有记录还显示本次入围分子仅恢复少量肽接触，不能把它包装成已实现“肽功能的小分子替代”。
+The strongest current value is making candidate generation, rejection and further investment traceable for researchers. Existing records also indicate that shortlisted molecules recovered only a small fraction of peptide contacts; they cannot be presented as established small-molecule replacements of peptide function.
 
-## 3. 首批客户及其购买理由
+## 3. Initial customers and reasons to buy
 
-| 优先级 | 客户与使用者 | 实际买单人/购买理由 | 门槛 |
+| Priority | Customers and users | Buyer and rationale | Requirements |
 |---|---|---|---|
-| 第一 | 有结构与实验条件、缺计算专员的课题组/小型生物技术团队 | PI 或项目负责人；购买可复核的筛选项目交付和培训 | 真实靶点、合理预算、明确后续实验 |
-| 第二 | 小型 CRO 或计算服务团队 | 负责人；减少重复整理、统一交付、提高人员复用 | 需证明节时和稳定性，处理授权及客户保密 |
-| 第三 | 有持续项目的小型 biotech | 研发负责人；本地部署、方法固化、维护支持 | 产品支持与数据管理能力需要补齐 |
-| 后期 | 大型药企和企业平台团队 | 平台负责人；特定靶点方案或可接入的决策模块 | 安全、验证、采购和集成成本高 |
+| First | Academic groups/small biotechnology teams with structures and experimental facilities but no computational specialist | PI or project lead; reviewable screening deliverables and training | Real target, reasonable budget and defined follow-up experiments |
+| Second | Small CROs or computational service teams | Business lead; less repetitive work, consistent deliverables and reusable staff workflows | Demonstrated time savings/stability, licensing and confidentiality |
+| Third | Small biotech companies with ongoing projects | R&D lead; local deployment, standardized methods and maintenance | Stronger product support and data management |
+| Later | Large pharmaceutical/platform teams | Platform lead; target-specific solutions or integrable decision modules | High security, validation, procurement and integration requirements |
 
-学生和普通科研爱好者适合建立用户反馈与传播，不宜作为主要收入假设。科研机构身份也不能代替对具体使用目的及许可条件的判断。
+Students and research enthusiasts can provide feedback and adoption but should not be the main revenue assumption. Academic institutional identity does not replace assessment of the actual use and applicable license terms.
 
-## 4. 如何卖：先卖可验收交付，再卖稳定软件
+## 4. Commercial sequence: reviewable deliverables before stable software
 
-**首个建议产品：面向一个明确靶点的“候选优先级评估与证据包”。** 约定输入结构、分子库规模、审核事项、计算预算、交付周期和排除范围；交付可复核候选名单、逐候选证据、淘汰原因、方法参数、原始结果索引及下一步验证建议。允许零个合格候选，不承诺有效药物或最低命中数。该服务是拟议商业模式，不是已经上市的能力承诺。
+**Proposed first product: a candidate-prioritization assessment and evidence package for one defined target.** Agree on input structures, library size, review requirements, compute budget, delivery schedule and exclusions. Deliver a reviewable candidate list, per-candidate evidence, rejection reasons, methods, raw-result index and suggested next validation. Allow zero qualified candidates; do not promise active drugs or a minimum hit count. This is a proposed business model, not an already marketed capability commitment.
 
-后续顺序：目标明确的服务试点 → 有复购客户的部署与维护 → 标准化商业授权 → 有验证优势的方法/API。初期不建议先投入完整多租户 SaaS。服务收入可帮助识别真实需求，但若每单都需要大量创始人手工处理，会形成服务产能上限，必须记录工时并逐步标准化。
+Suggested sequence: focused service pilots → deployment/maintenance for repeat customers → standardized commercial licensing → validated methods/APIs. A full multi-tenant SaaS is not the recommended initial investment. Service revenue can reveal actual demand, but extensive founder effort per project creates a capacity ceiling; record labor and progressively standardize.
 
-价格不能凭空设定。报价底线应计入计算、失败重跑、人力审核、部署维护、存储、第三方授权及风险缓冲；再通过访谈与付费试点测试客户支付意愿。按靶点/约定规模的项目费与后续维护费更容易解释，实际收费条件仍需客户和授权确认。
+Pricing requires evidence. The minimum quote must account for compute, failed reruns, human review, deployment, maintenance, storage, third-party licenses and contingency. Interviews and paid pilots should test willingness to pay. Per-target/agreed-scale project fees plus maintenance are easier to explain; actual terms still require customer and licensing agreement.
 
-## 5. 商业价值与投资判断
+## 5. Commercial value and investment assessment
 
-**值得作为有明确验证计划的早期项目孵化；目前不足以证明已形成高壁垒、高增长的软件企业。** 它有可检查的代码、实际流程和可具体描述的交付，比只有概念的方案更具可评估性。但缺乏多靶点优势、湿实验结果、付费留存、可核算毛利与清晰完整的模型/数据商业权利。现有记录不支持估值或投资回报预测。
+**Suitable for early incubation with a defined validation plan; insufficient evidence of a defensible, high-growth software company.** Inspectable code, an actual workflow and concrete deliverables make it more assessable than a concept alone. Missing evidence includes multi-target advantages, wet-lab results, paid retention, measurable gross margins and complete commercial rights to models/data. Current records do not support valuation or investment-return forecasts.
 
-对用户：如果能在他们的任务上减少整理成本、可靠保留证据并降低错误交接，值得试用；正式采购应依据试点结果。对投资方：有吸引力的下一阶段证据是“客户愿意付费 + 交付成本可控 + 复购 + 方法优势”，不是仓库星数或工具数量。尚无这些证据时，适合小额分阶段验证和科研合作，不宜以已形成通用 AIDD 护城河融资。
+For users, a trial is reasonable if it can reduce organization costs, reliably preserve evidence and prevent handoff errors on their tasks; procurement should depend on pilot results. For investors, useful next evidence is paying customers, controlled delivery costs, repeat business and methodological advantage, rather than repository stars or tool count. Without that evidence, staged small-scale validation and research collaboration are more appropriate than claiming an established general AIDD moat.
 
-建议的商业验证目标（目标而非已有事实）：访谈 10–15 个目标团队，完成 3 个范围清楚的试点，争取至少 1 个付费试点并观察续用；若主要价值只能靠大量定制实现，先定位专业服务业务。比较收益用同一靶点、输入、预算和交付标准；记录失败与负结果，不只展示最好案例。
+Proposed validation goals, not existing achievements: interview 10–15 target teams, complete three clearly scoped pilots, seek at least one paid pilot and observe continued use. If most value requires extensive customization, begin as a specialist service. Compare the same target, inputs, budget and delivery standard; record failures and negative results, not only the best case.
 
-## 6. 最值得优先发展的三个卖点
+## 6. Three priority value propositions
 
-1. **候选决策证据包。** 已有基础最强。本轮整理报告字段和策略边界；下一阶段完善逐候选复核体验、人工决定记录、可购买/可合成状态。以独立复核用时和遗漏率验收。
-2. **经验证的靶点场景方案。** 从 MurJ 出发，明确膜环境、构象、肽接触约束，增加外部靶点与对照。卖点是有边界、可复用的研究方案；不是“所有蛋白都适用”。
-3. **预算感知的多目标迭代优化。** 后续把合成、性质、活性反馈和不确定性接入迭代选择，在同等预算下比较收益。模型校准、实验反馈和授权数据积累才有机会形成更深壁垒。当前只规划，不训练。
+1. **Candidate-decision evidence packages.** The strongest existing foundation. Clarify report fields and policy boundaries, then improve per-candidate review, human-decision records and purchase/synthesis states. Evaluate independent review time and omissions.
+2. **Validated target-specific research solutions.** Start with MurJ, specify membrane context, conformation and peptide-contact constraints, and add external targets and controls. Offer bounded, reusable methods rather than claiming applicability to every protein.
+3. **Budget-aware multi-objective iterative optimization.** Later integrate synthesis, properties, activity feedback and uncertainty, comparing gains under equal budgets. Model calibration, experimental feedback and licensed data accumulation may support deeper differentiation. Currently planned, not trained.
 
-## 市场参照与证据来源
+## Market references and evidence sources
 
-- [Schrödinger Virtual Screening Web Service](https://www.schrodinger.com/platform/products/virtual-screening-web-service/) 已提供自动化虚拟筛选服务，说明此类产品形态存在，不能证明元核已有客户或能盈利。
-- [Optibrium StarDrop](https://optibrium.com/product/stardrop/) 已提供多参数优化，故“多目标”本身不是独有卖点。
-- [PolyForm Noncommercial 1.0.0](https://polyformproject.org/licenses/noncommercial/1.0.0) 与本仓库 LICENSE_SCOPE.txt 应结合阅读；原有授权、模型、数据及第三方条款需要分别审查。这里不是正式法律意见。
-- 本地证据：[成熟度](../09_MATURITY_AND_APPLICATION_SCOPE.md)、[历史验收](../10_INTEGRATED_ACCEPTANCE.md)、[仍开放事项](../11_RELEASE_MAINTENANCE.md)。本轮未重跑确认历史科研结果。
+- [Schrödinger Virtual Screening Web Service](https://www.schrodinger.com/platform/products/virtual-screening-web-service/) illustrates an existing automated virtual-screening product form; it does not establish Yuanhe customers or profitability.
+- [Optibrium StarDrop](https://optibrium.com/product/stardrop/) provides a reference for multi-parameter optimization; "multi-objective" alone is not a unique value proposition.
+- Read [PolyForm Noncommercial 1.0.0](https://polyformproject.org/licenses/noncommercial/1.0.0) alongside LICENSE_SCOPE.txt. Existing licenses, models, data and third-party terms require separate review. This is not a formal legal opinion.
+- Local evidence: [maturity](../09_MATURITY_AND_APPLICATION_SCOPE.md), [historical acceptance](../10_INTEGRATED_ACCEPTANCE.md), [open work](../11_RELEASE_MAINTENANCE.md). This assessment did not rerun historical scientific results.

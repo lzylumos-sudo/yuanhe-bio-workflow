@@ -42,3 +42,34 @@ def test_risk_requires_review_and_pains_cannot_be_toxicity_block():
     assert risk(Chem.MolFromSmiles('C[N+](=O)[O-]'),[rule],review)['status']=='risk_flagged_review'
     assert risk(Chem.MolFromSmiles('CCO'),[rule],review)['status']=='risk_screen_passed'
     with pytest.raises(ValueError):risk(Chem.MolFromSmiles('CCO'),[rule],None)
+
+
+@pytest.mark.parametrize('left,right',[
+    ('N[C@H](C)C(=O)O','N[C@@H](C)C(=O)O'),
+    ('F/C=C/Cl','F/C=C\\Cl'),
+    ('N[C@H](C)C(=O)O','NC(C)C(=O)O'),
+])
+def test_parent_identity_does_not_erase_specified_stereo(left,right):
+    from research.qualification import identity
+    assert identity(left)[0]!=identity(right)[0]
+
+
+def test_screening_job_id_without_legacy_id(tmp_path,monkeypatch):
+    """Research jobs have job_id and must not require the legacy id field."""
+    import pipeline_bridge as bridge
+    import json
+    source=tmp_path/'docking/jobs/research_job'
+    source.mkdir(parents=True)
+    (source/'poses.sdf').write_text('fixture')
+    (tmp_path/'docking/results.json').write_text(json.dumps([{'job_id':'research_job','status':'ok'}]))
+    (tmp_path/'docking/receptor.pdb').write_text('fixture')
+    out=tmp_path/'screening';out.mkdir()
+    monkeypatch.setattr(bridge,'executable',lambda *args:'test-tool')
+    class HandoffReached(Exception):pass
+    def check_handoff(*args,**kwargs):
+        assert (out/'docking_input/research_job/poses.sdf').read_text()=='fixture'
+        raise HandoffReached
+    monkeypatch.setattr(bridge,'command',check_handoff)
+    cfg={'chem_python':'test-python','vina':'test-vina','exhaustiveness':8,'num_modes':5,
+         'docking_cpu':1,'energy_range':3,'target_profile':'ecmurj','docking_box':{},'seed':17,'timeout_seconds':60}
+    with pytest.raises(HandoffReached):bridge.stage_screening(tmp_path,cfg,out)

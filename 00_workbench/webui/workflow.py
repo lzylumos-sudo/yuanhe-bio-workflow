@@ -6,7 +6,7 @@ UI=Path(__file__).resolve().parents[1]
 ROOT=UI.parent
 sys.path.insert(0,str(ROOT/'02_docking/src'))
 RUNS=UI/'workflow_runs'
-STAGES=[('prepare','Complex preparation','Separate protein and peptide; retain full receptor and local pocket'),('peptide2mol','Peptide2Mol','Real model sampling and chemistry checks'),('reinvent4','REINVENT4','Expand candidate molecules after core review'),('risk','风险子结构过滤','结构标准化与去重；规则匹配、排除和人工复核'),('availability','可购买／可合成性筛选','精确采购证据优先；本地逆合成完整路线校验'),('docking','AutoDock Vina batch docking','CPU · affinity / kcal mol-1 · lower is better'),('screening','Virtual screening','Quality control, binding-mode and diversity screening'),('gromacs','GROMACS','Membrane minimization, equilibration, production and trajectory analysis')]
+STAGES=[('prepare','Complex preparation','Separate protein and peptide; retain full receptor and local pocket'),('peptide2mol','Peptide2Mol','Real model sampling and chemistry checks'),('reinvent4','REINVENT4','Expand candidate molecules after core review'),('risk','Substructure risk screening','Structure standardization and deduplication; rule matching, exclusion and human review'),('availability','Purchase and synthesis availability','Exact purchase evidence first; complete local retrosynthesis route validation'),('docking','AutoDock Vina batch docking','CPU · affinity / kcal mol-1 · lower is better'),('screening','Virtual screening','Quality control, binding-mode and diversity screening'),('gromacs','GROMACS','Membrane minimization, equilibration, production and trajectory analysis')]
 _lock=threading.RLock(); _active={}
 
 def stages_for(cfg):
@@ -49,7 +49,7 @@ def source_snapshot():
  files=[ROOT/'00_workbench'/n for n in ['pipeline_bridge.py','studio_worker.py','md_stage.py']]
  for root in roots:files.extend((ROOT/root).rglob('*.py'))
  files.extend((ROOT/'03_virtual_screening'/'configs').rglob('*'))
- files.extend((UI/'configs').glob('*.json'))
+ files.extend((ROOT/'00_workbench/configs').glob('*.json'))
  files.extend((ROOT/'02_docking/src/yuanhe_preflight/configs').glob('*.json'))
  return {str(p.relative_to(ROOT)):digest(p) for p in sorted(set(files)) if p.is_file()}
 
@@ -131,6 +131,8 @@ def create(config):
  allowed=set(defaults());unknown=set(config)-allowed
  if unknown:raise ValueError('Unknown configuration field: '+','.join(sorted(unknown)))
  cfg={**defaults(),**config}
+ # Reject malformed legacy input even when the research profile supplies its budget.
+ if 'budget' in config and (type(config['budget']) is not int or not 1<=config['budget']<=100000000):raise ValueError('budget Out of range')
  from research.config import resolve
  cfg['research']=resolve(cfg['research'])
  cfg['predocking']=json.loads(json.dumps(cfg['research']['predocking']))

@@ -1,4 +1,4 @@
-# 🧬 Yuanhe Bio | 元核生物
+# 🧬 Yuanhe Bio
 
 **AI-Driven Drug Discovery & Molecular Design Platform**
 
@@ -10,7 +10,7 @@ Generative AI · Structure-Based Drug Design · Virtual Screening · Molecular D
 
 Yuanhe Bio brings molecular generation, docking and evidence-led candidate review into a traceable AIDD research workflow. Its current product focus is helping researchers decide which computational hypotheses merit further review and testing.
 
-[Screening decision layer](03_virtual_screening/README.md) · [项目价值与商业定位（中文）](docs/product/PRODUCT_VALUE_ZH.md) · [Code and documentation map](docs/product/CODE_AND_CONTENT_MAP.md) · [Public/private boundary](docs/commercialization/public_private_boundary.md)
+[Screening decision layer](03_virtual_screening/README.md) · [Product value and commercial positioning](docs/product/PRODUCT_VALUE_ZH.md) · [Code and documentation map](docs/product/CODE_AND_CONTENT_MAP.md) · [Public/private boundary](docs/commercialization/public_private_boundary.md)
 
 ## Current source migration: Vina and single-trajectory research MD
 
@@ -157,5 +157,5 @@ We welcome method evaluation and research collaboration around reproducible, tar
 Public visibility does not grant unrestricted commercial use. Commercial deployment requires review of original-code rights, prior grants, dependency code, model weights and data terms. See the unchanged license documents above and the [commercialization boundary](docs/commercialization/public_private_boundary.md).
 
 
-对接前新增风险子结构与获取路径门槛（2026-10-21）
-REINVENT4 → 标准化与去重 → risk → availability → AutoDock Vina。配置、真实供应目录字段、本地 AiZynthFinder 资产、复核／缓存／CLI 运行说明见 docs/PREDOCKING_PREFLIGHT.md。未配置真实证据时不自动放行；本次不变更 MD 代码或参数。
+Pre-docking substructure risk and acquisition gates (2026-10-21)
+REINVENT4 → standardization and deduplication → risk → availability → AutoDock Vina. See docs/PREDOCKING_PREFLIGHT.md for configuration, real supplier catalog fields, local AiZynthFinder assets, review, caching and CLI instructions. Missing real evidence never grants automatic passage; the pre-docking integration does not change MD code or parameters.

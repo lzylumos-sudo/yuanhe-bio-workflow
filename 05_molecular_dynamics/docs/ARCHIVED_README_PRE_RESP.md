@@ -6,7 +6,7 @@ These are historical instructions, not current defaults.
 
 Use `bash run_md.sh` for lossless input organization, chemical recovery, explicit scientific decisions and task management with the OpenMM backend. Target: x86-64 Ubuntu / WSL2 Ubuntu. Mac engineering tests do not validate Linux dynamics.
 
-Read [v2 guide](V2_USER_GUIDE.md), [changelog](CHANGELOG.md) and V2_VALIDATION.json. No ChatGPT login is required to run this standalone module.
+Read [v2 guide](../V2_USER_GUIDE.md), [changelog](../CHANGELOG.md) and V2_VALIDATION.json. No ChatGPT login is required to run this standalone module.
 
 ```bash
 bash setup.sh
@@ -83,4 +83,4 @@ Only full success writes installation_evidence/10ns_final_audit.json, validation
 
 ## Yuanhe Bio integration
 
-See the [project code map](../docs/product/CODE_AND_CONTENT_MAP.md) for current module boundaries and the [product value assessment](../docs/product/PRODUCT_VALUE_ZH.md) for intended users. Existing technical instructions and historical acceptance records above retain their original scope; this documentation refresh does not revalidate execution.
+See the [project code map](../../docs/product/CODE_AND_CONTENT_MAP.md) for current module boundaries and the [product value assessment](../../docs/product/PRODUCT_VALUE_ZH.md) for intended users. Existing technical instructions and historical acceptance records above retain their original scope; this documentation refresh does not revalidate execution.

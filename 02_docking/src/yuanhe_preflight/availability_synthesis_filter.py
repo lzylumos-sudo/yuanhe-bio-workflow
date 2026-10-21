@@ -8,9 +8,9 @@ from filelock import FileLock
 from .common import canonical, file_hash, hash_obj, read, write, seal
 from .catalog import Catalog
 
-BUY_LABELS={'in_stock':'可买｜现货证据','made_to_order':'可买｜按需合成可订购'}
-ROUTE_LABEL='可合成｜计算路线支持，待化学确认'
-REVIEW_LABEL='可合成｜路线已人工审核'
+BUY_LABELS={'in_stock':'Purchasable | stock evidence','made_to_order':'Purchasable | made-to-order evidence'}
+ROUTE_LABEL='Synthesizable | computed route, chemistry confirmation pending'
+REVIEW_LABEL='Synthesizable | route reviewed by a person'
 
 def assets(retro):
     result={}
@@ -139,12 +139,12 @@ class AvailabilityFilter:
                 status='route_supported' if labels else 'route_needs_review' if routes else ('search_timeout' if float(raw.get('statistics',{}).get('search_time',0))>=self.retro['time_limit_seconds'] else 'no_route_found')
         elif raw and not valid:status=raw.get('status','backend_error')
         pending_labels=[]
-        if any(r['status']=='catalog_hit_supply_unconfirmed' for r in supply):pending_labels.append('目录命中，供货待确认')
-        if any(r['status'] in {'supply_evidence_expired','catalog_expired'} for r in supply):pending_labels.append('供货证据已过期')
-        if status=='search_timeout':pending_labels.append('搜索超时')
-        if status=='route_needs_review':pending_labels.append('路线不完整或关键化学问题待复核')
-        if status=='no_route_found':pending_labels.append('未找到路线（不等于无法合成）')
-        if not labels:pending_labels.append('获取路径未知')
+        if any(r['status']=='catalog_hit_supply_unconfirmed' for r in supply):pending_labels.append('Catalog match; supply confirmation pending')
+        if any(r['status'] in {'supply_evidence_expired','catalog_expired'} for r in supply):pending_labels.append('Supply evidence expired')
+        if status=='search_timeout':pending_labels.append('Search timed out')
+        if status=='route_needs_review':pending_labels.append('Incomplete route or key chemistry requires review')
+        if status=='no_route_found':pending_labels.append('No route found (not evidence of infeasibility)')
+        if not labels:pending_labels.append('Acquisition pathway unknown')
         return seal({'status_labels':pending_labels,'smiles':smiles,'decision':'pass' if labels else 'pending','status':status,'labels':sorted(set(labels)),
                      'supplier_records':supply,'routes':routes,'raw_search':raw,'asset_manifest':self.asset_manifest,
                      'catalog_versions':self.catalog.versions,'stock_versions':self.stock.versions,

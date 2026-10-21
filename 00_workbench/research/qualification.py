@@ -10,7 +10,12 @@ def identity(smiles):
     mol=ms.Cleanup(mol)
     mol=ms.FragmentParent(mol)
     mol=ms.Uncharger().uncharge(mol)
-    mol=ms.TautomerEnumerator().Canonicalize(mol)
+    tautomers=ms.TautomerEnumerator()
+    # Default tautomer enumeration removes stereochemistry at transformed centers.
+    # Preserve specified tetrahedral and double-bond stereo in parent identities.
+    tautomers.SetRemoveSp3Stereo(False)
+    tautomers.SetRemoveBondStereo(False)
+    mol=tautomers.Canonicalize(mol)
     for atom in mol.GetAtoms():atom.SetAtomMapNum(0)
     Chem.SanitizeMol(mol)
     canon=Chem.MolToSmiles(mol,isomericSmiles=True)
@@ -115,7 +120,7 @@ def qualify(root,d,cfg,generated,out):
             status='acquisition_pending'
             if passed:
                 require_ligand(record['source_sdf'],record['qualification_evidence'])
-                if any(x.startswith('可买') for x in a['labels']):status='purchasable_verified'
+                if a.get('status') == 'purchase_supported':status='purchasable_verified'
                 elif any(x.get('review') for x in a.get('routes',[])):status='synthesizable_reviewed'
                 else:status='synthesizable_predicted'
             item={**parent,**record,'sdf':record['source_sdf'],

@@ -70,4 +70,3 @@ toggle.addEventListener('change', () => {
 });
 window.addEventListener('hashchange', render);
 if (!location.hash) location.hash = '#/1'; else render();
-
