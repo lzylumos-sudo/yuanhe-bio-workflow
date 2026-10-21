@@ -9,6 +9,9 @@ def main():
  p=argparse.ArgumentParser();p.add_argument('--run-id',required=True);p.add_argument('--output',required=True);a=p.parse_args()
  d,c=config(a.run_id);out=Path(a.output).resolve()
  if out!= (d/'gromacs').resolve():raise ValueError('Invalid output path')
+ if c.get('research'):
+  from research.md_queue import run
+  return run(d,c,out)
  if not c.get('gromacs_system_reviewed'):raise ValueError('System review required')
  ids=c.get('md_system_ids',[])
  if not ids:raise ValueError('Select a system in the membrane wizard first')

@@ -56,7 +56,16 @@ def main():
  if rec['status']!='running':return 1
  c=req['config'];p=req['payload'];kind=req['kind']
  os.environ['PATH']=str(Path(sys.executable).parent)+os.pathsep+os.environ.get('PATH','')
+ lease_context=None
  try:
+  if c.get('research') and kind in {'md_build','environment','md_validation'}:
+   from research.resources import detect,gpu_lease,disk_guard
+   disk_guard(d,c['research'])
+   available=[g for g in detect(d)['gpus'] if g['allocatable']]
+   if not available:raise ValueError('No allocatable GPU for operation')
+   lease_context=gpu_lease(available[0]);lease_context.__enter__()
+   os.environ['CUDA_VISIBLE_DEVICES']=available[0]['uuid'];os.environ['YUANHE_GPU_INDEX']='0'
+   p={**p,'gpu_id':'0'}
   if kind=='receptor':result=receptor(d,c,p,out)
   elif kind=='environment':result=environment(d,c,p,out)
   elif kind=='md_validation':
@@ -80,4 +89,6 @@ def main():
     w.atomic(folder/'system.json',{**meta,'status':'failed','error':str(e)})
   if w.read(out/'operation.json')['status']=='running':w.atomic(out/'operation.json',{**rec,'status':'failed','error':str(e),'ended':time.time()})
   return 1
+ finally:
+  if lease_context:lease_context.__exit__(None,None,None)
 if __name__=='__main__':raise SystemExit(main())

@@ -120,7 +120,7 @@ def _core_retained(scaffold: str, candidate: str) -> tuple[bool, str | None]:
 def run(
     *, scaffold_smiles: str, checkpoint: str | Path, checkpoint_sha256: str,
     output_dir: str | Path, budget: int, seed: int, executable: str | Path,
-    repo: str | Path | None = None, device: str = "cpu",
+    repo: str | Path | None = None, device: str = "cpu", environment: dict[str,str] | None = None,
 ) -> dict[str, Any]:
     if budget <= 0:
         raise ValueError("budget must be positive")
@@ -161,7 +161,7 @@ def run(
         config = out / "sampling.toml"
         config.write_text(render_sampling_toml(checkpoint=ckpt, scaffold_file=scaffold_file, output_csv=raw_csv, budget=budget, device=device), encoding="utf-8")
         command = [str(exe), "--seed", str(seed), str(config)]
-        started = _now(); completed = subprocess.run(command, cwd=repo_path, text=True, capture_output=True, check=False, timeout=86400)
+        started = _now(); completed = subprocess.run(command, env={**os.environ, **(environment or {})}, cwd=repo_path, text=True, capture_output=True, check=False, timeout=86400)
         manifest["commands"].append({"command": command, "cwd": str(repo_path), "started_at": started, "finished_at": _now(), "returncode": completed.returncode, "stdout": completed.stdout, "stderr": completed.stderr})
         if completed.returncode: raise RuntimeError(f"REINVENT4 failed with exit code {completed.returncode}")
         if not raw_csv.is_file(): raise RuntimeError("REINVENT4 completed without its configured CSV output")

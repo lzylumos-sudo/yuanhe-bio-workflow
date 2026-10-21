@@ -162,6 +162,14 @@ def _target_region(ctx, entry) -> dict[str, Any]:
 def _redock_seeds(ctx, entry, rules: dict[str, Any]) -> dict[str, Any]:
     planned = int(rules.get("seeds_required", 3))
     supporting_required = int(rules.get("supporting_seeds_required", 2))
+    imported=ctx.config.get("qualification.imported_seed_evidence")
+    if imported:
+        from .imported_seeds import evaluate
+        evidence=evaluate(ctx,entry,imported,planned,supporting_required)
+        return _requirement("redock_seeds",status=PASS if evidence and evidence['passed'] else NOT_EVALUATED,
+                            observed=evidence['observed'] if evidence else None,
+                            detail="Hash-verified upstream Vina seeds compared to the exact selected pose; no additional docking performed",
+                            source="research refinement seed evidence")
     stage = read_json(os.path.join(ctx.stage_dir("redock"), "summary.json"), {}) or {}
     per_compound = (stage.get("compounds") or {}).get(entry["compound_id"]) if isinstance(stage.get("compounds"), dict) else None
     metrics = _metric(ctx, "compound", entry["compound_id"], "redock")

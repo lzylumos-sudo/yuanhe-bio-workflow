@@ -86,6 +86,12 @@ def operations(rid):
 def launch(rid,kind,payload):
  if kind not in {'receptor','environment','install_membrane','md_build','md_run','md_analyze','md_validation'}:raise ValueError('Unknown operation')
  d,c=config(rid);w.verify_source(d)
+ if c.get('research') and kind=='md_run':raise ValueError('Use the research MD stage queue to run/resume selected systems')
+ if c.get('research') and kind=='md_build':
+  if float(payload.get('production_ns',0))!=c['research']['md_production_ns']:raise ValueError('MD length differs from frozen research configuration')
+  existing=[w.read(p,{}) for p in (d/'md_systems').glob('*/system.json')]
+  if any(x.get('compound_id')==payload.get('compound_id') for x in existing):raise ValueError('Existing system for this compound; resume it instead of creating a repeat')
+  if len(existing)>=c['research']['md_limit']:raise ValueError('MD candidate budget exhausted')
  with w._lock:
   if w._active:raise ValueError('A task is running; finish or stop it first')
   if kind=='receptor':w.require(d,'prepare')
@@ -119,7 +125,7 @@ def apply_receptor(rid,payload):
  path=within(d,result.get('receptor',''))
  if w.digest(path)!=result['sha256']:raise ValueError('Receptor changed')
  if not payload.get('reviewed'):raise ValueError('Review protonation, residues and termini')
- values={k:c[k] for k in w.REVIEW_FIELDS['docking'] if k in c}
+ values={} if c.get('research') else {k:c[k] for k in w.REVIEW_FIELDS['docking'] if k in c}
  values['docking_receptor']=str(path.relative_to(d));values['docking_box']=payload['box']
  values['receptor_review']={'sha256':result['sha256'],'pH':result['pH'],'reviewed':True,'operation':op}
  w.review(rid,'docking',values)

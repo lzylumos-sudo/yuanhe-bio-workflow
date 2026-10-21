@@ -249,6 +249,20 @@ def api_mol2d(q):
 def api_project(q):
     return _json(workflow.inventory())
 
+def api_research_preview(q,body):
+    from research.config import resolve,plan
+    from research.resources import detect
+    rc=resolve(body.get('research',body))
+    return _json({'resolved':rc,'plan':plan(rc),'resources':detect(workflow.ROOT)})
+
+def api_research_derive(q,body,rid):
+    from research.lifecycle import derive
+    return _json(derive(rid,body),201)
+
+def api_research_handoff(q,body,rid):
+    from research.lifecycle import handoff
+    return _json(handoff(rid,body))
+
 def api_project_create(q, body):
     return _json(workflow.create(body), 201)
 
@@ -377,6 +391,9 @@ ROUTES = [
     ('GET', r'^/api/meta$', api_meta),
     ('GET', r'^/api/overview$', api_overview),
     ('GET', r'^/api/workflow$', api_workflow),
+    ('POST', r'^/api/research/preview$', api_research_preview),
+    ('POST', r'^/api/research/run/(?P<rid>[^/]+)/derive$', api_research_derive),
+    ('POST', r'^/api/research/run/(?P<rid>[^/]+)/handoff$', api_research_handoff),
     ('GET', r'^/api/stage/(?P<key>[a-z_]+)/molecules$', api_stage_molecules),
     ('GET', r'^/api/stage/(?P<key>[a-z_]+)/pose$', api_stage_pose),
     ('GET', r'^/api/mol2d$', api_mol2d),

@@ -98,8 +98,12 @@ def build(d,c,p,out):
  if len(matches)!=1:raise ValueError('Screening candidate must map to exactly one upstream molecule')
  row['molecule_id']=matches[0]['id']
  from .md_cli import export_bundle
- bundle=export_bundle(d/'md_handoffs'/('H_'+uuid.uuid4().hex[:12]),row,d/'docking/receptor.pdb',within(d,row['sdf']),p,{'gmx':c['gmx'],'seed':c['seed'],'timeout_seconds':c.get('timeout_seconds',86400)}, {'run_id':d.name,'source_revision':w.read(d/'active_source_revision.json'),'screening_stage_sha256':w.digest(d/'screening/stage.json'),'docking_stage_sha256':w.digest(d/'docking/stage.json')})
- return build_prepared(d,c,{**p,'handoff_bundle':str(bundle.relative_to(d))},out,row,within(d,row['sdf']),d/'docking/receptor.pdb',w.read(d/'active_source_revision.json'))
+ receptor=d/'docking/receptor.pdb'
+ if c.get('research'):
+  proof=row.get('research_receptor',{});receptor=Path(proof.get('path',''))
+  if not receptor.is_file() or w.digest(receptor)!=proof.get('sha256'):raise ValueError('Selected pose receptor provenance changed')
+ bundle=export_bundle(d/'md_handoffs'/('H_'+uuid.uuid4().hex[:12]),row,receptor,within(d,row['sdf']),p,{'gmx':c['gmx'],'seed':c['seed'],'timeout_seconds':c.get('timeout_seconds',86400)}, {'run_id':d.name,'source_revision':w.read(d/'active_source_revision.json'),'screening_stage_sha256':w.digest(d/'screening/stage.json'),'docking_stage_sha256':w.digest(d/'docking/stage.json')})
+ return build_prepared(d,c,{**p,'handoff_bundle':str(bundle.relative_to(d))},out,row,within(d,row['sdf']),receptor,w.read(d/'active_source_revision.json'))
 
 def build_prepared(d,c,p,out,row,ligand_path,receptor,source_revision=None):
  """Build from explicit screened pose/receptor files; no UI service required."""
