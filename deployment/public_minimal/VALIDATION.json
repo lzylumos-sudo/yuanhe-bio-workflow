@@ -1,0 +1,21 @@
+{
+  "date": "2026-10-21",
+  "base_source_commit": "aa4862c41e22e41fffc891d1ef4664690f2c1f6b",
+  "system": "WSL2 Ubuntu 22.04, Linux x86_64",
+  "gpu": "NVIDIA GeForce RTX 5080",
+  "environment": "New prefix created from explicit conda lock plus pinned pip requirements",
+  "conda_packages": 300,
+  "pip_packages": 16,
+  "pip_check": "No broken requirements found.",
+  "public_inputs": ["RCSB 1CRN", "ethanol CCO"],
+  "stages_passed": ["prepare", "dock", "screen", "build", "dynamics", "analyze"],
+  "six_stage_seconds_excluding_install_and_downloads": 27.704842953,
+  "production_steps": 200,
+  "production_ps": 0.2,
+  "production_frames": 4,
+  "binary_checkpoint_reloaded": true,
+  "native_md_audit_passed": true,
+  "formal_scientific_acceptance": false,
+  "other_machine_validated": false,
+  "scope": "Command-line public engineering control. No generation models, UI acceptance, membrane MD, MM/PBSA or MM/GBSA. No scientific hit qualification implied."
+}
