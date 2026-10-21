@@ -1,0 +1,17 @@
+# Install after the explicit conda lock; no dependency resolution
+annotated-doc==0.0.5
+anyio==4.15.1
+dill==0.4.1
+docutils==0.17.1
+fastapi==0.156.8
+h11==0.16.0
+idna==3.20
+meeko==0.8.0
+multiprocess==0.70.19
+opentelemetry-api==1.45.1
+posebusters==0.6.5
+prolif==2.2.3
+python-multipart==0.0.32
+starlette==1.9.0
+uvicorn==0.54.0
+resp @ https://codeload.github.com/cdsgroup/resp/zip/e0da367e9bef96eb469b5696ff7d6ea58e45d638#sha256=560ec2efe287c695d6a0ad132e96c953664e51611a344fdda7b29332266ebfd6

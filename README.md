@@ -20,11 +20,15 @@ or GNINA fallback. MD defaults to **GAFF2 + HF/RESP, one 500 ns trajectory per
 selected complex**, with core RMSD statistics and actual MM/PBSA at 400–500 ns.
 OpenMM and the explicit-membrane GROMACS path remain separate supported entrypoints.
 
-This revision is **code/configuration/documentation delivery only** at the owner's
-request. No runtime acceptance is claimed; task-generated acceptance outputs were
-deleted. The administrator deploys this GitHub source and provides the workbench UI URL; users operate that page manually or with Codex. Historical release
-records below do not certify this migration. Public demo source is updated; a live
-website deployment is not part of this delivery.
+The initial migration was **code/configuration/documentation delivery only**.
+On 2026-10-21, the public 1CRN + ethanol command-line path passed real Vina docking,
+screening/export, HF/RESP parameterization, 0.2 ps CUDA production MD, analysis and
+native checkpoint audit in a newly recreated independent environment on WSL2 / RTX 5080.
+See the [portable Linux GPU installation and public acceptance guide](deployment/public_minimal/README.md).
+This does not certify generation models, the browser workflow, membrane MD,
+production-duration simulations, MM/PBSA, MM/GBSA, or another GPU computer.
+The administrator deploys the workbench and provides its UI URL. A live website
+deployment is not part of this public computational acceptance.
 
 [Use the administrator-provided UI link](docs/18_UI_RESEARCH_WORKFLOW.md) ·
 [Migration and methods](docs/15_VINA_RESP_RESEARCH.md) ·
