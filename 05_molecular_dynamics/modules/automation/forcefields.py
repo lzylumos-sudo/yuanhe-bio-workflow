@@ -12,7 +12,7 @@ REGISTRY = {
         "protein_forcefields": ["amber14-all.xml", "amber14/protein.ff14SB.xml"],
         "ligand_forcefield": "gaff-2.11", "water_forcefield": "amber14/tip3p.xml",
         "water_model": "tip3p", "ions": ["Na+", "Cl-"],
-        "charge_method": "AM1-BCC via explicit AmberToolsToolkitWrapper",
+        "charge_method": "HF/6-31G* ESP and two-stage RESP; no fallback",
         "backend": "OpenMM PME; HBonds constraints; rigid water",
         "nonbonded_rules": {"combining": "Lorentz-Berthelot", "coulomb_1_4": 0.8333333333333334, "lj_1_4": 0.5,
                             "runtime_evidence": "dependencies.json compatibility_payload.nonbonded_xml_settings"},
@@ -57,7 +57,7 @@ def _boolean(value, label):
 
 def validate_config(config):
     """Validate merged configuration before preparation or simulation begins."""
-    allowed_top = {"MD", "protein", "analysis", "mmgbsa", "complex", "ligand", "system_type", "replicates", "workflow", "project_name", "configuration_version"}
+    allowed_top = {"MD", "protein", "analysis", "mmgbsa", "mmpbsa", "complex", "ligand", "system_type", "replicates", "workflow", "project_name", "configuration_version"}
     unknown_top = set(config) - allowed_top
     if unknown_top:
         raise WorkflowError("Unimplemented or misspelled top-level option: " + ", ".join(sorted(unknown_top)))
@@ -68,9 +68,9 @@ def validate_config(config):
     if md.get("engine") != "openmm":
         raise WorkflowError("Only the implemented OpenMM backend is supported.")
     allowed = {
-        "MD": {"engine", "temperature", "pressure", "timestep", "minimization", "minimization_max_iterations", "equilibration", "nvt", "npt", "production", "protein_forcefield", "water_forcefield", "ligand_forcefield", "water_model", "padding_nm", "ionic_strength_molar", "nonbonded_cutoff_nm", "switch_distance_nm", "friction_per_ps", "restraint_k_kj_mol_nm2", "platform", "precision", "cpu_threads", "report_interval", "checkpoint_interval", "seed", "pressure_unit"},
+        "MD": {"engine", "temperature", "pressure", "timestep", "minimization", "minimization_max_iterations", "equilibration", "nvt", "npt", "production", "protein_forcefield", "water_forcefield", "ligand_forcefield", "water_model", "padding_nm", "ionic_strength_molar", "nonbonded_cutoff_nm", "switch_distance_nm", "friction_per_ps", "restraint_k_kj_mol_nm2", "platform", "precision", "cpu_threads", "report_interval", "checkpoint_interval", "seed", "pressure_unit", "charge_method", "qm_threads", "qm_memory", "multiplicity", "net_charge", "require_gpu", "device_index", "segment_length", "heating_duration", "initial_temperature"},
         "protein": {"file", "rebuild_hydrogens", "ph", "remove_water", "remove_heterogens", "allow_missing_residues"},
-        "analysis": {"rmsd", "rmsf", "hbond", "contacts", "distance", "stride", "discard_ns", "contact_cutoff_angstrom", "hbond_distance_angstrom", "hbond_angle_degrees", "key_residue_occupancy", "distance_pairs", "groups", "sasa", "sasa_stride", "sasa_points", "sasa_probe_angstrom", "salt_bridge_cutoff_angstrom", "glue_orientation_atom_indices"},
+        "analysis": {"rmsd", "rmsf", "hbond", "contacts", "distance", "stride", "discard_ns", "contact_cutoff_angstrom", "hbond_distance_angstrom", "hbond_angle_degrees", "key_residue_occupancy", "distance_pairs", "groups", "sasa", "sasa_stride", "sasa_points", "sasa_probe_angstrom", "salt_bridge_cutoff_angstrom", "glue_orientation_atom_indices", "formal_window_ns", "alignment_selection", "block_ns"},
         "mmgbsa": {"enabled", "igb", "salt_molar", "max_frames", "start_ns", "entropy"},
     }
     for section, keys in allowed.items():
@@ -105,6 +105,9 @@ def validate_config(config):
     phases = phase_steps(config)
     report = steps(md["report_interval"], md["timestep"])
     checkpoint = steps(md["checkpoint_interval"], md["timestep"])
+    segment=steps(md.get("segment_length",md["checkpoint_interval"]),md["timestep"])
+    if segment < report or segment % report:
+        raise WorkflowError("Segment length must contain whole output intervals.")
     if checkpoint < report or checkpoint % report or phases["production"] % report:
         raise WorkflowError("Production and checkpoint intervals must contain whole reporting intervals.")
     if not 0 < md["switch_distance_nm"] < md["nonbonded_cutoff_nm"] < md["padding_nm"]:
@@ -180,6 +183,17 @@ def validate_config(config):
         count = max(0, total_frames - max(0, math.ceil(mmgbsa["start_ns"] / interval_ns - 1 - 1e-10)))
         if count < 2:
             raise WorkflowError("MM/GBSA start time leaves fewer than two production frames.")
+    if md.get("charge_method","resp") != "resp":
+        raise WorkflowError("Formal ligand charges must use RESP; no AM1-BCC fallback.")
+    if md.get("heating_duration"):
+        if steps(md["heating_duration"],md["timestep"])>phases["nvt"]:raise WorkflowError("Heating must fit inside NVT.")
+        _number(md.get("initial_temperature",50),"MD.initial_temperature",positive=True,maximum=md["temperature"])
+    pb=config.get("mmpbsa",{})
+    if pb.get("enabled"):
+        from ..analysis.mmpbsa import pb_input
+        pb_input(pb,2,":1",":2")
+        if not 0<=float(pb.get("start_ns",400))<float(pb.get("end_ns",500)):raise WorkflowError("Invalid PB window")
+        _integer(pb.get("stride",10),"mmpbsa.stride")
     return config
 
 

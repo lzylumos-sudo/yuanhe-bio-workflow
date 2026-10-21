@@ -197,6 +197,9 @@ def analyze_replica(config, paths, replica):
     protein = u.atoms[meta["protein_indices"]]
     ligand = u.atoms[meta.get("ligand_indices",[])]
     ca = np.asarray(meta["ca_indices"],dtype=int)
+    fit_ids = u.select_atoms(settings.get("alignment_selection","protein and backbone")).indices
+    if len(fit_ids)<3: raise WorkflowError("Stable protein alignment selection has fewer than three atoms")
+    reference_fit = None
     heavy_l = np.asarray(meta.get("ligand_heavy",[]),dtype=int)
     residues = meta["residues"]
     elements = np.asarray(meta["elements"])
@@ -261,7 +264,8 @@ def analyze_replica(config, paths, replica):
         positions = u.atoms.positions.copy()
         if reference_ca is None:
             reference_ca = positions[ca].copy()
-        rotation,center,ref_center = fit_to_reference(positions[ca],reference_ca)
+        if reference_fit is None: reference_fit=positions[fit_ids].copy()
+        rotation,center,ref_center = fit_to_reference(positions[fit_ids],reference_fit)
         aligned_ca = (positions[ca]-center) @ rotation + ref_center
         aligned_ligand = (positions[heavy_l]-center) @ rotation + ref_center
         if reference_lig is None and len(heavy_l):
@@ -392,6 +396,10 @@ def analyze_replica(config, paths, replica):
         if "Density" in column:
             summary["density_mean_g_mL"] = float(state_df[column].mean())
     key_residues = [r for r in contact_rows if r["occupancy"]>=settings["key_residue_occupancy"]]
+    from .research import window_summary
+    final_window=window_summary(rows,window=settings.get("formal_window_ns",[400,500]),block_ns=settings.get("block_ns",10),production_ns=progress.get("production_ns"))
+    final_window.update(alignment_selection=settings.get("alignment_selection","protein and backbone"), reference="first analyzed production frame", ligand_selection="topology ligand heavy indices", atom_indices=heavy_l.tolist())
+    atomic_json(out/"last100ns.json",final_window)
     atomic_json(out/"summary.json",summary)
     atomic_json(out/"quality.json",{
         "frames_expected":expected_frames,"frames_observed":len(u.trajectory),"frames_analyzed":count,
@@ -416,6 +424,8 @@ def analyze_replica(config, paths, replica):
 def analyze(config, paths):
     paths["analysis"].mkdir(parents=True,exist_ok=True)
     summaries = [analyze_replica(config,paths,i) for i in range(1,config["replicates"]+1)]
+    from .research import compare_replicates
+    atomic_json(paths["analysis"]/"repeat_comparison.json",compare_replicates([read_json(paths["analysis"]/f"replica_{i:02d}/last100ns.json") for i in range(1,config["replicates"]+1)]))
     write_csv(paths["analysis"]/"summary.csv",summaries)
     atomic_json(paths["analysis"]/"analysis.json",{"replicates":len(summaries),"status":"complete",
                 "MMGBSA":"PENDING","system_type":config.get("system_type","protein_ligand")})

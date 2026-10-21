@@ -11,10 +11,12 @@ MD:
   timestep: 2fs
   minimization: true
   minimization_max_iterations: 5000
-  equilibration: 200ps
-  nvt: 100ps
-  npt: 100ps
-  production: 100ns
+  equilibration: 2ns
+  nvt: 1ns
+  npt: 1ns
+  heating_duration: 100ps
+  initial_temperature: 50
+  production: 500ns
   protein_forcefield: amber14-all.xml
   water_forcefield: amber14/tip3p.xml
   ligand_forcefield: gaff-2.11
@@ -25,7 +27,12 @@ MD:
   switch_distance_nm: 0.8
   friction_per_ps: 1.0
   restraint_k_kj_mol_nm2: 1000
-  platform: CPU
+  platform: auto
+  require_gpu: true
+  device_index: "0"
+  charge_method: resp
+  qm_threads: 4
+  segment_length: 1ns
   precision: mixed
   cpu_threads: 4
   report_interval: 10ps
@@ -33,6 +40,9 @@ MD:
   seed: 20261008
   pressure_unit: atm
 analysis:
+  formal_window_ns: [400, 500]
+  alignment_selection: "protein and backbone"
+  block_ns: 10
   rmsd: true
   rmsf: true
   hbond: true
@@ -50,11 +60,21 @@ analysis:
   sasa_stride: 10
   sasa_points: 100
   sasa_probe_angstrom: 1.4
-replicates: 3
+replicates: 1
 mmgbsa:
-  enabled: true
+  enabled: false
   igb: 5
   salt_molar: 0.15
   max_frames: 200
   start_ns: 0
   entropy: false
+mmpbsa:
+  enabled: true
+  start_ns: 400
+  end_ns: 500
+  stride: 10
+  interior_dielectric: 1.0
+  exterior_dielectric: 80.0
+  salt_molar: 0.15
+  entropy: false
+  membrane: false

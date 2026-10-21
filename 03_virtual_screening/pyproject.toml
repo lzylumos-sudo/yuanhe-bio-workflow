@@ -4,8 +4,8 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "zvss"
-version = "0.9.0"
-description = "ZVSS - Zhiyu Virtual Screening Studio: GNINA batch results to membrane-MD-ready candidates"
+version = "0.10.0"
+description = "ZVSS - Zhiyu Virtual Screening Studio: Vina and historical GNINA results to membrane-MD-ready candidates"
 readme = "README.md"
 requires-python = ">=3.11"
 license = { text = "PolyForm-Noncommercial-1.0.0 for new original contributions; pre-existing MIT and third-party grants remain. See LICENSE_SCOPE.txt." }
@@ -16,6 +16,7 @@ dependencies = [
   "pandas>=2.1",
   "rdkit>=2023.9",
   "gemmi>=0.6",
+  "meeko==0.8.0",
   "pyyaml>=6.0",
   "requests>=2.31",
   "psutil>=5.9",

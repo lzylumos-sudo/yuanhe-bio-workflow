@@ -13,12 +13,16 @@ def main():
   source=base/name
   for f in ([source] if source.is_file() else source.rglob('*')):
    if f.is_file() and not f.is_symlink() and '__pycache__' not in f.parts and f.suffix not in {'.pyc','.pyo'}:files['module/'+str(f.relative_to(base))]=f
+ if a.module=='screening':
+  for f in (ROOT/'02_docking/src').rglob('*.py'):
+   files['docking_backend/src/'+str(f.relative_to(ROOT/'02_docking/src'))]=f
+  files['docking_backend/pyproject.toml']=ROOT/'02_docking/pyproject.toml'
  files.update(license_files())
  manifest={n:hashlib.sha256(f.read_bytes()).hexdigest() for n,f in files.items()}
  a.output.parent.mkdir(parents=True,exist_ok=True)
  with zipfile.ZipFile(a.output,'x',zipfile.ZIP_DEFLATED) as z:
   for n,f in files.items():z.write(f,n)
   z.writestr('MANIFEST.json',json.dumps({'schema':'yuanhe.component/1','module':a.module,'files':manifest},indent=2))
-  z.writestr('README.txt',f'Yuanhe {a.module} independent source package.\nInstall module/ into a compatible Python environment. Read its environment and usage documentation.\nGNINA and model binaries are external dependencies. Set explicit input, output and engine paths.\nNo run data, credentials or weights are bundled. Archive validation is not a new engine execution.\n')
+  z.writestr('README.txt',f'Yuanhe {a.module} independent source package.\nInstall module/ into a compatible Python environment. Read its environment and usage documentation.\nOfficial Vina 1.2.7 is an external executable. For screening redocking also install docking_backend/ included here. Set explicit input, output and engine paths.\nNo run data, credentials or weights are bundled. Archive validation is not a new engine execution.\n')
  print(json.dumps({'module':a.module,'files':len(files),'sha256':hashlib.sha256(a.output.read_bytes()).hexdigest()}))
 if __name__=='__main__':main()

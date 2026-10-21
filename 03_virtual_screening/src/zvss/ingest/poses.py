@@ -35,9 +35,10 @@ from ..util import AMINO_ACIDS, ION_NAMES, LIPID_NAMES, WATER_NAMES, parse_pdb_t
 
 # canonical name -> accepted aliases (lower-cased, non-alphanumerics stripped)
 SCORE_ALIASES: dict[str, tuple[str, ...]] = {
+    "vina_affinity_kcal_mol": ("vinaaffinity", "vinaaffinitykcalmol"),
     "minimizedAffinity": (
         "minimizedaffinity", "minimizedaffinitykcalmol", "minimizedaffinitykcalmole",
-        "affinity", "affinitykcalmol", "vinaaffinity", "vinaaffinitykcalmol", "empiricalscorekcalmol",
+        "affinity", "affinitykcalmol", "empiricalscorekcalmol",
         "empirical", "empiricalscore",
     ),
     "CNNscore": ("cnnscore", "cnnposescore", "cnnpose", "cnn"),
@@ -49,6 +50,7 @@ SCORE_ALIASES: dict[str, tuple[str, ...]] = {
 }
 
 SCORE_SEMANTICS: dict[str, dict[str, Any]] = {
+    "vina_affinity_kcal_mol": {"unit":"kcal/mol", "direction":"lower_is_better", "meaning":"Official Vina empirical score; not binding free energy"},
     "minimizedAffinity": {
         "unit": "kcal/mol",
         "direction": "lower_is_better",

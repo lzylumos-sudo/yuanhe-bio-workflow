@@ -3,7 +3,7 @@
 set -Eeuo pipefail
 STEP=${1:-help}
 if [[ "$STEP" == help ]]; then
-  echo 'Usage: bash install_envs.sh base|chem|peptide|reinvent|prep|membrane|gnina|gromacs-cpu|configure|check'
+  echo 'Usage: bash install_envs.sh base|chem|peptide|reinvent|prep|membrane|vina|gromacs-cpu|configure|check'
   exit 0
 fi
 HERE=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)
@@ -79,12 +79,8 @@ prep)
   /opt/yuanhe/envs/prep/bin/python -c 'import pdbfixer,openmm; print(openmm.__version__)'
   freeze prep ;;
 membrane) bash "$ROOT/deployment/install_membrane.sh" ;;
-gnina)
-  source "$ROOT/02_docking/scripts/runtime_env.sh"
-  [[ -x /opt/sbvs/vendor/gnina ]] || { echo 'Existing project runtime is missing GNINA; registration/repair required.'; exit 3; }
-  /opt/sbvs/vendor/gnina --version
-  sha256sum /opt/sbvs/vendor/gnina
-  echo 'Version check only. GPU CNN execution must still be tested on target.' ;;
+vina)
+  SBVS_PROJECT_ROOT="$ROOT/02_docking" python3 "$ROOT/02_docking/scripts/install_vendor.py" vina ;;
 gromacs-cpu)
   sudo apt-get update
   sudo apt-get install -y gromacs
@@ -97,7 +93,7 @@ from pathlib import Path
 r=Path(sys.argv[1]);p=r/'deployment/runtime.json'
 cfg=json.loads(p.read_text()) if p.exists() else {}
 if p.exists():shutil.copyfile(p,p.with_name('runtime.before-validation-'+str(time.time_ns())+'.json'))
-cfg.update(chem_python='/opt/yuanhe/envs/chem/bin/python',screen_python='/opt/yuanhe/envs/chem/bin/python',peptide_python='/opt/yuanhe/envs/peptide2mol/bin/python',reinvent_executable='/opt/yuanhe/envs/reinvent4/bin/reinvent',prep_python='/opt/yuanhe/envs/prep/bin/python',md_python='/opt/yuanhe/envs/membrane/bin/python',gnina='/opt/sbvs/vendor/gnina',gmx=cfg.get('gmx') or '/usr/bin/gmx')
+cfg.update(chem_python='/opt/yuanhe/envs/chem/bin/python',screen_python='/opt/yuanhe/envs/chem/bin/python',peptide_python='/opt/yuanhe/envs/peptide2mol/bin/python',reinvent_executable='/opt/yuanhe/envs/reinvent4/bin/reinvent',prep_python='/opt/yuanhe/envs/prep/bin/python',md_python='/opt/yuanhe/envs/membrane/bin/python',vina='/opt/sbvs/vendor/vina',gmx=cfg.get('gmx') or '/usr/bin/gmx')
 p.write_text(json.dumps(cfg,ensure_ascii=False,indent=2))
 print('Configured runtime paths. Existing runs are not changed.')
 PY

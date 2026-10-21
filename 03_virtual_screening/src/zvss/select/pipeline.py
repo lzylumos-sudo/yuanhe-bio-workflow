@@ -8,18 +8,23 @@ report can be reproduced byte-for-byte.
 
 from __future__ import annotations
 
-import math
+import os
 from typing import Any
 
 from ..chem import rdio
 from ..constants import AssessmentStatus, SelectionStatus, Reason
 from ..ids import selection_version, sha256_text
+from ..util import safe_float
+import json
 from . import qualify
 
 
 def run(ctx, ranking: dict[str, Any]) -> dict[str, Any]:
     budget = ctx.config.budget
     entries = ranking["ranking"]
+    strategy = ctx.config.get("selection.strategy", "evidence_diversity")
+    if strategy not in {"evidence_diversity", "pareto_diversity"}:
+        raise ValueError("Unknown selection.strategy: " + str(strategy))
     limits = {
         "max_primary": int(getattr(budget, "md_primary_slots", 8)),
         "max_exploratory": int(getattr(budget, "md_exploratory_slots", 4)),
@@ -39,10 +44,7 @@ def run(ctx, ranking: dict[str, Any]) -> dict[str, Any]:
             ctx.db.record_assessment("compound", entry["compound_id"], "selection", "excluded", 1.0,
                                      status=None, reason_code=reason[0], note=reason[1])
 
-    by_tier = sorted(eligible, key=lambda e: (e["tier"], -e["evidence_score"], e["compound_id"]))
-    pool = [e for e in by_tier if e["tier"] in {"A", "B"}][: max(limits["max_primary"] + limits["max_exploratory"], 1) * 6]
-    if not pool:
-        pool = by_tier[: max(limits["max_primary"], 4)]
+    by_tier = sorted(eligible, key=_entry_order)
 
     # Qualification is evaluated on every eligible compound, not only on the
     # shortlist, so the report can show why a well-scoring compound is not a
@@ -51,7 +53,8 @@ def run(ctx, ranking: dict[str, Any]) -> dict[str, Any]:
     verdicts = {entry["compound_id"]: qualify.evaluate(ctx, entry, rules) for entry in by_tier}
     formal_pool = [entry for entry in by_tier if verdicts[entry["compound_id"]]["formal_qualified"]]
 
-    primary = _select(formal_pool[: max(limits["max_primary"] * 4, 4)], limits["max_primary"], diversity=0.6)
+    primary_pool = formal_pool if strategy == "pareto_diversity" else formal_pool[: max(limits["max_primary"] * 4, 4)]
+    primary = _select_policy(primary_pool, limits["max_primary"], diversity=0.6, strategy=strategy)
     formal_ids = {e["compound_id"] for e in primary}
     display_candidates = [
         entry for entry in by_tier if entry["compound_id"] not in formal_ids
@@ -69,7 +72,9 @@ def run(ctx, ranking: dict[str, Any]) -> dict[str, Any]:
 
     selection_id = selection_version(
         [e["compound_id"] for e in primary + preliminary + exploratory],
-        sha256_text(f"{ctx.config.digest()}|{len(entries)}|{limits}|{rules}"),
+        sha256_text(json.dumps({"config": ctx.config.digest(), "limits": limits, "rules": rules,
+                               "policy": "screening-evidence/v2", "strategy": strategy,
+                               "evidence": [{k: v for k, v in e.items() if k not in {"selection_role", "selection_order", "selection_version", "qualification"}} for e in entries]}, sort_keys=True, allow_nan=False)),
     )
     for role, group in (("primary", primary), ("preliminary", preliminary), ("exploratory", exploratory)):
         for order, entry in enumerate(group, start=1):
@@ -99,9 +104,15 @@ def run(ctx, ranking: dict[str, Any]) -> dict[str, Any]:
                 note=requirement["detail"],
             )
 
-    pareto = _pareto(entries)
-    return {
+    pareto = _pareto(eligible)
+    result = {
         "selection_version": selection_id,
+        "policy_version": "screening-evidence/v2",
+        "strategy": strategy,
+        "pareto_objectives": {"affinity": "minimize kcal/mol", "mechanism": "maximize region contacts", "strain": "minimize kcal/mol"},
+        "pareto_scope": "eligible candidates with complete finite objectives; not a qualification verdict",
+        "pareto_unassessed": {e["compound_id"]: _missing_objectives(e) for e in eligible if _missing_objectives(e)},
+        "formal_pareto_front": [e["compound_id"] for e in _pareto(formal_pool)],
         "limits": limits,
         "qualification_rules": rules,
         "display_primary_slots": qualify.display_slots(ctx),
@@ -123,12 +134,22 @@ def run(ctx, ranking: dict[str, Any]) -> dict[str, Any]:
             f"formal qualification currently requires: {', '.join(rules)}",
         ],
     }
+    try:
+        from ..scoring.membrane_aware import write_ranking_files
+
+        outputs = write_ranking_files(ctx, ranking, result)
+        if outputs:
+            result["membrane_outputs"] = {name: os.path.relpath(path, ctx.run_dir).replace(os.sep, "/") for name, path in outputs.items()}
+    except Exception as exc:  # noqa: BLE001 - reporting failure must not corrupt selection
+        ctx.log(f"membrane-aware output generation failed: {exc}", stage="selection", level="error")
+        result["membrane_outputs"] = {"status": "error", "reason": f"{type(exc).__name__}: {exc}"}
+    return result
 
 
 def _exclusion(entry, limits, ctx):
     if entry["tier"] == "D":
         return Reason.NO_CONTACTS if "no_contacts" in entry["tier_reasons"] else Reason.POSE_GEOMETRY_INVALID, "tier D"
-    if entry["flags"].get("excessive_strain") and entry["tier"] != "A":
+    if entry["flags"].get("excessive_strain"):
         return Reason.EXCESSIVE_STRAIN, "strain above the failure threshold"
     if entry.get("components_missing"):
         missing = entry["components_missing"]
@@ -137,20 +158,42 @@ def _exclusion(entry, limits, ctx):
     return None
 
 
-def _select(pool: list[dict[str, Any]], limit: int, *, diversity: float) -> list[dict[str, Any]]:
+def _entry_order(entry: dict[str, Any]) -> tuple[Any, ...]:
+    """Keep the evidence tier, then follow the Y-MAVS order when available.
+
+    ``membrane_aware_rank`` is only present when the membrane-aware layer ran.
+    Generic targets therefore keep their exact previous ordering.
+    """
+    membrane_rank = entry.get("membrane_aware_rank")
+    return (
+        entry["tier"],
+        int(membrane_rank) if membrane_rank is not None else 10**9,
+        -float(entry.get("evidence_score") or 0.0),
+        str(entry.get("compound_id") or ""),
+    )
+
+
+def _priority(entry: dict[str, Any]) -> float:
+    value = entry.get("membrane_aware_score")
+    if value is not None:
+        return float(value)
+    return float(entry.get("evidence_score") or 0.0)
+
+
+def _select(pool: list[dict[str, Any]], limit: int, *, diversity: float, prior=None) -> list[dict[str, Any]]:
     chosen: list[dict[str, Any]] = []
-    fingerprints = {e["compound_id"]: e for e in pool}
-    remaining = list(pool)
+    prior = list(prior or [])
+    remaining = sorted(pool, key=_entry_order)
     while remaining and len(chosen) < limit:
-        if not chosen:
+        if not chosen and not prior:
             best = remaining[0]
         else:
             best = None
             best_key = None
             for entry in remaining:
-                similarity = max((_similarity(entry, c) for c in chosen), default=0.0)
+                similarity = max((_similarity(entry, c) for c in prior + chosen), default=0.0)
                 penalty = diversity * similarity
-                key = (entry["tier"], -(entry["evidence_score"] - penalty), entry["compound_id"])
+                key = (entry["tier"], -(_priority(entry) - penalty), entry["compound_id"])
                 if best_key is None or key < best_key:
                     best_key = key
                     best = entry
@@ -181,6 +224,7 @@ def _fingerprint(compound_id: str):
 
 def prime_fingerprints(ctx, entries: list[dict[str, Any]]) -> None:
     """Pre-compute fingerprints from the stored SMILES so scoring never touches disk."""
+    _cache.clear()  # Run-scoped identities/states must not reuse previous fingerprints.
     for entry in entries:
         row = ctx.db.one("SELECT canonical_smiles FROM chemical_state WHERE state_id=?", (entry["state_id"],))
         if not row or not row.get("canonical_smiles"):
@@ -190,25 +234,46 @@ def prime_fingerprints(ctx, entries: list[dict[str, Any]]) -> None:
             _cache[("fp", entry["compound_id"])] = rdio.morgan_fingerprint(mol)
 
 
-def _pareto(entries: list[dict[str, Any]]) -> list[dict[str, Any]]:
-    def objectives(entry):
-        components = entry["components"]
-        return (
-            -(components.get("affinity") or 0.0),
-            -(components.get("mechanism") or 0.0),
-            (entry["raw"].get("strain") or 0.0),
-        )
+def _missing_objectives(entry):
+    return [k for k in ("affinity", "mechanism", "strain")
+            if safe_float(entry.get("raw", {}).get(k)) is None]
 
-    front = []
-    scored = [(e, objectives(e)) for e in entries]
-    for entry, obj in scored:
-        dominated = any(
-            all(o <= p for o, p in zip(other, obj)) and any(o < p for o, p in zip(other, obj))
-            for candidate, other in scored if candidate is not entry
-        )
-        if not dominated:
-            front.append(entry)
+
+def _objectives(entry):
+    raw = entry["raw"]
+    return (float(raw["affinity"]), -float(raw["mechanism"]), float(raw["strain"]))
+
+
+def _pareto(entries: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    # A missing, nonfinite or ineligible value must never masquerade as optimal.
+    scored = [(e, _objectives(e)) for e in entries
+              if e["tier"] != "D" and not e.get("flags", {}).get("excessive_strain")
+              and not _missing_objectives(e)]
+    front = [e for e, obj in scored if not any(
+        all(a <= b for a, b in zip(other, obj)) and any(a < b for a, b in zip(other, obj))
+        for candidate, other in scored if candidate is not e)]
     return sorted(front, key=lambda e: (e["tier"], -e["evidence_score"], e["compound_id"]))
+
+
+def _select_policy(pool, limit, *, diversity, strategy):
+    if strategy == "evidence_diversity":
+        return _select(pool, limit, diversity=diversity)
+    # Respect evidence tiers, then exhaust each raw-objective front before a
+    # dominated layer. Apply diversity within each layer against all chosen rows.
+    chosen = []
+    for tier in sorted({e["tier"] for e in pool}):
+        remaining = [e for e in pool if e["tier"] == tier and not _missing_objectives(e)]
+        while remaining and len(chosen) < limit:
+            front = _pareto(remaining)
+            if not front:
+                break
+            selected = _select(front, limit - len(chosen), diversity=diversity, prior=chosen)
+            chosen.extend(selected)
+            ids = {e["compound_id"] for e in front}
+            remaining = [e for e in remaining if e["compound_id"] not in ids]
+        unknown = [e for e in pool if e["tier"] == tier and _missing_objectives(e)]
+        chosen.extend(_select(unknown, max(0, limit-len(chosen)), diversity=diversity, prior=chosen))
+    return chosen
 
 
 def _diversity_report(selected: list[dict[str, Any]]) -> dict[str, Any]:

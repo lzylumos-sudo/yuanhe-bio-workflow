@@ -3,6 +3,7 @@ display_name: "Generic post-docking screening (no configured local region)"
 organism: ""
 uniprot: ""
 native_length: 0
+screening_mode: generic
 
 structures:
   primary:

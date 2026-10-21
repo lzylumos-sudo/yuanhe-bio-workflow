@@ -3,6 +3,7 @@ display_name: "E. coli MurJ (MOP flippase) - local TM2/TM7 region"
 organism: "Escherichia coli K-12"
 uniprot: P0AF16
 native_length: 511
+screening_mode: membrane_aware
 
 structures:
   primary:
@@ -65,6 +66,90 @@ membrane:
   evidence_dir: ../membrane/9nu4
   uncertainty: computational_placement_not_experimental
   note: "Hashed PPM3 evidence is transferred only after a rigid receptor-identity check."
+
+# Y-MAVS: membrane-aware virtual screening.  All thresholds below are geometric
+# partition/algorithm parameters, not calibrated affinity weights.  MurJ-specific
+# structural annotations stay in this target file; the engine itself is generic.
+membrane_screening:
+  enabled: true
+
+  orientation:
+    require_verified_source: true
+    allow_proxy_for_exploration: true
+
+  geometry:
+    interface_buffer_A: 5.0
+    proxy_thickness_A: 30.0
+
+  pocket:
+    contact_cutoff_A: 5.0
+    embedded_core_fraction: 0.60
+    interface_fraction: 0.50
+    aqueous_outside_fraction: 0.60
+    mixed_min_fraction: 0.20
+
+  accessibility:
+    enabled: true
+    grid_spacing_A: 1.0
+    probe_radius_A: 1.4
+    margin_A: 8.0
+    seed_radius_A: 3.0
+    max_grid_points: 1500000
+    method: grid_connectivity
+
+  compatibility:
+    enabled: true
+    explicit_lipid_check: optional
+    lipid_clash_cutoff_A: 2.0
+    contact_cutoff_A: 4.5
+
+  # These are real deposited structures for MurJ conformational comparisons.
+  # No per-state GNINA results are fabricated.  With ensemble.enabled=false the
+  # list is provenance/configuration only; enabling it requires real per-state
+  # evidence manifests and state-specific membrane orientation.
+  ensemble:
+    enabled: false
+    receptors:
+      - structure_id: 9NU4
+        pdb_id: 9NU4
+        chain: A
+        conformational_state: outward_facing_sgl_bound
+        role: reference
+        is_primary: true
+      - structure_id: 9NU5
+        pdb_id: 9NU5
+        chain: A
+        conformational_state: sgl_bound_comparison
+      - structure_id: 9NU8
+        pdb_id: 9NU8
+        chain: A
+        conformational_state: sgl_bound_comparison
+      - structure_id: 6CC4
+        pdb_id: 6CC4
+        chain: A
+        conformational_state: inward_open_fusion
+      - structure_id: 7WAG
+        pdb_id: 7WAG
+        chain: A
+        conformational_state: squeezed_v10r_s11c
+
+  scoring:
+    enabled: true
+    strategy: evidence_first
+    preserve_baseline: true
+    allow_proxy_for_exploration: true
+    require_verified_orientation_for_formal: true
+    allow_pose_reselection: false
+
+  # Additive to the budget's existing formal requirements.  Accessibility is
+  # auxiliary in phase 1; ensemble evidence is optional for single-state MurJ runs.
+  qualification:
+    formal_requirements:
+      - membrane_geometry
+      - pocket_localization
+    accessibility_evidence: auxiliary
+    ensemble_evidence: optional
+    require_complete_ensemble_states: false
 
 md_protocol:
   engine: gromacs

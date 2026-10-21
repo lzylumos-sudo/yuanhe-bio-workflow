@@ -2,7 +2,7 @@
 from __future__ import annotations
 import platform, shutil, subprocess
 
-SUPPORTED_ARCH = {"x86_64", "amd64"}
+SUPPORTED_ARCH = {"x86_64", "amd64", "arm64", "aarch64"}
 
 
 def _run(argv, timeout=20):
@@ -43,4 +43,4 @@ def gpu_status() -> dict:
     if not exe:
         return {"status": "no_nvidia_smi"}
     rc, out = _run([exe, "--query-gpu=name,memory.total,driver_version", "--format=csv,noheader"])
-    return {"status": "visible" if rc == 0 else "error", "detail": out, "note": "visible != CNN verified; run a real GNINA job"}
+    return {"status": "visible" if rc == 0 else "error", "detail": out, "note": "visible != MD execution; run a real GPU short simulation"}

@@ -4,17 +4,19 @@ Rules:
 * a compound contributes at most one pose to the ranking (its representative);
 * every component is normalised across the current candidate set, so the ranking
   is reproducible for a fixed input set;
-* components that could not be computed are listed as missing and renormalise
-  the weights instead of silently counting as zero.
+* unavailable components stay missing. Globally unavailable weights are removed;
+  a candidate-specific missing component earns no contribution, with coverage
+  reported separately. Scores are relative to this candidate pool, not affinity.
 """
 
 from __future__ import annotations
 
+import copy
 import math
 from typing import Any
 
 from ..constants import AssessmentStatus, Reason
-from ..util import median_or_none, safe_float
+from ..util import safe_float
 
 DEFAULT_WEIGHTS = {
     "affinity": 0.34,
@@ -27,16 +29,23 @@ DEFAULT_WEIGHTS = {
 
 def _metrics(ctx, scope_type: str, scope_id: str, stage: str) -> dict[str, Any]:
     payload = ctx.db.metric_map(scope_type, scope_id, stage)
-    return {key: row.get("value") for key, row in payload.items()}
+    return {key: row.get("value") if row.get("value") is not None else row.get("value_text")
+            for key, row in payload.items()}
 
 
 def representative_pose(poses: list[dict[str, Any]]) -> dict[str, Any]:
-    """Deterministic representative: best affinity, then best CNN, then pose_id."""
+    """QA-first representative shared by redocking, strain and ranking.
+
+    Measured pass precedes flagged, unknown and failed poses. Within each QA
+    class, retain the existing affinity/CNN/identity tie-break. Unknown QA is
+    never promoted to pass. This is not a binding-probability estimate.
+    """
     def key(pose):
         scores = pose.get("scores") or {}
-        affinity = safe_float(scores.get("minimizedAffinity"))
+        affinity = safe_float(scores.get("vina_affinity_kcal_mol") if scores.get("vina_affinity_kcal_mol") is not None else scores.get("minimizedAffinity"))
         cnn = safe_float(scores.get("CNNscore"))
         return (
+            {"pass": 0, "flag": 1, "fail": 3}.get(str(pose.get("assess_status")), 2),
             affinity if affinity is not None else math.inf,
             -(cnn if cnn is not None else -math.inf),
             pose["pose_id"],
@@ -49,8 +58,15 @@ def run(ctx) -> dict[str, Any]:
     from .. import data
 
     poses = data.pose_rows(ctx)
+    engines = {p.get("engine") or "unknown" for p in poses}
+    if len(engines)>1: raise ValueError("Mixed docking engines must be scored in separate runs")
     weights = dict(DEFAULT_WEIGHTS)
     weights.update(ctx.config.get("scoring.weights", {}) or {})
+    if any(safe_float(w) is None or float(w) < 0 for w in weights.values()) or not any(float(w) > 0 for w in weights.values()):
+        raise ValueError("Scoring weights must be finite, nonnegative and not all zero")
+    weights = {key: float(value) for key, value in weights.items()}
+    if engines == {"vina"}:
+        weights.pop("cnn_pose", None); weights.pop("cnn_affinity", None)
     cutoff_affinity = safe_float(ctx.config.get("scoring.affinity_floor")) or 0.0
 
     by_compound: dict[str, list[dict[str, Any]]] = {}
@@ -68,24 +84,33 @@ def run(ctx) -> dict[str, Any]:
         props = _metrics(ctx, "compound", compound_id, "properties")
         strain = _metrics(ctx, "compound", compound_id, "strain")
 
+        # A previous representative's strain cannot qualify or rank this pose.
+        if strain.get("pose_id") != pose["pose_id"]:
+            strain = {}
+        distance = safe_float(qa.get("min_receptor_distance"))
         tier, tier_reasons = _tier(pose, qa, mech, motion)
         entry = {
             "compound_id": compound_id,
+            "engine": pose.get("engine"), "score_unit":"kcal/mol",
+            "cnn_status":"not_applicable" if pose.get("engine")=="vina" else "historical",
             "state_id": pose["state_id"],
             "pose_id": pose["pose_id"],
             "poses_available": len(group),
+            "representative_policy": "qa_then_vina_affinity_pose_id/v3" if pose.get("engine")=="vina" else "qa_then_affinity_cnn_pose_id/v2",
+            "representative_qa": pose.get("assess_status", "not_evaluated"),
             "tier": tier,
             "tier_reasons": tier_reasons,
             "raw": {
-                "affinity": safe_float(scores.get("minimizedAffinity")),
+                "affinity": safe_float(scores.get("vina_affinity_kcal_mol") if scores.get("vina_affinity_kcal_mol") is not None else scores.get("minimizedAffinity")),
                 "cnn_pose": safe_float(scores.get("CNNscore")),
                 "cnn_affinity": safe_float(scores.get("CNNaffinity")),
                 "mechanism": safe_float(mech.get("region_contacts_total")),
-                "pose_quality": 1.0 - min(1.0, (safe_float(qa.get("min_receptor_distance")) or 0.0) / 4.5),
+                "pose_quality": None if distance is None else 1.0 - min(1.0, distance / 4.5),
                 "strain": safe_float(strain.get("strain_kcal_mol")),
             },
             "flags": {
-                "excessive_strain": bool(strain.get("excessive_strain")),
+                "excessive_strain": (safe_float(strain.get("excessive_strain")) or 0.0) >= 1.0,
+                "strain_warning": (safe_float(strain.get("excessive_strain")) or 0.0) == 0.5,
                 "property_alerts": props.get("alert_burden"),
                 "single_pose": motion.get("pose_cluster_size") == 1,
             },
@@ -109,6 +134,8 @@ def run(ctx) -> dict[str, Any]:
         entry["evidence_score"] = round(score, 6)
         entry["components_used"] = used
         entry["components_missing"] = missing
+        entry["evidence_coverage"] = round(sum(weights[k] for k in used) / total_weight, 6)
+        entry["score_scope"] = "within_candidate_pool_only"
         ctx.db.record_assessment("compound", entry["compound_id"], "scoring", "evidence_score", entry["evidence_score"], AssessmentStatus.PASS)
         ctx.db.record_assessment("compound", entry["compound_id"], "scoring", "evidence_tier", entry["tier"], AssessmentStatus.PASS)
         for component, value in entry["components"].items():
@@ -118,11 +145,58 @@ def run(ctx) -> dict[str, Any]:
     entries.sort(key=lambda e: (e["tier"], -e["evidence_score"], e["compound_id"]))
     for index, entry in enumerate(entries, start=1):
         entry["rank"] = index
+        entry["baseline_rank"] = index
+    from .diagnostics import sensitivity
+
+    diagnostics = sensitivity(
+        entries,
+        {k: weights[k] for k in available_weights},
+        relative_change=float(ctx.config.get("scoring.sensitivity_relative_change", 0.2)),
+    )
+    membrane_summary: dict[str, Any] = {
+        "schema": "ymavs-membrane-aware-ranking/1",
+        "status": "disabled",
+        "enabled": False,
+        "notes": ["screening_mode is not membrane_aware or membrane screening is disabled"],
+    }
+    baseline_entries = copy.deepcopy(entries)
+    try:
+        from ..membrane.settings import is_enabled, settings_for
+
+        if is_enabled(ctx):
+            from .membrane_aware import MembraneAwareScorer, write_evidence
+
+            scorer = MembraneAwareScorer(ctx, settings=settings_for(ctx))
+            ranked = scorer.run(entries)
+            entries = ranked.pop("entries", entries)
+            membrane_summary = ranked
+            evidence_path = write_evidence(
+                ctx.stage_dir("scoring"), entries, membrane_summary
+            )
+            membrane_summary["evidence_path"] = evidence_path
+    except Exception as exc:  # noqa: BLE001 - the baseline ranking must survive an optional layer failure
+        entries = baseline_entries
+        membrane_summary = {
+            "schema": "ymavs-membrane-aware-ranking/1",
+            "status": "error",
+            "enabled": True,
+            "reason": f"{type(exc).__name__}: {exc}",
+            "policy": "baseline ranking preserved; no partial membrane fields are used",
+        }
+        ctx.log(
+            f"membrane-aware ranking failed; baseline order preserved: {exc}",
+            stage="scoring",
+            level="error",
+        )
     return {
+        "policy_version": "screening-evidence/v2",
+        "score_scope": "within_candidate_pool_only; not comparable across runs",
+        "diagnostics": diagnostics,
         "weights_used": {w: weights[w] for w in available_weights},
         "weights_skipped": [w for w in weights if w not in available_weights],
         "compounds": len(entries),
         "tiers": {tier: sum(1 for e in entries if e["tier"] == tier) for tier in ("A", "B", "C", "D")},
+        "membrane_aware": membrane_summary,
         "ranking": entries,
     }
 

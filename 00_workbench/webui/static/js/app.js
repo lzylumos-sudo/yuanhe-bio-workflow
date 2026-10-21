@@ -82,11 +82,11 @@ function highlightNav(route) {
     node.classList.toggle('active', node.dataset.id === current.id);
   }
   crumbEl.replaceChildren(
-    span({ class: 'crumb-root', text: 'WEDGE-Design' }),
+    span({ class: 'crumb-root', text: 'Yuanhe Bio' }),
     span({ class: 'sep', text: '/' }),
     el('b', { text: current.label }),
   );
-  document.title = `${current.label} · WEDGE-Design Console`;
+  document.title = `${current.label} · Yuanhe Bio Console`;
   return current;
 }
 

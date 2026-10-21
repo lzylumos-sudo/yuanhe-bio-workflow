@@ -249,6 +249,20 @@ def api_mol2d(q):
 def api_project(q):
     return _json(workflow.inventory())
 
+def api_research_preview(q,body):
+    from research.config import resolve,plan
+    from research.resources import detect
+    rc=resolve(body.get('research',body))
+    return _json({'resolved':rc,'plan':plan(rc),'resources':detect(workflow.ROOT)})
+
+def api_research_derive(q,body,rid):
+    from research.lifecycle import derive
+    return _json(derive(rid,body),201)
+
+def api_research_handoff(q,body,rid):
+    from research.lifecycle import handoff
+    return _json(handoff(rid,body))
+
 def api_project_create(q, body):
     return _json(workflow.create(body), 201)
 
@@ -280,6 +294,8 @@ def api_project_rows(q, rid, key):
     if key=='screening':
         from scientific.validation import effective_candidates
         rows=effective_candidates(workflow.run_dir(rid))
+    if key in ('risk','availability'):
+        rows=workflow.read(workflow.run_dir(rid)/key/'records.json',[])
     query=q.get('search',[''])[0].lower()
     if query:rows=[r for r in rows if query in str(r).lower()]
     offset=max(0,int(q.get('offset',['0'])[0]))
@@ -293,6 +309,10 @@ def api_project_pose(q, rid, key):
         rows=workflow.read(d/key/'seeds.json',[])
         row=next((x for x in rows if x['id']==ident),None)
         if row:path=d/row['raw_sdf']
+    elif key in ('risk','availability'):
+        rows=workflow.read(d/key/'records.json',[])
+        row=next((x for x in rows if x.get('id')==ident),None)
+        if row and row.get('source_sdf'):path=Path(row['source_sdf'])
     elif key in ('reinvent4','docking'):
         rows=workflow.read(d/'reinvent4/candidates.json',[])
         row=next((x for x in rows if x['id']==ident),None)
@@ -316,6 +336,19 @@ def api_project_pose(q, rid, key):
                 if any(sum((x-y)**2 for x,y in zip(xyz,a['p']))<100 for a in atoms if a['chain']=='LIG'):
                     atoms.append({'p':xyz,'chain':'REC','name':line[12:16].strip()})
     return _json({'atoms':atoms,'caption':caption})
+
+def api_predocking_revise(q,body,rid,key):
+    return _json(workflow.revise_preflight(rid,key))
+
+def api_predocking_detail(q,rid,key):
+    if key not in ('risk','availability'):raise HttpError('Unknown evidence stage',404)
+    d=workflow.run_dir(rid);ident=q.get('id',[''])[0]
+    rows=workflow.read(d/key/'records.json',[])
+    row=next((r for r in rows if r.get('id')==ident),None)
+    if row is None:raise HttpError('Molecule not found',404)
+    svg=d/'risk'/(row['id']+'.svg')
+    return _json({'record':row,'svg':svg.read_text() if svg.is_file() else '',
+                  'note':'No match to current rules does not establish non-toxicity; a computed route is not completed synthesis. Final purchasing or commissioned synthesis requires separate review.'})
 
 def api_project_structure(q, rid):
     d=workflow.run_dir(rid);path=d/'input.pdb'
@@ -366,6 +399,8 @@ ROUTES = [
     ('POST', r'^/api/project/runs$', api_project_create),
     ('POST', r'^/api/project/run/(?P<rid>[A-Za-z0-9_-]+)/rescreen$', api_project_rescreen),
     ('GET', r'^/api/project/run/(?P<rid>[A-Za-z0-9_-]+)$', api_project_run),
+    ('POST', r'^/api/project/run/(?P<rid>[A-Za-z0-9_-]+)/predocking/(?P<key>risk|availability)/revise$', api_predocking_revise),
+    ('GET', r'^/api/project/run/(?P<rid>[A-Za-z0-9_-]+)/predocking/(?P<key>risk|availability)$', api_predocking_detail),
     ('GET', r'^/api/project/run/(?P<rid>[A-Za-z0-9_-]+)/structure$', api_project_structure),
     ('GET', r'^/api/project/run/(?P<rid>[A-Za-z0-9_-]+)/pose/(?P<key>[a-z0-9]+)$', api_project_pose),
     ('GET', r'^/api/project/run/(?P<rid>[A-Za-z0-9_-]+)/rows/(?P<key>[a-z0-9]+)$', api_project_rows),
@@ -377,6 +412,9 @@ ROUTES = [
     ('GET', r'^/api/meta$', api_meta),
     ('GET', r'^/api/overview$', api_overview),
     ('GET', r'^/api/workflow$', api_workflow),
+    ('POST', r'^/api/research/preview$', api_research_preview),
+    ('POST', r'^/api/research/run/(?P<rid>[^/]+)/derive$', api_research_derive),
+    ('POST', r'^/api/research/run/(?P<rid>[^/]+)/handoff$', api_research_handoff),
     ('GET', r'^/api/stage/(?P<key>[a-z_]+)/molecules$', api_stage_molecules),
     ('GET', r'^/api/stage/(?P<key>[a-z_]+)/pose$', api_stage_pose),
     ('GET', r'^/api/mol2d$', api_mol2d),

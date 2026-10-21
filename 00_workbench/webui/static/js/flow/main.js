@@ -53,7 +53,7 @@ async function render() {
     drawStepper(n);
     page.replaceChildren();
     const stage = state.wf.stages[n - 1];
-    document.title = `${stage.n}/7 ${stage.title} · WEDGE-Design`;
+    document.title = `${stage.n}/7 ${stage.title} · Yuanhe Bio`;
     const cleanup = await mountStage(page, { stage, wf: state.wf, demo: state.demo, go });
     if (token !== state.token) { cleanup?.(); return; }
     state.cleanup = cleanup;

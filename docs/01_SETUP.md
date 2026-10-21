@@ -15,7 +15,8 @@ See [environment specifications and reconstruction](14_ENVIRONMENTS.md) for the 
 - Chemistry and screening: Python, RDKit, NumPy, PyYAML, gemmi and the screening package dependencies. See `02_docking/env/sbvs2.environment.yml` and `03_virtual_screening/pyproject.toml`.
 - Peptide2Mol: its own Python/PyTorch/CUDA and geometric-operator environment. RTX 5070 compatibility must be tested with the actual operators, not inferred from GPU detection.
 - REINVENT4: a separate environment with the pinned source and LibInvent prior.
-- GNINA: a separately installed executable and compatible CNN runtime. Record actual CNN model, device and version.
+- Docking: official AutoDock Vina 1.2.7 executable, CPU threads and seeds; Meeko 0.8.0 preserves chemical mapping. No CNN runtime is required for new jobs.
+- Research QM/MD: `deployment/research-environment.yml` pins Psi4, RESP and AmberTools; see [migration and research methods](15_VINA_RESP_RESEARCH.md).
 - Membrane preparation and analysis: `deployment/membrane-environment.yml`, installed through the interface after the base environment is configured. The first successful solve exports an exact package lock and pip freeze; the YAML alone is not a solved lock.
 - GROMACS: Linux build selected by its actual executable path. Record whether execution really used CPU or GPU.
 - Optional ZLIS and standalone OpenMM: follow their module READMEs. Their environments and evidence do not validate GROMACS.
@@ -51,4 +52,4 @@ cd ../00_workbench
 PYTHONPATH=. python -m pytest tests/test_workflow_regressions.py tests/test_studio_integration.py -q
 ```
 
-See `04_VALIDATION.md` for the actual acceptance boundary. Windows launch, environment solving, model inference, GNINA CNN and membrane dynamics require target-machine validation.
+See `04_VALIDATION.md` for the actual acceptance boundary. Windows launch, environment solving, model inference, Vina docking, HF/RESP and membrane dynamics require target-machine validation.

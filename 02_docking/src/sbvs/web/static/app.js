@@ -21,7 +21,7 @@ if($('receptorPlan')){
 for(let d of document.querySelectorAll('[data-evidence]'))d.addEventListener('toggle',async()=>{if(d.open){try{let r=await api(SBVS.base+'api/classroom/evidence/'+d.dataset.evidence);d.querySelector('pre').textContent=r.path+'\n'+r.text;}catch(e){d.querySelector('pre').textContent=e.message;}}});
 $('poseSelect').onchange=e=>showPose(e.target.value);
 
-$('stageButton').onclick=async()=>{try{let d=await api(endpoint('/gnina-stage'),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({operation:$('stageOp').value,top_k:Number($('topK').value),device:$('stageDevice').value})});rid=d.id;$('results').hidden=true;$('visual').hidden=true;$('cancel').hidden=false;poll();}catch(e){$('status').textContent=e.message;}};
+$('stageButton').onclick=async()=>{try{let d=await api(endpoint('/vina-stage'),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({operation:$('stageOp').value,top_k:Number($('topK').value),device:$('stageDevice').value})});rid=d.id;$('results').hidden=true;$('visual').hidden=true;$('cancel').hidden=false;poll();}catch(e){$('status').textContent=e.message;}};
 
 $('searchName').oninput=e=>{let q=e.target.value.toLowerCase();for(let tr of $('ranking').rows)tr.hidden=!tr.textContent.toLowerCase().includes(q);};
 $('sortMetric').onchange=async e=>{if(!e.target.value){poll();return;}try{let d=await api(endpoint('/sort'),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({metric:e.target.value})});let old=[...$('ranking').rows];for(let r of d.ranking){let tr=old.find(t=>t.cells[1].textContent===r.original_name&&t.cells[0].textContent==r.original_rank);if(tr)$('ranking').append(tr);}}catch(e){$('status').textContent=e.message;}};

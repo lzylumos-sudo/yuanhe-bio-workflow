@@ -15,7 +15,7 @@ def main():
  for name in ('resume','report'):
   s=sub.add_parser(name);s.add_argument('--run',required=True)
  s=sub.add_parser('export-md');s.add_argument('--run',required=True);s.add_argument('--selection',required=True)
- s=sub.add_parser('rescore');s.add_argument('--run',required=True);s.add_argument('--engine',choices=['gnina'],default='gnina');s.add_argument('--operation',choices=['score_only','redock','refinement'],required=True);s.add_argument('--top-k',type=int,default=10);s.add_argument('--device',choices=['cpu','gpu'],default='gpu')
+ s=sub.add_parser('rescore');s.add_argument('--run',required=True);s.add_argument('--engine',choices=['vina'],default='vina');s.add_argument('--operation',choices=['redock'],required=True);s.add_argument('--top-k',type=int,default=10);s.add_argument('--device',choices=['cpu'],default='cpu')
  s=sub.add_parser('redock-reference');s.add_argument('--preset',default='class_full')
  args=p.parse_args();validate_runtime()
  if args.command=='doctor':
@@ -58,8 +58,8 @@ def main():
   from .export import handoff
   print(handoff(args.run,args.selection));return 0
  if args.command=='rescore':
-  from .stages import gnina_stage
-  out=gnina_stage(args.run,args.operation,args.top_k,args.device);result=runner.run(out);print(out);return 0 if result['status']=='completed' else 2
+  from .stages import vina_stage
+  out=vina_stage(args.run,args.operation,args.top_k,args.device);result=runner.run(out);print(out);return 0 if result['status']=='completed' else 2
  if args.command=='redock-reference':
   from rdkit import Chem
   from .qc import fixed_frame_rmsd

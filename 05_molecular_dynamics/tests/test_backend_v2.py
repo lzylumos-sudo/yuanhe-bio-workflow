@@ -23,7 +23,9 @@ def configuration():
     config.update(workflow="md_from_complex_v2", project_name="v2_test", complex={"file": "example.pdb"},
                   ligand={"template_sdf": "ligand.sdf", "resname": "LIG"}, system_type="protein_ligand", replicates=1)
     config["MD"].update(production="4ps", equilibration="2ps", nvt="1ps", npt="1ps",
-                        report_interval="1ps", checkpoint_interval="2ps", cpu_threads=2)
+                        report_interval="1ps", checkpoint_interval="2ps", segment_length="2ps", heating_duration="1ps", require_gpu=False, cpu_threads=2)
+    config["mmgbsa"]["enabled"] = True
+    config["mmpbsa"]["enabled"] = False
     return config
 
 
@@ -116,7 +118,7 @@ class EarlyValidationTests(unittest.TestCase):
         original_builder = openmm_engine.build_system
         original_factory = openmm_engine.ligand_template_generator
         def failed_builder(config, paths):
-            self.assertIsNot(openmm_engine.ligand_template_generator, original_factory)
+            self.assertIs(openmm_engine.ligand_template_generator, original_factory)
             raise RuntimeError("deliberate build failure")
         openmm_engine.build_system = failed_builder
         try:

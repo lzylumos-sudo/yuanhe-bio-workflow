@@ -31,3 +31,8 @@ Each ligand receives `interactions.csv/.xlsx/.json`, publication/detailed/audit 
 - OpenMM adds protein hydrogens at pH 7.0; residue protonation is a model assumption. Missing OXT termini use a temporary atom that is later removed; terminal carboxyl hydrogens and charges are not modeled.
 
 See `docs/TEST_REPORT.md` for historical checks and limitations.
+
+
+## Yuanhe Bio integration
+
+See the [project code map](../docs/product/CODE_AND_CONTENT_MAP.md) for current module boundaries and the [product value assessment](../docs/product/PRODUCT_VALUE_ZH.md) for intended users. Existing technical instructions and historical acceptance records above retain their original scope; this documentation refresh does not revalidate execution.

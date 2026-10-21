@@ -1,37 +1,41 @@
-Yuanhe Research Workbench: daily UI guide
-Version 0.4.0-rc1
+Yuanhe Bio: use the administrator-provided UI link
 
-Complete initial installation using deployment/validation_5070/INSTALL_AND_VALIDATE.txt. Target-machine inference, docking and membrane dynamics remain untested by this release; do not label the candidate release fully accepted before those checks.
+After deploying the GitHub project and configuring dependencies, models, GPUs and data directories, the administrator shares the workbench URL. Open it to operate the page manually or authorize Codex to operate the same page. Users need no local computation environment, terminal or separate launch entry point.
 
-1. Launch start_windows.cmd, choose the prepared WSL distribution and open the displayed local address. Use Environment and diagnostics to save chemistry, screening, model, receptor-preparation, membrane-analysis, GNINA and GROMACS paths. Changes apply to newly created runs. The membrane dependency installer is available here after base setup.
+1. Create a research run
+Select the structure, chains and residue ranges, and confirm the actual inputs. Historical GNINA, AM1-BCC or short-MD runs retain their original identities and protocols. Create a new run after migration.
 
-2. Create a research run using data/structures/9nu4.pdb, receptor A, peptide B and the reviewed construct range (current default 3-500). Upload another PDB if required. Inspect the actual coordinates. The current construct mutations remain; no silent WT reversion occurs.
+2. Prepare the receptor and search box
+Complete complex preparation. In Tool 1, inspect the receptor, protonation assumptions, missing atoms, membrane-protein construct and search box. Both center coordinates and side lengths are in angstroms. Preview, then save the review.
 
-3. Run Complex preparation. Inspect the full receptor, local pocket and peptide reference. In Receptor preparation and docking box, choose the pH assumption, inspect missing-atom/terminus reports and explicitly permit side-chain completion only when justified. Missing loops or nonstandard residues block automatic preparation. Generate a box from reviewed residues, rotate the preview, adjust and approve it.
+3. Generate and dock
+Generate molecules and review retained molecular cores in Tool 2. Docking stage settings use official AutoDock Vina 1.2.7; standard defaults are exhaustiveness=32, num_modes=9 and energy_range=3 kcal/mol. Research profiles have their own frozen stage settings. Concurrent CPU tasks multiplied by threads per task must not exceed the total thread budget. A docking seed array does not increase MD replica count.
+Lower vina_affinity_kcal_mol is better; CNN fields are not applicable. Inspect actual logs, failure reasons and selected poses. Do not directly mix historical GNINA scores into the ranking.
 
-4. Run Peptide2Mol. In Select molecular core, choose an actual seed, select numbered heavy atoms and record the chemical rationale. Save the core and run REINVENT4. Budget is per selected core. Invalid chemistry and conformer failures remain separately counted.
+4. Screen and hand off poses
+Choose screening depth in Tool 3 and distinguish preliminary, formally qualified and exploratory candidates. Confirm that compound_id, state_id and pose_id match the final selected pose. Docking scores and screening qualification do not establish biological activity.
 
-5. Run GNINA with the reviewed full receptor and box. Inspect actual engine logs, unique-molecule counts, failures and pose-level scores. Original first poses and screening-selected poses are labeled separately. GPU detection alone is not proof of GPU CNN execution.
+5. Build one MD trajectory
+Select the final candidate in Tool 4 and review membrane orientation, lipids, salt concentration and temperature. Defaults are GAFF2 with HF/6-31G* ESP and two-stage RESP, and one 500 ns production trajectory. Minimization, heating and equilibration are additional. The QM-optimized conformation is for parameterization and does not replace the bound pose; failure never falls back to AM1-BCC.
+Configure the initial velocity seed, GPU index, output interval, checkpoint interval, QM threads and stable backbone/transmembrane core alignment selection. Default output and checkpoint intervals are 10 ps and 2 minutes.
+MurJ uses an explicit membrane. The built-in single-lipid membrane is not a complete mixed bacterial membrane. Enter and review membrane PB thickness, dielectric, pore model and supporting evidence before building.
 
-6. Choose Quick screening, Redocking trial or Full screening. Quick screening skips redocking; other plans use their declared caps and seeds. Review candidates, exclusions and qualification. Preliminary/exploratory candidates are counted separately from formally qualified ones. Computation complete does not mean all scientific requirements passed.
+6. Run and resume
+Preview the built system in Tool 5 and confirm identity, parameters, orientation and protocol. Select Start / Resume from checkpoint, or execute through the sixth stage. The default is one trajectory for that system; extra trajectories in Tool 7 are not required.
+After stopping, wait for checkpoint writing, reopen the same run and system, and use the same button to resume. Do not create a replacement system or change frozen inputs. Missing matching checkpoints or changed inputs block resumption.
 
-7. Select a candidate in the membrane wizard. Supply the membrane normal, center and source/rationale, then preview and review. Default coordinates are editable starting values, not established orientation. Select an idealized POPC/POPE membrane and explicitly approve exploratory simulation for unqualified candidates. Build parameters, topology, coordinates and atom groups; failed parameterization is not success.
+7. Analyze and inspect
+Use Analyze completed production trajectory and inspect trajectories, curves and raw records in Tool 6. Core metrics are the mean and sample standard deviation of ligand heavy-atom RMSD over 400–500 ns after alignment to the specified protein backbone/transmembrane core. Between-replica statistics are not applicable to one trajectory.
+MM/PBSA uses the same trajectory, by default 400–500 ns and every tenth saved frame. Adjust the PB window, sampling interval and dielectric settings before building. Membrane systems require a reviewed membrane PB model. Reports distinguish framewise standard deviation from the uncertainty of the mean accounting for time correlation; entropy is excluded.
+Trajectories shorter than 500 ns do not produce formal final-window conclusions. Reaching 500 ns or obtaining low standard deviation does not establish stability, convergence, strong binding or activity; extension may be needed.
 
-8. Review the built system, candidate mapping and protocol. Select it for stage six or use Run and resume. The built-in path executes minimization, NVT, two NPT stages, production and analysis. Failed minimization, incomplete step counts, changed inputs or mismatched checkpoints block continuation. The default short production run is an engineering probe, not sufficient scientific sampling.
+8. Export
+Use Export reproduction records for inputs, frozen configuration, logs and analysis. Select the full archive when raw trajectories are needed. Administrators retain installed environments and model weights separately.
 
-9. Inspect trajectory frames, backbone-aligned protein/ligand RMSD, RMSF, temperature, pressure, energy, distance-contact occupancy and membrane thickness proxy. Distance contacts are not hydrogen bonds; a proxy does not establish complete membrane stability. Compare independent replicas separately.
+The original migration changed code, configuration and documentation without executing calculations or tests. Acceptance artifacts generated by that migration task were removed; historical project data were preserved. Deployment and scientific validation must be arranged on the target machine.
+Method and configuration migration: docs/15_VINA_RESP_RESEARCH.md
+Component licenses: docs/16_RESEARCH_DEPENDENCY_LICENSES.md
+Detailed UI instructions: docs/18_UI_RESEARCH_WORKFLOW.md
 
-10. Export reproduction records. Review archives include input, frozen settings, reviews, logs and small results; full archives add large artifacts. Omitted files are listed with hashes. Neither archive includes installed environments or model weights, which need separate preservation.
-
-Recovery: stop requests allow checkpoint writing before forced termination. Do not unplug while stopping. Reopening the UI checks persistent Linux process identity. Failed stage directories are archived under attempts. Changed source code or frozen inputs require a new run. Interrupted MD resumes only from a matching checkpoint; partial output without one must not be overwritten.
-
-Validation order: environment/operator checks, small real model batch, reviewed-core expansion, actual GNINA docking, quick screening, fixed-set multiseed redocking, then one reviewed membrane system and a short complete trajectory. Use disposable runs for cancellation/tamper tests, followed by an independent same-settings reproduction. Record platform and GPU differences; reproducibility means traceable protocols and assessed agreement, not guaranteed bitwise equality.
-
-
-2026-10-18: screened pose to membrane MD
-Use Verify upstream and continue MD when continuing a preserved upstream run. Select the screened candidate; review membrane orientation and explicitly acknowledge exploratory status if formal qualification is absent. Build, preview and review the membrane system, then select it for stage six. Stage six runs minimization, staged equilibration, an independent checkpoint probe, production and analysis. Inspect first/last frames and analysis plots; export the full run including trajectories. Completed MD does not upgrade candidate qualification. See docs/07_MODULE_CONTRACTS.md and docs/08_MEMBRANE_MD_ACCEPTANCE.md.
-
-MODULES, CONTROLS AND REPEATS
-Open tool 7 for an independent 1DRF docking control, archived screening reassessment, peptide-contact evidence, or independent velocity replicas. Select a built reviewed system, acknowledge the shared starting coordinates, create repeats, select them and assign them to stage six. Run stage six through the main workflow. After all repeats complete, select the same systems and compare their trajectories. Preserve the reported criterion failures. A completed MD calculation is not an activity prediction.
-
-For 9NU4, an available hashed PPM3 orientation populates the membrane settings; review it before building. A different receptor does not inherit this orientation automatically. The full export preserves raw trajectories; the smaller review export supports inspection.
+Pre-docking substructure risk and acquisition gates (2026-10-21)
+REINVENT4 → standardization and deduplication → risk → availability → AutoDock Vina. See docs/PREDOCKING_PREFLIGHT.md for configuration, real supplier catalog fields, local AiZynthFinder assets, review, caching and CLI instructions. Missing real evidence never grants automatic passage; the pre-docking integration does not change MD code or parameters.

@@ -1,0 +1,30 @@
+# Solved and exercised on osx-arm64. Solve and archive an explicit lock per Linux GPU host.
+name: yuanhe-research
+channels: [conda-forge, nodefaults]
+dependencies:
+  - python=3.11
+  - vina=1.2.7
+  - rdkit=2026.03.1
+  - meeko=0.8.0
+  - gemmi
+  - psi4=1.11
+  - resp=1.0.0
+  - ambertools=24.8
+  - openmm=8.6.1
+  - openmmforcefields=0.15.1
+  - openff-toolkit=0.17.1
+  - parmed=4.3.1
+  - mdanalysis=2.10.0
+  - pdbfixer=1.12
+  - numpy
+  - scipy
+  - pandas
+  - matplotlib
+  - pyyaml
+  - biopython
+  - flask
+  - filelock
+  - pytest
+  - pip
+  - pip:
+      - molscrub==0.2.2

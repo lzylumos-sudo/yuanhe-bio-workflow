@@ -1,15 +1,18 @@
+# Engineering only; cannot satisfy the formal 400–500 ns window.
+replicates: 1
 MD:
-  production: 4ps
+  production: 10ps
   equilibration: 2ps
   nvt: 1ps
   npt: 1ps
+  heating_duration: 1ps
+  segment_length: 2ps
+  checkpoint_interval: 1ps
   report_interval: 1ps
-  checkpoint_interval: 2ps
-  minimization_max_iterations: 1000
-  platform: CPU
-  cpu_threads: 4
-replicates: 1
-analysis:
-  sasa_stride: 1
+  require_gpu: true
+  platform: auto
+  precision: mixed
+mmpbsa:
+  enabled: false
 mmgbsa:
-  max_frames: 4
+  enabled: false

@@ -47,14 +47,10 @@ def make_app():
   overrides=request.form.get('overrides','').strip()
   if overrides:
    data=json.loads(overrides)
-   allowed={'exhaustiveness','num_modes','seeds','cpu_per_job','per_ligand_timeout_seconds','ligand_states','ph_low','ph_high','max_states','fragment_policy','conformers_generated','conformers_retained'}
+   allowed={'energy_range','exhaustiveness','num_modes','seeds','cpu_per_job','per_ligand_timeout_seconds','ligand_states','ph_low','ph_high','max_states','fragment_policy','conformers_generated','conformers_retained'}
    if set(data)-allowed:raise ValueError('Unsupported override')
    cfg.update(data)
-  if cfg['engine']=='gnina':
-   capabilities=read_json(ROOT/'reports/gnina_capabilities.json') if (ROOT/'reports/gnina_capabilities.json').exists() else {}
-   requested=request.form.get('device','gpu' if capabilities.get('gpu_passed') else 'cpu')
-   if not capabilities.get(requested+'_passed'):raise ValueError('Requested GNINA CNN device has not passed real validation')
-   cfg['device']=requested
+  if cfg['engine']!='vina':raise ValueError('New jobs require official Vina')
   inbox=ROOT/'data/uploads'/uuid.uuid4().hex;inbox.mkdir(parents=True)
   upload=request.files.get('file')
   if upload and upload.filename:
@@ -130,7 +126,7 @@ def make_app():
   prepare(folder/plan['source'],folder,plan.get('chains',['A']),policy)
   if plan.get('external'):
    rec=request.files.get('prepared_pdb')
-   if not rec:raise ValueError('External PDBQT requires corresponding prepared PDB for visualization/GNINA')
+   if not rec:raise ValueError('External PDBQT requires corresponding prepared PDB for visualization/Vina')
    rec.save(folder/'receptor_prepared.pdb')
   mode=request.form.get('box_mode','manual')
   if mode=='reference':
@@ -173,12 +169,11 @@ def make_app():
   images=out/'images';images.mkdir(exist_ok=True);(images/(pid+'.png')).write_bytes(blob);report(out);return jsonify(ok=True)
  @app.post('/api/jobs/<rid>/handoff')
  def export_md(rid):return jsonify(path=str(handoff(ROOT/q.get(rid)['path'],request.get_json()).relative_to(ROOT)))
- @app.post('/api/jobs/<rid>/gnina-stage')
+ @app.post('/api/jobs/<rid>/vina-stage')
  def stage(rid):
-  from ..stages import gnina_stage
-  data=request.get_json();device=data.get('device','gpu');caps=read_json(ROOT/'reports/gnina_capabilities.json')
-  if not caps.get(device+'_passed'):raise ValueError('GNINA device not verified')
-  out=gnina_stage(ROOT/q.get(rid)['path'],data['operation'],int(data.get('top_k',10)),device);return jsonify(id=q.add(out))
+  from ..stages import vina_stage
+  data=request.get_json();device='cpu'
+  out=vina_stage(ROOT/q.get(rid)['path'],data['operation'],int(data.get('top_k',10)),device);return jsonify(id=q.add(out))
  @app.post('/api/jobs/<rid>/sort')
  def sort_result(rid):
   from ..ranking import csvwrite

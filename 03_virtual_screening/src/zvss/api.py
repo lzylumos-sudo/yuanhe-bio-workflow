@@ -49,6 +49,9 @@ def create_app(root: str | None = None) -> FastAPI:
                     stages[name] = {"status": "done", "detail": read_json(summary, {})}
         scoring = (stages.get("scoring") or {}).get("detail") or {}
         selection = (stages.get("selection") or {}).get("detail") or {}
+        membrane_ranking = read_json(
+            os.path.join(ctx.reports_dir(), "membrane_aware_ranking.json"), {}
+        ) or {}
         return templates.TemplateResponse(
             request,
             "run.html",
@@ -57,6 +60,12 @@ def create_app(root: str | None = None) -> FastAPI:
                 "run_id": run_id,
                 "stages": stages,
                 "ranking": (scoring.get("ranking") or [])[:40],
+                "membrane_ranking": (membrane_ranking.get("ranking") or [])[:40],
+                "membrane_summary": {
+                    "orientation": membrane_ranking.get("orientation") or {},
+                    "evidence_status_counts": membrane_ranking.get("evidence_status_counts") or {},
+                    "pose_reselection": membrane_ranking.get("pose_reselection") or {},
+                },
                 "primary": selection.get("primary") or [],
                 "exploratory": selection.get("exploratory") or [],
                 "exclusions": selection.get("exclusions") or [],
@@ -82,6 +91,16 @@ def create_app(root: str | None = None) -> FastAPI:
                 if os.path.isfile(path):
                     payload["stages"][name] = read_json(path, {})
         return JSONResponse(payload)
+
+    @app.get("/api/run/{run_id}/membrane")
+    def api_membrane(run_id: str) -> JSONResponse:
+        ctx = _ctx(run_id)
+        if not ctx.db.get_run(run_id):
+            raise HTTPException(status_code=404, detail="run not found")
+        path = os.path.join(ctx.reports_dir(), "membrane_aware_ranking.json")
+        if not os.path.exists(path):
+            raise HTTPException(status_code=404, detail="membrane-aware ranking not produced for this run")
+        return JSONResponse(read_json(path, {}))
 
     @app.get("/report/{run_id}", response_class=PlainTextResponse)
     def report_text(run_id: str) -> PlainTextResponse:

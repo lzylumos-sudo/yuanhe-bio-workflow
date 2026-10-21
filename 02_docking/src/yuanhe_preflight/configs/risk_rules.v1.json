@@ -1,0 +1,125 @@
+{
+  "version": "yuanhe-risk-1.0.0",
+  "license_note": "RDKit-derived patterns retain BSD notice; FDA source informs project-defined nitrosamine rule, not an FDA SMARTS classifier. Deliberately curated subset, not comprehensive toxicity prediction.",
+  "rules": [
+    {
+      "rule_id": "TOX_N_NITROSAMINE",
+      "SMARTS": "[NX3;H0]([#6])([#6])[NX2]=[OX1]",
+      "risk_category": "toxicity_risk",
+      "severity": "high",
+      "default_action": "exclude",
+      "source": "https://www.fda.gov/drugs/spotlight-cder-science/determining-recommended-acceptable-intake-limits-n-nitrosamine-impurities-pharmaceuticals",
+      "version": "yuanhe-curated-1.0.0",
+      "enabled": true,
+      "positive_examples": [
+        "CN(C)N=O"
+      ],
+      "negative_examples": [
+        "CN(C)C=O"
+      ],
+      "interpretation": "Project conservative N-nitrosamine screen; potential genotoxic risk, not potency prediction"
+    },
+    {
+      "rule_id": "BRENK_ACID_HALIDE",
+      "SMARTS": "C(=O)[Cl,Br,I,F]",
+      "risk_category": "nonspecific_reactivity",
+      "severity": "high",
+      "default_action": "exclude",
+      "source": "https://github.com/rdkit/rdkit/blob/Release_2026_03_1/Code/GraphMol/FilterCatalog/Filters.cpp",
+      "version": "yuanhe-curated-1.0.0",
+      "enabled": true,
+      "positive_examples": [
+        "CC(=O)Cl"
+      ],
+      "negative_examples": [
+        "CC(=O)O"
+      ],
+      "interpretation": "Reactive acyl halide"
+    },
+    {
+      "rule_id": "BRENK_ISOCYANATE",
+      "SMARTS": "N=C=O",
+      "risk_category": "nonspecific_reactivity",
+      "severity": "high",
+      "default_action": "exclude",
+      "source": "https://github.com/rdkit/rdkit/blob/Release_2026_03_1/Code/GraphMol/FilterCatalog/Filters.cpp",
+      "version": "yuanhe-curated-1.0.0",
+      "enabled": true,
+      "positive_examples": [
+        "CN=C=O"
+      ],
+      "negative_examples": [
+        "CNC=O"
+      ],
+      "interpretation": "Electrophilic isocyanate"
+    },
+    {
+      "rule_id": "PROJECT_EPOXIDE_ALERT",
+      "SMARTS": "C1OC1",
+      "risk_category": "nonspecific_reactivity",
+      "severity": "medium",
+      "default_action": "review",
+      "source": "https://github.com/rdkit/rdkit/blob/Release_2026_03_1/Code/GraphMol/FilterCatalog/Filters.cpp",
+      "version": "yuanhe-curated-1.0.0",
+      "enabled": true,
+      "positive_examples": [
+        "CC1CO1"
+      ],
+      "negative_examples": [
+        "CCCO"
+      ],
+      "interpretation": "Project epoxide-only adaptation of NIH (Thio)epoxides,aziridines C1[O,S,N]C1; a single epoxide triggers review, not a toxicity verdict"
+    },
+    {
+      "rule_id": "BRENK_NITRO",
+      "SMARTS": "[N+](=O)[O-]",
+      "risk_category": "medicinal_chemistry",
+      "severity": "medium",
+      "default_action": "warn",
+      "source": "https://github.com/rdkit/rdkit/blob/Release_2026_03_1/Code/GraphMol/FilterCatalog/Filters.cpp",
+      "version": "yuanhe-curated-1.0.0",
+      "enabled": true,
+      "positive_examples": [
+        "O=[N+]([O-])c1ccccc1"
+      ],
+      "negative_examples": [
+        "Nc1ccccc1"
+      ],
+      "interpretation": "Structural alert, not evidence of measured toxicity"
+    },
+    {
+      "rule_id": "BRENK_PEROXIDE",
+      "SMARTS": "OO",
+      "risk_category": "nonspecific_reactivity",
+      "severity": "medium",
+      "default_action": "review",
+      "source": "https://github.com/rdkit/rdkit/blob/Release_2026_03_1/Code/GraphMol/FilterCatalog/Filters.cpp",
+      "version": "yuanhe-curated-1.0.0",
+      "enabled": true,
+      "positive_examples": [
+        "COOC"
+      ],
+      "negative_examples": [
+        "COC"
+      ],
+      "interpretation": "Peroxide reactivity alert"
+    },
+    {
+      "rule_id": "PAINS_CATECHOL_A",
+      "SMARTS": "c:1:c:c(:c(:c:c:1)-[#8]-[#1])-[#8]-[#1]",
+      "risk_category": "assay_interference",
+      "severity": "medium",
+      "default_action": "warn",
+      "source": "https://github.com/rdkit/rdkit/blob/Release_2026_03_1/Data/Pains/wehi_pains.csv",
+      "version": "yuanhe-curated-1.0.0",
+      "enabled": true,
+      "positive_examples": [
+        "Oc1ccccc1O"
+      ],
+      "negative_examples": [
+        "COc1ccccc1OC"
+      ],
+      "interpretation": "PAINS catechol_A(92); potential assay interference only"
+    }
+  ]
+}

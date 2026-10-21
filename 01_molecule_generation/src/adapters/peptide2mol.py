@@ -174,7 +174,7 @@ def sampling_audit(path: Path, budget: int) -> dict[str, int]:
 def run(
     *, pocket_pdb: str | Path, checkpoint: str | Path, checkpoint_sha256: str,
     output_dir: str | Path, budget: int, seed: int, executable: str | Path = sys.executable,
-    repo: str | Path | None = None, batch_size: int = 2,
+    repo: str | Path | None = None, batch_size: int = 2, environment: dict[str,str] | None = None,
 ) -> dict[str, Any]:
     """Prepare a pocket, invoke official inference, validate and archive raw SDFs."""
     if batch_size <= 0:
@@ -223,7 +223,7 @@ def run(
         prepared_pdb = prepared_pdb.with_suffix(".pdb")
         shutil.copy2(pocket, prepared_pdb)
         prepare_command = [str(exe), str(repo_path / "notebooks" / "deal_with_mol_test_from_pdb_pal_5A.py"), str(input_dir)]
-        prepare_result = _run(prepare_command, repo_path)
+        prepare_result = _run(prepare_command, repo_path, environment)
         manifest["commands"].append(prepare_result)
         if prepare_result["returncode"]:
             raise RuntimeError(f"Peptide2Mol preparation failed with exit code {prepare_result['returncode']}")
@@ -239,7 +239,7 @@ def run(
             "++model.net.sample.log_dir=" + hydra_string(raw_root), "++model.net.sample.pdb_dir=" + hydra_string(input_dir),
             "++model.net.sample.batch_size=1", f"++model.net.sample.num_mols={budget}", f"++seed={seed}",
         ]
-        env = os.environ.copy()
+        env = {**os.environ, **(environment or {})}
         env.update({"PYTHONHASHSEED": str(seed), "PL_GLOBAL_SEED": str(seed)})
         inference_result = _run(inference_command, repo_path, env)
         manifest["commands"].append(inference_result)

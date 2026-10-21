@@ -1,0 +1,15 @@
+# Separate from the unchanged MD environment. Models, templates and supplier
+# datasets are never installed/downloaded automatically by the workflow.
+name: yuanhe-preflight
+channels: [conda-forge, nodefaults]
+dependencies:
+  - python=3.11
+  - rdkit=2026.03.1
+  - filelock>=3.13
+  - pyyaml>=6
+  - pytest>=8
+  - pip
+  - pip:
+      - aizynthfinder==4.4.1
+# Run a host-specific solve and archive its explicit lock before deployment.
+# This environment file is a specification, not a completed installation record.

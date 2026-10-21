@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 """Real stage adapters. No surrogate molecules, scores, or success markers."""
 from __future__ import annotations
-import argparse,csv,json,math,os,shutil,subprocess,sys,time
+import argparse,csv,json,os,shutil,subprocess,sys,time
 from pathlib import Path
-from webui.workflow import ROOT,UI,STAGES,atomic,digest,read,require,run_dir,lease_fds,gnina_environment
+from webui.workflow import ROOT,UI,STAGES,atomic,digest,read,require,run_dir,lease_fds
 GEN=ROOT/'01_molecule_generation'
 SCREEN=ROOT/'03_virtual_screening'
 sys.path.insert(0,str(GEN))
@@ -73,10 +73,20 @@ def stage_peptide2mol(d,cfg,out):
   return {'requested':oldcfg['budget'],'sampled':completed,'attempted':started,'interrupted':started-completed,'remaining':len(rows),'recovered':len(rows)}
  py=executable(cfg['peptide_python'],'Peptide2Mol Python')
  workers=min(int(os.environ.get('YUANHE_GENERATION_WORKERS','4')),cfg['budget'])
- workers=max(1,min(workers,4));quotas=[cfg['budget']//workers+(i<cfg['budget']%workers) for i in range(workers)]
+ workers=max(1,min(workers,4)) if not cfg.get('research') else min(cfg['research']['generation_workers'],cfg['budget'])
+ if cfg.get('research'):
+  # Serial model allocation until measured Peptide2Mol memory requirements are available.
+  # Each worker receives a single leased GPU through its subprocess environment.
+  from research.resources import detect
+  workers=min(workers,max(1,len([g for g in detect(d)['gpus'] if g['allocatable']])))
+ quotas=[cfg['budget']//workers+(i<cfg['budget']%workers) for i in range(workers)]
  atomic(out/'resource_plan.json',{'workers':workers,'sample_quotas':quotas,'seeds':[cfg['seed']+i for i in range(workers)],'total_attempts':sum(quotas),'diffusion_steps':'model default, unchanged'})
  def sample(i):
-  return peptide2mol.run(pocket_pdb=d/'prepare/receptor_prepared.pdb',checkpoint=GEN/mc['checkpoint'],checkpoint_sha256=mc['checkpoint_sha256'],output_dir=out/f'model_{i:02d}',budget=quotas[i],seed=cfg['seed']+i,executable=py,repo=GEN/'vendor/Peptide2Mol')
+  kwargs=dict(pocket_pdb=d/'prepare/receptor_prepared.pdb',checkpoint=GEN/mc['checkpoint'],checkpoint_sha256=mc['checkpoint_sha256'],output_dir=out/f'model_{i:02d}',budget=quotas[i],seed=cfg['seed']+i,executable=py,repo=GEN/'vendor/Peptide2Mol')
+  if cfg.get('research'):
+   from research.generation import guarded_sample
+   return guarded_sample(peptide2mol.run,kwargs,d,cfg['research'],'peptide2mol')
+  return peptide2mol.run(**kwargs)
  with ThreadPoolExecutor(max_workers=workers) as pool:results=list(pool.map(sample,range(workers)))
  rows=[];seen=set();rejected=[];sampled=0
  for i,result in enumerate(results):
@@ -98,10 +108,17 @@ def stage_reinvent4(d,cfg,out):
  from rdkit import Chem
  from rdkit.Chem import AllChem
  selections=cfg.get('core_selections') or []
+ rc=cfg.get('research')
+ if rc and len(selections)>rc['core_limit']:raise ValueError('Reviewed core limit exceeded')
  if not selections:raise Blocked('Reviewed core selection required: in core_selections enter seed_id and key_atom_indices(from 1 onward). First inspect Peptide2Mol seed structures.')
  seeds={r['id']:r for r in read(d/'peptide2mol/seeds.json',[])};mc=read(GEN/'configs/project.json')['models']['reinvent4']
  exe=executable(cfg['reinvent_executable'],'REINVENT4');rows=[];failures=[];seen=set();core_records=[];sampled=0
+ if rc:(out/'lineage.jsonl').write_text('')
+ quotas=[rc['reinvent_attempts']//len(selections)+(i<rc['reinvent_attempts']%len(selections)) for i in range(len(selections))] if rc else [cfg['budget']]*len(selections)
+ atomic(out/'budget_plan.json',{'quotas':quotas,'total_attempts':sum(quotas),'scope':'whole_task' if rc else 'historical_per_core'})
  for n,selection in enumerate(selections):
+  if not quotas[n]:continue
+  if rc and len(rows)>=rc['generated_unique_limit']:break
   seed=seeds.get(selection.get('seed_id'))
   if not seed:raise ValueError('Core references an unknown seed')
   mol=Chem.SDMolSupplier(str(d/seed['raw_sdf']),removeHs=True)[0]
@@ -115,20 +132,30 @@ def stage_reinvent4(d,cfg,out):
    if atom.GetAtomicNum()!=0:atom.SetAtomMapNum(0)
   scaffold=Chem.MolToSmiles(coremol,isomericSmiles=True)
   core_records.append({'seed_id':seed['id'],'core':scaffold,'key_atom_indices':keys,'mapped_core':core.design_core})
-  result=reinvent4.run(scaffold_smiles=scaffold,checkpoint=GEN/mc['prior'],checkpoint_sha256=mc['prior_sha256'],
-  output_dir=out/f'core_{n:04d}',budget=cfg['budget'],seed=cfg['seed']+n,executable=exe,repo=GEN/'vendor/REINVENT4',device='cpu')
+  kwargs=dict(scaffold_smiles=scaffold,checkpoint=GEN/mc['prior'],checkpoint_sha256=mc['prior_sha256'],output_dir=out/f'core_{n:04d}',budget=quotas[n],seed=cfg['seed']+n,executable=exe,repo=GEN/'vendor/REINVENT4')
+  if rc:
+   from research.generation import guarded_sample
+   result=guarded_sample(reinvent4.run,kwargs,d,rc,'reinvent4')
+  else:result=reinvent4.run(**kwargs,device='cpu')
+  core_records[-1].update(attempts=result['report']['completed'],valid=result['report'].get('valid'),unique=result['report'].get('unique'))
   sampled+=result['report']['completed']
   for c in read(out/f'core_{n:04d}/candidates.json')['candidates']:
    smiles=c['canonical_smiles'];base=Chem.MolFromSmiles(smiles)
    for atom in base.GetAtoms():atom.SetAtomMapNum(0)
    smiles=Chem.MolToSmiles(base,isomericSmiles=True)
+   if rc:
+    from research.qualification import identity
+    _,smiles,_=identity(smiles);base=Chem.MolFromSmiles(smiles)
+   if rc:
+    with (out/'lineage.jsonl').open('a') as lineage:lineage.write(json.dumps({'compound_id':identity(smiles)[0],'core_index':n,'seed_id':seed['id'],'sample_record':c,'manifest':str((out/f'core_{n:04d}/manifest.json').relative_to(d))})+'\n')
    if smiles in seen:continue
-   seen.add(smiles);cid='CMP'+__import__('hashlib').sha256(smiles.encode()).hexdigest()[:20]
+   seen.add(smiles);cid=identity(smiles)[0] if rc else 'CMP'+__import__('hashlib').sha256(smiles.encode()).hexdigest()[:20]
    mol=Chem.AddHs(base);params=AllChem.ETKDGv3();params.randomSeed=cfg['seed']
    if AllChem.EmbedMolecule(mol,params)!=0:
     failures.append({'id':cid,'reason':'conformer_generation_failed'});continue
    mol.SetProp('_Name',cid);p=out/'ligands'/f'{cid}.sdf';p.parent.mkdir(exist_ok=True)
    with Chem.SDWriter(str(p)) as w:w.write(mol)
+   if rc and len(rows)>=rc['generated_unique_limit']:continue
    rows.append({'id':cid,'smiles':smiles,'seed_id':seed['id'],'core':scaffold,'sdf':str(p.relative_to(d)),
    'route_status':'not_evaluated','protonation':'as_input_not_pH_enumerated','provenance_manifest':str((out/f'core_{n:04d}/manifest.json').relative_to(d))})
  atomic(out/'cores.json',core_records);atomic(out/'failures.json',failures);atomic(out/'candidates.json',rows)
@@ -136,16 +163,41 @@ def stage_reinvent4(d,cfg,out):
  if not rows:raise RuntimeError('No valid unique molecules available for docking')
  return {'sampled':sampled,'unique':len(seen),'failed':len(failures),'remaining':len(rows)}
 
+def stage_risk(d,cfg,out):
+ if cfg.get('research'):
+  from research.qualification import prepare_risk
+  return prepare_risk(ROOT,d,cfg,out)
+ from yuanhe_preflight.pipeline import risk_stage
+ if cfg.get('imported_candidates'):
+  from yuanhe_preflight.cli import import_candidates
+  rows=import_candidates(Path(cfg['imported_candidates']),out/'imported')
+ else:
+  rows=list(read(d/'reinvent4/candidates.json',[]))
+  rows += [{**r,'sdf':r['raw_sdf'],'source_stage':'peptide2mol'} for r in read(d/'peptide2mol/seeds.json',[])]
+ return risk_stage(rows,cfg['predocking'],out,base=d,batch_id=d.name)
+
+def stage_availability(d,cfg,out):
+ from yuanhe_preflight.pipeline import availability_stage
+ require(d,'risk')
+ return availability_stage(read(d/'risk/records.json',[]),cfg['predocking'],out)
+
 def stage_docking(d,cfg,out):
+ if cfg.get('research'):
+  from research.docking import run
+  return run(ROOT,d,cfg,out,executable)
  sys.path.insert(0,str(ROOT/'02_docking/src'))
- from sbvs2.docking.run_gnina import run_gnina_job
+ from sbvs2.docking.vina_official import run_vina_job, validate_resources
  from sbvs2.docking.protocol import Protocol
  from sbvs2.docking.box import Box
- exe=executable(cfg['gnina'],'GNINA')
- if cfg['gnina_device']=='gpu':
-  smi=shutil.which('nvidia-smi') or '/usr/lib/wsl/lib/nvidia-smi'
-  probe=subprocess.run([smi,'-L'],capture_output=True,text=True,timeout=20)
-  if probe.returncode or not probe.stdout.strip():raise Blocked('GPU docking requested but no NVIDIA GPU detected')
+ require(d,'risk');require(d,'availability')
+ from yuanhe_preflight.gate import require_ligand
+ rows=read(d/'availability/qualified.json',[])
+ for row in rows:require_ligand(row['source_sdf'],row['qualification_evidence'])
+ if not rows:
+  atomic(out/'results.json',[]);csv_write(out/'molecules.csv',[],['id','smiles','status'])
+  return {'input':0,'remaining':0,'failed':0,'poses':0,'shortfall':read(d/'risk/summary.json',{}).get('input',0)}
+ exe=executable(cfg['vina'],'AutoDock Vina')
+ validate_resources(int(cfg['docking_cpu']), int(cfg['docking_workers']), int(cfg['docking_total_threads']))
  # Explicit preparation is a scientific input, not guessed from raw coordinates.
  rec=Path(cfg.get('docking_receptor') or '')
  if not rec.is_absolute():rec=d/rec
@@ -158,58 +210,91 @@ def stage_docking(d,cfg,out):
  if len(atoms)<expected*.8:raise ValueError('Too few receptor heavy atoms; possible cropped pocket or incorrect file')
  b=cfg.get('docking_box')
  if not isinstance(b,dict) or len(b.get('center',[]))!=3 or len(b.get('size',[]))!=3:raise Blocked('Explicitly reviewed values required for docking_box.center and size, units Å')
+ if b.get('units','angstrom') not in {'angstrom','A','Å'}:raise ValueError('Docking box units must be angstrom')
  box=Box(tuple(map(float,b['center'])),tuple(map(float,b['size'])),'manual')
  if box.validate():raise ValueError('Invalid or oversized docking box: '+','.join(box.validate()))
  receptor=out/'receptor.pdb';shutil.copyfile(rec,receptor);atomic(out/'box.json',b)
- proto=Protocol.preset('standard',seeds=(cfg['seed'],));rows=list(read(d/'reinvent4/candidates.json',[]));results=[];successful=[]
- from rdkit import Chem
- seen={Chem.MolToSmiles(Chem.MolFromSmiles(r['smiles']),isomericSmiles=True) for r in rows}
- for seed in read(d/'peptide2mol/seeds.json',[]):
-  canon=Chem.MolToSmiles(Chem.MolFromSmiles(seed['smiles']),isomericSmiles=True)
-  if canon not in seen:
-   seen.add(canon);rows.append({'id':seed['id'],'smiles':canon,'sdf':seed['raw_sdf'],'source_stage':'peptide2mol'})
- if len(rows)>16:raise ValueError('This bounded workflow accepts at most 16 unique docking inputs')
+ proto=Protocol.preset('standard',seeds=(cfg['seed'],),exhaustiveness=cfg['exhaustiveness'],num_modes=cfg['num_modes'],energy_range=cfg['energy_range']);results=[];successful=[]
  atomic(out/'input_molecules.json',rows)
- for row in rows:
-  result=run_gnina_job(exe,receptor,d/row['sdf'],box,proto,cfg['seed'],out/'jobs'/row['id'],device=cfg['gnina_device'],cpu=int(os.environ.get('YUANHE_DOCKING_THREADS','24')),timeout=cfg['timeout_seconds'],nvidia_smi=shutil.which('nvidia-smi'),env_extra=gnina_environment())
-  entry={**row,'status':result['status'],'error':result.get('error')}
-  if result['status']=='ok':
-   best=max(result['poses'],key=lambda x:x['cnn_pose_score']);entry.update(best);successful.append(row['id'])
-  results.append(entry);atomic(out/'progress.json',{'input':len(rows),'processed':len(results),'successful':len(successful),'failed':len(results)-len(successful)})
- atomic(out/'results.json',results);csv_write(out/'molecules.csv',results,['id','smiles','status','empirical_score_kcal_mol','cnn_pose_score','cnn_affinity_pK','error'])
+ from concurrent.futures import ThreadPoolExecutor, as_completed
+ seeds=cfg.get('docking_seeds') or [cfg['seed']]
+ if not seeds or len(set(seeds))!=len(seeds) or any(type(s) is not int or not 0<s<2**31 for s in seeds):raise ValueError('Distinct positive integer docking seeds required')
+ tasks=[(row,int(seed)) for row in rows for seed in seeds]
+ def dock(task):
+  row,seed=task;job_id=row['id']+'_seed'+str(seed)
+  result=run_vina_job(exe,receptor,d/row['sdf'],box,proto,seed,out/'jobs'/job_id,cpu=int(cfg['docking_cpu']),timeout=cfg['timeout_seconds'],qualification_evidence=row['qualification_evidence'],meta={'predocking':{k:row.get(k) for k in ('compound_id','state_id','source_core','generation_batch','labels','qualification_sha256','qualification_evidence')}})
+  entry={**row,'job_id':job_id,'seed':seed,'status':result['status'],'engine':'vina','engine_version':'1.2.7','error':result.get('error')}
+  if result['status']=='ok':entry.update(min(result['poses'],key=lambda x:x['vina_affinity_kcal_mol']))
+  return entry
+ with ThreadPoolExecutor(max_workers=int(cfg['docking_workers'])) as pool:
+  for future in as_completed([pool.submit(dock,task) for task in tasks]):
+   entry=future.result();results.append(entry)
+   if entry['status']=='ok':successful.append(entry['job_id'])
+   atomic(out/'progress.json',{'input':len(tasks),'processed':len(results),'successful':len(successful),'failed':len(results)-len(successful)})
+ results.sort(key=lambda r:(r['id'],r['seed']))
+ atomic(out/'results.json',results);csv_write(out/'molecules.csv',results,['id','compound_id','state_id','smiles','status','vina_affinity_kcal_mol','engine','labels','source_core','generation_batch','qualification_evidence','qualification_sha256','error'])
  if not successful:raise RuntimeError('All molecules failed docking; inspect each job_record.json')
- return {'input':len(rows),'remaining':len(successful),'failed':len(rows)-len(successful),'poses':sum(len(read(out/'jobs'/x/'job_record.json')['poses']) for x in successful)}
+ return {'input':len(rows),'shortfall':max(0,read(d/'risk/summary.json',{}).get('input',len(rows))-len(rows)),'remaining':len({r['id'] for r in results if r['status']=='ok'}),'failed':len(tasks)-len(successful),'poses':sum(len(read(out/'jobs'/x/'job_record.json')['poses']) for x in successful)}
 
 def stage_screening(d,cfg,out):
+ if cfg.get('research') and not cfg.get('_screen_receptor'):
+  from research.screening import run
+  return run(stage_screening,d,cfg,out)
+ docking_records=read(d/'docking/results.json')
+ if docking_records == []:
+  atomic(out/'candidates.json',[])
+  csv_write(out/'molecules.csv',[],['compound_id','state_id','pose_id','qualification'])
+  return {'input':0,'remaining':0,'formal':0}
+ screen_receptor=Path(cfg['_screen_receptor']['path']) if cfg.get('_screen_receptor') else d/'docking/receptor.pdb'
  py=executable(cfg.get('screen_python') or cfg['chem_python'],'Virtual screening Python')
  # Separate stage-local database prevents cross-run counts and candidate contamination.
  workspace=out/'workspace';workspace.mkdir();shutil.copytree(SCREEN/'configs',workspace/'configs')
- host={'paths':{'structures_dir':str(ROOT)},'tools':{'gnina':[executable(cfg['gnina'],'GNINA')], 'gnina_settings':{'cnn_model':'crossdock_default2018_1_3','device':cfg['gnina_device'],'exhaustiveness':16,'num_modes':9,'cpu':4,'cnn_scoring':'rescore','environment':gnina_environment()}},
+ if cfg.get('research'):
+  import yaml
+  rc=cfg['research'];budget=yaml.safe_load((workspace/'configs/budgets/full.yaml').read_text())
+  budget.update(budget_id='research',redock_max_parents=0,deep_max_parents=rc['review_limit'],md_max_parents=rc['md_limit'],md_primary_slots=rc['md_limit'],md_exploratory_slots=0,not_run=['redock'],seeds=[cfg['seed']+i for i in range(rc['refine']['seeds'])])
+  budget['qualification'].update(redock_seeds_required=rc['refine']['seeds'],display_primary_slots=rc['md_limit'])
+  jobs=[]
+  for record in read(d/'docking/results.json',[]):
+   if record.get('receptor_sha256')!=cfg['_screen_receptor']['sha256']:continue
+   poses=d/'docking/jobs'/record['job_id']/'poses.sdf'
+   jobs.append({'smiles':record['smiles'],'seed':record['seed'],'status':record['status'],'poses':str(poses),'poses_sha256':digest(poses) if poses.is_file() else None})
+  evidence=workspace/'refinement_seeds.json';atomic(evidence,{'jobs':jobs,'receptor_sha256':cfg['_screen_receptor']['sha256'],'cluster_rmsd_A':budget['cluster_rmsd_A']})
+  budget['qualification']['imported_seed_evidence']={'path':str(evidence),'sha256':digest(evidence)}
+  (workspace/'configs/budgets/research.yaml').write_text(yaml.safe_dump(budget))
+  cfg={**cfg,'screening_budget':'research'}
+ host={'paths':{'structures_dir':str(ROOT)},'tools':{'vina':[executable(cfg['vina'],'AutoDock Vina')], 'vina_settings':{'engine_version':'1.2.7','exhaustiveness':cfg['exhaustiveness'],'num_modes':cfg['num_modes'],'cpu':cfg['docking_cpu'],'energy_range':cfg['energy_range']}},
  'executors':{'md_openmm_linux':{'mode':'disabled','note':'GROMACS used separately; membrane system not auto-prepared'}}}
  if cfg['target_profile']=='generic':
   from scientific.target_profile import bind_generic
   host['paths']['structures_dir']=str(bind_generic(workspace,d,cfg))
  atomic(workspace/'host.json',host)
  handoff=out/'docking_input';handoff.mkdir()
- shutil.copyfile(d/'docking/receptor.pdb',handoff/'receptor.pdb')
+ shutil.copyfile(screen_receptor,handoff/'receptor.pdb')
  for record in read(d/'docking/results.json',[]):
+  if cfg.get('_screen_receptor') and record.get('receptor_sha256')!=cfg['_screen_receptor']['sha256']:continue
   if record['status']!='ok':continue
-  target=handoff/record['id'];target.mkdir()
-  for name in ('poses.sdf','gnina.log'):
-   source=d/'docking/jobs'/record['id']/name
+  target=handoff/(record.get('job_id') or record['id']);target.mkdir()
+  for name in ('poses.sdf','poses.sdf.qualification.json','job_record.json'):
+   source=d/'docking/jobs'/(record.get('job_id') or record['id'])/name
    if source.is_file():shutil.copyfile(source,target/name)
  env=os.environ.copy();env['PYTHONPATH']=str(SCREEN/'src')
  import tempfile
  env['ZVSS_SCRATCH']=tempfile.mkdtemp(prefix='yuanhe_zvss_')
  command([py,'-m','zvss.cli','--root',workspace,'run','--input',handoff,'--run-id','screen',
  '--target',workspace/'configs/targets'/f"{cfg['target_profile']}.yaml",'--budget',workspace/'configs/budgets'/f"{cfg.get('screening_budget','quick')}.yaml",
- '--host',workspace/'host.json','--hints',json.dumps({'receptor_file':str(d/'docking/receptor.pdb'),'receptor_sha256':digest(d/'docking/receptor.pdb'),'box':cfg['docking_box'],'seed':cfg['seed']})],workspace,cfg['timeout_seconds'],env)
+ '--host',workspace/'host.json','--hints',json.dumps({'engine':'vina','engine_version':'1.2.7','receptor_file':str(screen_receptor),'receptor_sha256':digest(screen_receptor),'box':cfg['docking_box'],'seed':cfg['seed']})],workspace,cfg['timeout_seconds'],env)
  state=read(workspace/'runs/screen/run_state.json',{})
  if state.get('errors'):raise RuntimeError('Screening module reported an error')
  files=list((workspace/'runs/screen').rglob('candidates.csv'))
  if not files:raise RuntimeError('Screening did not produce candidates.csv')
  with files[0].open(encoding='utf-8-sig',newline='') as f:rows=list(csv.DictReader(f))
  from rdkit import Chem
+ evidence_index=read(d/'availability/identity_evidence.json',{})
+ for row in rows:
+  evidence=evidence_index.get(row.get('compound_id'))
+  if evidence:row.update({k:v for k,v in evidence.items() if k not in ('compound_id','state_id')})
+ atomic(out/'predocking_handoff.json',{'scope':'acquisition evidence only; MD parameters and final wet-lab review unchanged','compounds':evidence_index})
  selected=out/'selected_poses';selected.mkdir()
  for row in rows:
   pid=row.get('pose_id','')
@@ -220,6 +305,17 @@ def stage_screening(d,cfg,out):
   if mol is None:continue
   target=selected/(pid+'.sdf');shutil.copyfile(matches[0],target)
   row['sdf']=str(target.relative_to(d));row['smiles']=Chem.MolToSmiles(Chem.RemoveHs(mol),isomericSmiles=True)
+ if cfg.get('research'):
+  from research.qualification import identity
+  proofs={x['compound_id']:x for x in map(json.loads,(d/'docking/qualification/qualification.jsonl').read_text().splitlines())}
+  kept=[];seen_parents=set()
+  for row in rows:
+   if not row.get('smiles'):continue
+   cid=identity(row['smiles'])[0]
+   if cid not in proofs or not proofs[cid]['screening_qualified']:continue
+   if cid not in seen_parents and len(seen_parents)>=cfg['research']['review_limit']:continue
+   seen_parents.add(cid);row['research_compound_id']=cid;row['research_evidence']=proofs[cid];row['research_receptor']=cfg['_screen_receptor'];kept.append(row)
+  rows=kept
  atomic(out/'candidates.json',rows)
  csv_write(out/'molecules.csv',rows,list(dict.fromkeys(k for row in rows for k in row)))
  if rows:
@@ -229,9 +325,11 @@ def stage_screening(d,cfg,out):
  return {'input':read(d/'docking/stage.json')['counts']['remaining'],'remaining':len({x.get('compound_id') for x in rows if x.get('compound_id')}),'formal':len({x.get('compound_id') for x in rows if x.get('qualification')=='formal'}),'preliminary':len({x.get('compound_id') for x in rows if x.get('qualification')!='formal'})}
 
 def stage_gromacs(d,cfg,out):
+ if cfg.get('research') and not cfg.get('md_system_ids'):raise Blocked('Research MD requires reviewed membrane systems; external TPR bypass disabled')
  if cfg.get('md_system_ids'):
   py=executable(cfg.get('md_python'),'membrane simulation Python')
-  command([py,str(UI/'md_stage.py'),'--run-id',d.name,'--output',out],out,cfg['timeout_seconds'])
+  timeout=cfg['timeout_seconds'] if not cfg.get('research') else cfg['research']['md_task_timeout_seconds']*max(1,len(cfg['md_system_ids']))
+  command([py,str(UI/'md_stage.py'),'--run-id',d.name,'--output',out],out,timeout)
   systems=read(out/'systems.json',[])
   return {'simulations_completed':len(systems),'remaining':len({s['compound_id'] for s in systems}),'scientifically_validated':0}
  exe=executable(cfg['gmx'],'GROMACS')
@@ -251,8 +349,9 @@ def main():
  try:
   if rec.get('status')!='running':raise RuntimeError('Stage must be started by the workflow manager')
   if digest(d/'config.json')!=read(d/'run.json')['config_sha256']:raise RuntimeError('Configuration changed')
-  order=[x[0] for x in STAGES];i=order.index(a.stage)
-  if i:require(d,order[i-1])
+  from webui.workflow import stages_for
+  order=[x[0] for x in stages_for(cfg)];i=order.index(a.stage)
+  if i and not (a.stage=='risk' and (read(d/'reviews/risk.json',{}).get('imported_candidates') or cfg.get('imported_candidates'))):require(d,order[i-1])
   for prior in order[:i+1]:
    cfg.update(read(d/prior/'review.json',{}))
   counts=globals()['stage_'+a.stage](d,cfg,out)

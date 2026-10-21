@@ -6,7 +6,7 @@ import csv
 import os
 from typing import Any
 
-from ..util import atomic_write_json, atomic_write_text, now_iso, relpath
+from ..util import atomic_write_json, atomic_write_text, now_iso, read_json, relpath
 
 DONE = "Implemented and validated with real data"
 IMPL = "Implemented; real-data validation pending"
@@ -26,12 +26,33 @@ def write_all(ctx, state: dict[str, Any]) -> dict[str, Any]:
     mech = stages.get("mechanism") or {}
     redock = stages.get("redock") or {}
     membrane = stages.get("membrane") or {}
+    membrane_ranking = read_json(os.path.join(directory, "membrane_aware_ranking.json"), {}) or {}
+    membrane_files = {
+        "membrane_aware_ranking": os.path.join(directory, "membrane_aware_ranking.csv"),
+        "membrane_aware_ranking_json": os.path.join(directory, "membrane_aware_ranking.json"),
+        "membrane_evidence": os.path.join(directory, "membrane_evidence.json"),
+        "membrane_screening_report": os.path.join(directory, "membrane_screening_report.html"),
+        "membrane_geometry": os.path.join(ctx.stage_dir("membrane"), "membrane_geometry.json"),
+        "pocket_analysis": os.path.join(ctx.stage_dir("membrane"), "pocket_analysis.json"),
+        "accessibility_analysis": os.path.join(ctx.stage_dir("membrane"), "accessibility_analysis.json"),
+        "accessibility_paths": os.path.join(ctx.stage_dir("membrane"), "accessibility_paths.json"),
+        "membrane_compatibility": os.path.join(ctx.stage_dir("membrane"), "membrane_compatibility.json"),
+        "ensemble_analysis": os.path.join(ctx.stage_dir("membrane"), "ensemble_analysis.json"),
+        "pose_membrane_evidence": os.path.join(ctx.stage_dir("membrane"), "pose_membrane_evidence.json"),
+    }
+    membrane_files = {name: path for name, path in membrane_files.items() if os.path.isfile(path)}
 
+    import json
+    provenance={}
+    for item in ctx.db.query('SELECT compound_id, meta FROM compound'):
+        proof=json.loads(item.get('meta') or '{}').get('predocking')
+        if proof:provenance[item['compound_id']]=proof
+    atomic_write_json(os.path.join(directory,'predocking_evidence.json'),provenance)
     candidates = os.path.join(directory, "candidates.csv")
     _write_rows(
         candidates,
         ["role", "order", "compound_id", "state_id", "pose_id", "tier", "qualification", "evidence_score",
-         "components_used", "components_missing", "selection_version"],
+         "components_used", "components_missing", "selection_version", "acquisition_labels", "predocking_sha256", "source_core", "generation_batch"],
         [
             {
                 "role": entry.get("selection_role"),
@@ -45,6 +66,10 @@ def write_all(ctx, state: dict[str, Any]) -> dict[str, Any]:
                 "components_used": ";".join(entry.get("components_used") or []),
                 "components_missing": ";".join(entry.get("components_missing") or []),
                 "selection_version": entry.get("selection_version"),
+                "acquisition_labels": ";".join(provenance.get(entry['compound_id'],{}).get('availability',{}).get('labels',[])),
+                "predocking_sha256": provenance.get(entry['compound_id'],{}).get('record_sha256'),
+                "source_core": provenance.get(entry['compound_id'],{}).get('provenance',{}).get('source_core'),
+                "generation_batch": provenance.get(entry['compound_id'],{}).get('provenance',{}).get('generation_batch'),
             }
             for entry in (selection.get("primary") or [])
             + (selection.get("preliminary") or [])
@@ -81,11 +106,13 @@ def write_all(ctx, state: dict[str, Any]) -> dict[str, Any]:
     ranking_csv = os.path.join(directory, "ranking.csv")
     _write_rows(
         ranking_csv,
-        ["rank", "compound_id", "tier", "evidence_score", "affinity", "cnn_pose", "cnn_affinity",
+        ["rank", "compound_id", "tier", "evidence_score", "engine", "score_unit", "cnn_status", "vina_affinity_kcal_mol", "affinity", "cnn_pose", "cnn_affinity",
          "mechanism", "pose_quality", "missing"],
         [
             {
                 "rank": entry.get("rank"),
+                "engine":entry.get("engine"), "score_unit":entry.get("score_unit"), "cnn_status":entry.get("cnn_status"),
+                "vina_affinity_kcal_mol":(entry.get("raw") or {}).get("affinity") if entry.get("engine")=="vina" else None,
                 "compound_id": entry["compound_id"],
                 "tier": entry["tier"],
                 "evidence_score": entry.get("evidence_score"),
@@ -100,8 +127,42 @@ def write_all(ctx, state: dict[str, Any]) -> dict[str, Any]:
         ],
     )
 
-    markdown = _markdown(ctx, state, ranking, selection, md, target, imported, qa, mech, redock, membrane)
+    decision = {
+        "schema": "screening-decision/2",
+        "selection_version": selection.get("selection_version"),
+        "strategy": selection.get("strategy", "legacy"),
+        "score_scope": ranking.get("score_scope", "legacy/unspecified"),
+        "pareto_front": selection.get("pareto_front", []),
+        "formal_pareto_front": selection.get("formal_pareto_front", []),
+        "pareto_unassessed": selection.get("pareto_unassessed", {}),
+        "weight_diagnostics": ranking.get("diagnostics", {}),
+    }
+    decision_path = os.path.join(directory, "decision.json")
+    atomic_write_json(decision_path, decision)
+    evidence_path = os.path.join(directory, "candidate_evidence.csv")
+    _write_rows(evidence_path,
+        ["compound_id", "pose_id", "representative_policy", "qa", "affinity_kcal_mol", "strain_kcal_mol",
+         "region_contacts", "evidence_coverage", "pareto", "formal", "best_rank", "worst_rank", "missing"],
+        [{"compound_id": e["compound_id"], "pose_id": e["pose_id"],
+          "representative_policy": e.get("representative_policy"), "qa": e.get("representative_qa"),
+          "affinity_kcal_mol": e.get("raw", {}).get("affinity"),
+          "strain_kcal_mol": e.get("raw", {}).get("strain"),
+          "region_contacts": e.get("raw", {}).get("mechanism"),
+          "evidence_coverage": e.get("evidence_coverage"),
+          "pareto": e["compound_id"] in decision["pareto_front"],
+          "formal": (selection.get("qualification", {}).get(e["compound_id"], {})).get("formal_qualified", False),
+          "best_rank": (ranking.get("diagnostics", {}).get("rank_ranges", {}).get(e["compound_id"], {})).get("best"),
+          "worst_rank": (ranking.get("diagnostics", {}).get("rank_ranges", {}).get(e["compound_id"], {})).get("worst"),
+          "missing": ";".join(e.get("components_missing", []))}
+         for e in ranking.get("ranking", [])])
+
+    markdown = _markdown(ctx, state, ranking, selection, md, target, imported, qa, mech, redock, membrane, membrane_ranking)
     report_path = os.path.join(directory, "report.md")
+    if provenance:
+        markdown+='\n\n## Pre-docking acquisition evidence\n\n'
+        for cid,proof in provenance.items():
+            markdown+=f"- {cid}: {'; '.join(proof['availability']['labels'])}; evidence SHA256 {proof['record_sha256']}\n"
+        markdown+='\nFull alerts, routes, supply records and origin are in predocking_evidence.json. Computational route support does not confer wet-lab eligibility; final acquisition review remains required.\n'
     atomic_write_text(report_path, markdown)
     payload = {
         "run_id": ctx.run_id,
@@ -119,6 +180,9 @@ def write_all(ctx, state: dict[str, Any]) -> dict[str, Any]:
             "qualification": relpath(qualification_csv, ctx.run_dir),
             "exclusions": relpath(exclusions, ctx.run_dir),
             "ranking": relpath(ranking_csv, ctx.run_dir),
+            "decision": relpath(decision_path, ctx.run_dir),
+            "candidate_evidence": relpath(evidence_path, ctx.run_dir),
+            **{name: relpath(path, ctx.run_dir) for name, path in membrane_files.items()},
         },
     }
     atomic_write_json(os.path.join(directory, "report.json"), payload)
@@ -150,7 +214,7 @@ def _blockers(md, redock, membrane) -> list[dict[str, Any]]:
         out.append({"stage": "redock", "code": redock.get("reason_code"), "detail": redock.get("note")})
     capability = (redock.get("capability") or {})
     if capability and not capability.get("available"):
-        out.append({"stage": "redock", "code": "gnina_unavailable", "detail": capability.get("reason")})
+        out.append({"stage": "redock", "code": "vina_unavailable", "detail": capability.get("reason")})
     md_cap = (membrane.get("md_capability") or {})
     if md_cap.get("status"):
         out.append({"stage": "md", "code": md_cap.get("status"), "detail": md_cap.get("note")})
@@ -159,7 +223,7 @@ def _blockers(md, redock, membrane) -> list[dict[str, Any]]:
     return out
 
 
-def _markdown(ctx, state, ranking, selection, md, target, imported, qa, mech, redock, membrane) -> str:
+def _markdown(ctx, state, ranking, selection, md, target, imported, qa, mech, redock, membrane, membrane_ranking=None) -> str:
     lines: list[str] = []
     profile = ctx.config.target
     lines += [
@@ -170,6 +234,8 @@ def _markdown(ctx, state, ranking, selection, md, target, imported, qa, mech, re
         f"- Configuration digest: `{ctx.config.digest()}` | Code version `{ctx.config.code_version}`",
         f"- Budget: `{ctx.config.budget.budget_id}` | Selection version: `{(selection or {}).get('selection_version')}`",
         "",
+        "Current docking: official Vina; affinity in kcal/mol, lower is better. CNN fields are N/A for Vina. Historical engines are ranked separately.",
+        "MD research protocol: GAFF2 + HF/RESP; one 500 ns trajectory; core RMSD and PB window 400–500 ns. This screening report does not certify MD completion.",
         "## 1. Inputs and identity",
         "",
         f"- Files discovered: {len(imported.get('files') or [])} items",
@@ -209,6 +275,40 @@ def _markdown(ctx, state, ranking, selection, md, target, imported, qa, mech, re
                 f"| {entry.get('rank')} | `{entry['compound_id']}` | {entry['tier']} | "
                 f"{entry.get('evidence_score'):.4f} | {', '.join(entry.get('components_missing') or []) or '-'} |"
             )
+        lines.append("")
+
+    lines += ["### Decision robustness", "",
+              f"- Selection strategy: {selection.get('strategy', 'legacy')}",
+              "- Scores are relative to this candidate pool, not comparable across runs and not activity probabilities.",
+              "- decision.json contains fixed-pool weight perturbations and component ablations; rank ranges are not confidence intervals.",
+              f"- Complete-evidence eligible Pareto front: {len(selection.get('pareto_front', []))}; "
+              f"unassessed because objectives are missing: {len(selection.get('pareto_unassessed', {}))}.",
+              "- candidate_evidence.csv preserves raw units, pose identity, missing values and evidence coverage.", ""]
+    membrane_rows = membrane_ranking.get("ranking") or []
+    if membrane_rows:
+        orientation = membrane_ranking.get("orientation") or {}
+        lines += [
+            "### Y-MAVS membrane-aware evidence",
+            "",
+            f"- Membrane orientation: {orientation.get('status', 'not_evaluated')} "
+            f"(source: {orientation.get('source') or 'none'}; verified: {orientation.get('orientation_verified')})",
+            f"- Evidence-status counts: {membrane_ranking.get('evidence_status_counts') or {}}",
+            "- membrane_aware_score is an ordinal priority within this pool, not a binding free energy or activity probability.",
+            "- Membrane evidence is applied after the existing tier and evidence score; formal qualification is unchanged except for explicitly configured additive requirements.",
+            "",
+            "| Y-MAVS rank | Baseline | Shift | Compound | Affinity kcal/mol | Pocket region | Depth (Å) | Accessibility | Steric | Ensemble | Evidence | Formal |",
+            "| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |",
+        ]
+        for row in membrane_rows[:15]:
+            lines.append(
+                f"| {row.get('membrane_aware_rank')} | {row.get('baseline_rank')} | {row.get('rank_shift')} | "
+                f"`{row.get('compound_id')}` | {row.get('docking_affinity_kcal_mol',row.get('gnina_affinity'))} | {row.get('pocket_region')} | "
+                f"{row.get('ligand_center_depth_A')} | {row.get('geometric_accessibility_status')} | "
+                f"{row.get('steric_compatibility_status')} | {row.get('ensemble_status')} | "
+                f"{row.get('membrane_evidence_status')} | {row.get('formal_qualified')} |"
+            )
+        lines.append("")
+        lines.append("Full tables: `membrane_aware_ranking.csv`, `membrane_evidence.json`, `membrane_screening_report.html`.")
         lines.append("")
 
     lines += ["## 4. Candidates and exclusions", ""]
@@ -279,7 +379,7 @@ def _markdown(ctx, state, ranking, selection, md, target, imported, qa, mech, re
     lines += [
         f"- Membrane orientation: {membrane.get('status', 'not_evaluated')}; source: {(membrane.get('plane') or {}).get('source', 'none')}. MD execution is assessed separately.",
         "- multiple seed Redocking: "
-        + ("Completed" if (redock.get("status") == "completed") else "Blocked by GNINA availability; no redocking evidence produced"),
+        + ("Completed" if (redock.get("status") == "completed") else "Blocked by Vina availability; no redocking evidence produced"),
         "",
         "## 7. Reproduction",
         "",

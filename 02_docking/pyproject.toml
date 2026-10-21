@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 name = "local-sbvs"
 version = "0.1.0"
 requires-python = ">=3.11"
-dependencies = ["rdkit>=2024.9", "numpy>=1.26", "PyYAML>=6", "psutil>=5.9", "filelock>=3.13", "meeko>=0.8,<0.9", "gemmi>=0.6", "scipy>=1.11"]
+dependencies = ["rdkit>=2024.9", "numpy>=1.26", "PyYAML>=6", "psutil>=5.9", "filelock>=3.13", "meeko==0.8.0", "gemmi>=0.6", "scipy>=1.11"]
 [project.optional-dependencies]
 web = ["Flask>=3", "jinja2>=3.1"]
 analysis = ["pandas>=2.1", "scipy>=1.11", "matplotlib>=3.8"]
@@ -13,3 +13,6 @@ analysis = ["pandas>=2.1", "scipy>=1.11", "matplotlib>=3.8"]
 where = ["src"]
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+
+[tool.setuptools.package-data]
+yuanhe_preflight = ["configs/*.json"]

@@ -1,17 +1,19 @@
 """Resumable official downloads, atomically installed after validation."""
-import hashlib,json,os,subprocess,sys,time
+import hashlib,json,os,subprocess,sys,time,platform
 from pathlib import Path
 ROOT=Path(os.environ['SBVS_PROJECT_ROOT'])
+if platform.system()!='Linux' or platform.machine() not in {'x86_64','amd64'}:raise SystemExit('This official download installer is Linux x86-64 only; use the pinned platform environment otherwise')
 SPECS={
 'vina':('1.2.7','https://github.com/ccsb-scripps/AutoDock-Vina/releases/download/v1.2.7/vina_1.2.7_linux_x86_64',None),
-'gnina':('1.3.3','https://github.com/gnina/gnina/releases/download/v1.3.3/gnina.cuda12.8.static','3340c1f49cd3c7c84d8699182a1c6af13c7fa2a22448d1204640446106f72172')}
+}
+
 def sha(p):
  h=hashlib.sha256()
  with open(p,'rb') as f:
   for b in iter(lambda:f.read(8*1024*1024),b''):h.update(b)
  return h.hexdigest()
 for name in sys.argv[1:]:
- version,url,expected=SPECS[name]; dst=Path('/opt/sbvs/vendor')/name; partial=dst.with_suffix('.part')
+ version,url,expected=SPECS[name]; dst=Path(os.environ.get('YUANHE_VENDOR_DIR','/opt/sbvs/vendor'))/name; dst.parent.mkdir(parents=True,exist_ok=True); partial=dst.with_suffix('.part')
  if not dst.exists():
   if not (partial.exists() and expected and sha(partial)==expected):
    subprocess.run(['curl','-fL','--retry','3','--connect-timeout','20','--max-time','3600','-C','-',url,'-o',str(partial)],check=True)
@@ -22,9 +24,11 @@ for name in sys.argv[1:]:
  if expected and digest!=expected:raise RuntimeError('Installed hash mismatch')
  dst.chmod(0o755)
  info={'version':version,'url':url,'sha256':digest,'publisher_sha256_verified':bool(expected),'path':str(dst),'installed_at':time.time()}
+ (ROOT/'logs/install').mkdir(parents=True,exist_ok=True)
  for flag in ['--version','--help']:
-  env=os.environ.copy();env['LD_LIBRARY_PATH']=':'.join([str(p) for p in Path('/opt/sbvs/env/lib/python3.11/site-packages/nvidia').glob('*/lib')]+['/opt/sbvs/env/lib','/usr/lib/wsl/lib'])
+  env=os.environ.copy()
   r=subprocess.run([str(dst),flag],capture_output=True,text=True,timeout=60,env=env)
+  if r.returncode or (flag=='--version' and 'AutoDock Vina v1.2.7' not in r.stdout+r.stderr):raise RuntimeError('Official Vina version verification failed')
   (ROOT/'logs/install'/f'{name}_{flag[2:]}.txt').write_text(r.stdout+r.stderr)
   info[flag[2:]+'_returncode']=r.returncode
  lock=ROOT/'env/vendor.lock.json'; data=json.loads(lock.read_text()) if lock.exists() else {};data[name]=info

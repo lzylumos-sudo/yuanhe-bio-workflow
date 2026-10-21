@@ -6,7 +6,7 @@ ROOT = Path(__file__).resolve().parents[1]
 def license_files():
     files = {name: ROOT / name for name in (
         'LICENSE', 'LICENSE_SCOPE.txt', 'THIRD_PARTY_NOTICES.md',
-        'THIRD_PARTY_NOTICES.txt',
+        'THIRD_PARTY_NOTICES.txt', 'docs/16_RESEARCH_DEPENDENCY_LICENSES.md',
     )}
     # Keep the paths referenced in the notices valid inside exported archives.
     for folder in ('02_docking/docs/licenses', '03_virtual_screening',

@@ -7,6 +7,10 @@ from webui import workflow,server,jobs
 
 @pytest.fixture
 def sandbox(tmp_path,monkeypatch):
+ # Include the actual packaged rules; run creation must still snapshot them.
+ rules=Path(__file__).resolve().parents[2]/'02_docking/src/yuanhe_preflight/configs/risk_rules.v1.json'
+ target=tmp_path/'02_docking/src/yuanhe_preflight/configs/risk_rules.v1.json'
+ target.parent.mkdir(parents=True);target.write_bytes(rules.read_bytes())
  monkeypatch.setattr(workflow,'ROOT',tmp_path);monkeypatch.setattr(workflow,'RUNS',tmp_path/'runs')
  (tmp_path/'input.pdb').write_text('HEADER    TEST ONLY\nEND\n')
  return tmp_path

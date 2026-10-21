@@ -7,7 +7,7 @@ def load(value='class_quick'):
  if str(value) in ('class_quick','class_full','research_gnina','research_refine'):cfg['cpu_per_job']=min(int(cfg['cpu_per_job']),(len(os.sched_getaffinity(0)) if hasattr(os, 'sched_getaffinity') else (os.cpu_count() or 1)))
  validate(cfg);return cfg
 def validate(c):
- if c['engine'] not in ('vina','gnina'):raise ValueError('Unknown engine')
+ if c['engine'] != 'vina':raise ValueError('Production engine must be official Vina; historical GNINA config is read-only')
  if c.get('ligand_states','preserve') not in ('preserve','enumerate'):raise ValueError('Unknown state policy')
  if c.get('ligand_states')=='enumerate':
   if not 0<=float(c.get('ph_low',6.4))<=float(c.get('ph_high',8.4))<=14:raise ValueError('Invalid pH range')

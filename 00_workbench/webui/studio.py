@@ -86,6 +86,12 @@ def operations(rid):
 def launch(rid,kind,payload):
  if kind not in {'receptor','environment','install_membrane','md_build','md_run','md_analyze','md_validation'}:raise ValueError('Unknown operation')
  d,c=config(rid);w.verify_source(d)
+ if c.get('research') and kind=='md_run':raise ValueError('Use the research MD stage queue to run/resume selected systems')
+ if c.get('research') and kind=='md_build':
+  if float(payload.get('production_ns',0))!=c['research']['md_production_ns']:raise ValueError('MD length differs from frozen research configuration')
+  existing=[w.read(p,{}) for p in (d/'md_systems').glob('*/system.json')]
+  if any(x.get('compound_id')==payload.get('compound_id') for x in existing):raise ValueError('Existing system for this compound; resume it instead of creating a repeat')
+  if len(existing)>=c['research']['md_limit']:raise ValueError('MD candidate budget exhausted')
  with w._lock:
   if w._active:raise ValueError('A task is running; finish or stop it first')
   if kind=='receptor':w.require(d,'prepare')
@@ -119,7 +125,7 @@ def apply_receptor(rid,payload):
  path=within(d,result.get('receptor',''))
  if w.digest(path)!=result['sha256']:raise ValueError('Receptor changed')
  if not payload.get('reviewed'):raise ValueError('Review protonation, residues and termini')
- values={k:c[k] for k in w.REVIEW_FIELDS['docking'] if k in c}
+ values={} if c.get('research') else {k:c[k] for k in w.REVIEW_FIELDS['docking'] if k in c}
  values['docking_receptor']=str(path.relative_to(d));values['docking_box']=payload['box']
  values['receptor_review']={'sha256':result['sha256'],'pH':result['pH'],'reviewed':True,'operation':op}
  w.review(rid,'docking',values)
@@ -138,6 +144,8 @@ def system_summary(meta):
 def md_list(rid):
  d,c=config(rid)
  rows=[{'id':p.parent.name,**system_summary(w.read(p)),'progress':w.read(p.parent/'progress.json',{})} for p in sorted((d/'md_systems').glob('*/system.json'))]
+ for ident,record in w.read(d/'inherited_md.json',{}).items():
+  source=w.run_dir(record['source_run']);rows.append({'id':ident,**system_summary(w.read(source/'md_systems'/ident/'system.json')),'reused_from':source.name})
  return sorted(rows,key=lambda x:(x.get('status') not in {'built','completed'},x['id']))
 
 def membrane_preview(rid,payload):
@@ -178,7 +186,7 @@ def md_structure(rid,system_id):
  return {'atoms':atoms,'caption':'Actual built coordinates: protein CA (green), ligand heavy atoms (gold), lipid phosphorus (purple), ions (blue). Water and remaining atoms are omitted only from this preview. Full coordinates remain in system.pdb.','system_id':system_id,'source_sha256':meta['files']['system.pdb']}
 
 def environment_save(payload):
- allowed={'chem_python','screen_python','prep_python','md_python','peptide_python','reinvent_executable','gnina','gmx'}
+ allowed={'chem_python','screen_python','prep_python','md_python','peptide_python','reinvent_executable','vina','gmx'}
  if set(payload)-allowed:raise ValueError('Unknown environment setting')
  if any(not isinstance(v,str) or len(v)>2000 for v in payload.values()):raise ValueError('Invalid executable path')
  cfg=w.read(w.ROOT/'deployment/runtime.json',{});cfg.update(payload);w.atomic(w.ROOT/'deployment/runtime.json',cfg)

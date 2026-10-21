@@ -1,0 +1,47 @@
+{
+  "schema": "preflight-license-inventory/1",
+  "checked_at": "2026-10-21",
+  "software": [
+    {
+      "name": "RDKit",
+      "license": "BSD-3-Clause",
+      "source": "https://github.com/rdkit/rdkit/blob/Release_2026_03_1/license.txt",
+      "usage": "existing dependency; SMARTS and custom FilterCatalog entries"
+    },
+    {
+      "name": "AiZynthFinder",
+      "version": "4.4.1",
+      "license": "MIT",
+      "source": "https://github.com/MolecularAI/aizynthfinder/blob/v4.4.1/LICENSE",
+      "installed_for_real_search": false
+    },
+    {
+      "name": "filelock",
+      "license": "MIT (current upstream); verify installed release metadata",
+      "source": "https://github.com/tox-dev/filelock/blob/main/LICENSE",
+      "usage": "existing dependency; cross-process cache locking"
+    }
+  ],
+  "rules": {
+    "source": "RDKit Brenk subset, project epoxide adaptation of NIH, PAINS catechol_A(92), project N-nitrosamine alert informed by FDA",
+    "version": "yuanhe-risk-1.0.0",
+    "note": "Rule interpretation and exclusion policies are project choices, not source authors' per-compound toxicity verdicts. Retain RDKit attribution; source papers are cited, not redistributed."
+  },
+  "models": {
+    "provided": false,
+    "license": "not supplied; review each weight file separately"
+  },
+  "templates": {
+    "provided": false,
+    "license": "not supplied; review source dataset and redistribution terms"
+  },
+  "stock": {
+    "provided": false,
+    "license": "not supplied; review raw material database terms"
+  },
+  "supplier_catalogs": {
+    "provided": false,
+    "license": "not supplied; local import requires source/version/license metadata and authority to use catalog"
+  },
+  "commercial_scope": "Software licenses do not grant model, template, stock, supplier-data or project commercial rights. Existing project LICENSE_SCOPE remains authoritative."
+}

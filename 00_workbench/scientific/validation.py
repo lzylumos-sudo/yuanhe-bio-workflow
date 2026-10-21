@@ -4,15 +4,15 @@ import json,shutil,sys,subprocess,uuid,os,math
 from pathlib import Path
 from . import artifacts as a
 
-MD_QUALITY_PROTOCOL={'version':'short-repeat-quality/1','scope':'provisional trajectory quality and pose retention; not binding, activity or equilibrium proof','min_replicas':3,'min_production_ns':5,'temperature_mean_tolerance_K':10,'max_final_backbone_rmsd_A':3,'max_final_ligand_rmsd_A':3,'minimum_protein_contact_fraction':0.8,'max_ligand_half_mean_difference_A':1,'max_between_replica_ligand_mean_std_A':1}
+MD_QUALITY_PROTOCOL={'version':'single-500ns-quality/2','scope':'provisional trajectory quality and pose retention; not binding, activity or equilibrium proof','min_replicas':1,'min_production_ns':500,'temperature_mean_tolerance_K':10,'max_final_backbone_rmsd_A':3,'max_final_ligand_rmsd_A':3,'minimum_protein_contact_fraction':0.8,'max_ligand_half_mean_difference_A':1,'max_between_replica_ligand_mean_std_A':1}
 
 def replicas(d,c,p,out):
  from .membrane import system_dir
  src=system_dir(d,p.get('system_id'));meta=a.read(src/'system.json',{})
  if meta.get('status') not in {'built','completed'}:raise ValueError('A successfully built system is required')
  if not p.get('reviewed'):raise ValueError('Review common starting coordinates and independent velocity seeds')
- seeds=p.get('seeds',[17,41,97])
- if not isinstance(seeds,list) or not 2<=len(seeds)<=5 or len(set(seeds))!=len(seeds) or any(type(s)!=int or not 1<=s<=2147483647 for s in seeds):raise ValueError('Use 2–5 distinct positive integer seeds')
+ seeds=p.get('seeds',[17])
+ if not isinstance(seeds,list) or not 1<=len(seeds)<=5 or len(set(seeds))!=len(seeds) or any(type(s)!=int or not 1<=s<=2147483647 for s in seeds):raise ValueError('Use 1–5 distinct positive integer seeds')
  for name,sha in meta['files'].items():
   if a.digest(a.within(src,name))!=sha:raise ValueError('Built system checksum mismatch')
  rows=[]
@@ -28,7 +28,7 @@ def summarize_replicas(d,c,p,out):
  from .membrane import system_dir
  import numpy as np
  ids=p.get('system_ids',[])
- if len(ids)<2 or len(ids)!=len(set(ids)):raise ValueError('At least two distinct completed replicas are required')
+ if not ids or len(ids)!=len(set(ids)):raise ValueError('Select at least one completed trajectory')
  rows=[];parents=set();seeds=set();protocols=[]
  completed={r['system_id']:r for r in a.read(d/'gromacs/systems.json',[])}
  for ident in ids:
@@ -50,9 +50,9 @@ def summarize_replicas(d,c,p,out):
    v=np.array([x[key] for x in series]);n=len(v)//2
    if not np.isfinite(v).all():raise ValueError('Nonfinite trajectory metrics')
    metrics[key]={'mean':float(v.mean()),'first_half_mean':float(v[:n].mean()),'second_half_mean':float(v[n:].mean()),'half_difference':float(v[n:].mean()-v[:n].mean()),'last':float(v[-1])}
-  rows.append({'system_id':ident,'compound_id':meta.get('compound_id'),'seed':rep['velocity_seed'],'production_ns':summary['production_span_ns'],'frames':len(series),'metrics':metrics,'quality':summary['quality_observations'],'temperature_mean_K':summary['thermodynamics']['Temperature']['mean'],'target_temperature_K':meta['parameters']['temperature_K'],'protein_contact_fraction':sum(x['minimum_contact_A']<=4.5 for x in series)/len(series),'analysis_sha256':a.digest(folder/'analysis/summary.json'),'series_sha256':a.digest(folder/'analysis/series.json')})
+  rows.append({'system_id':ident,'compound_id':meta.get('compound_id'),'seed':rep['velocity_seed'],'production_ns':summary.get('production_end_ns',summary['production_span_ns']),'frames':len(series),'metrics':metrics,'last100ns':summary.get('last100ns',{}),'quality':summary['quality_observations'],'temperature_mean_K':summary['thermodynamics']['Temperature']['mean'],'target_temperature_K':meta['parameters']['temperature_K'],'protein_contact_fraction':sum(x['minimum_contact_A']<=4.5 for x in series)/len(series),'analysis_sha256':a.digest(folder/'analysis/summary.json'),'series_sha256':a.digest(folder/'analysis/series.json')})
  if len(parents)!=1 or len(seeds)!=len(ids):raise ValueError('Replicas must share inputs and have distinct seeds')
- result={'replicas':rows,'independent_velocity_repeats':len(rows),'convergence':'not_established','reason':'Block differences and between-replica dispersion are descriptive; short shared-start trajectories do not establish equilibrium or binding affinity','md_validated_molecules':0,'between_replica_mean_std':{k:float(np.std([r['metrics'][k]['mean'] for r in rows],ddof=1)) for k in rows[0]['metrics']}}
+ result={'replicas':rows,'independent_velocity_repeats':len(rows),'convergence':'not_established','reason':'Block differences and between-replica dispersion are descriptive; short shared-start trajectories do not establish equilibrium or binding affinity','md_validated_molecules':0,'between_replica_mean_std':{k:(float(np.std([r['metrics'][k]['mean'] for r in rows],ddof=1)) if len(rows)>1 else None) for k in rows[0]['metrics']}}
  if any(protocol!=MD_QUALITY_PROTOCOL for protocol in protocols):raise ValueError('Replicate acceptance protocol was absent or differs from this validator')
  criteria=[]
  def criterion(name,passed,observed):criteria.append({'criterion':name,'passed':bool(passed),'observed':observed})
@@ -60,6 +60,7 @@ def summarize_replicas(d,c,p,out):
  criterion('independent_velocity_replicas',len(rows)>=protocol['min_replicas'],len(rows))
  for row in rows:
   tag=row['system_id'];q=row['quality']
+  criterion(tag+':formal_window',row['last100ns'].get('status')=='computed_requires_review',row['last100ns'])
   criterion(tag+':duration',row['production_ns']>=protocol['min_production_ns']-.001,row['production_ns'])
   criterion(tag+':finite_no_constraint_warning',q['finite_trajectory'] and not q['constraint_warnings'],q)
   criterion(tag+':temperature',abs(row['temperature_mean_K']-row['target_temperature_K'])<=protocol['temperature_mean_tolerance_K'],row['temperature_mean_K'])
@@ -68,12 +69,13 @@ def summarize_replicas(d,c,p,out):
   criterion(tag+':protein_contact_fraction',row['protein_contact_fraction']>=protocol['minimum_protein_contact_fraction'],row['protein_contact_fraction'])
   criterion(tag+':ligand_half_difference',abs(row['metrics']['ligand_rmsd_A']['half_difference'])<=protocol['max_ligand_half_mean_difference_A'],row['metrics']['ligand_rmsd_A']['half_difference'])
  dispersion=result['between_replica_mean_std']['ligand_rmsd_A']
- criterion('between_replica_ligand_dispersion',dispersion<=protocol['max_between_replica_ligand_mean_std_A'],dispersion)
+ if dispersion is not None:criterion('between_replica_ligand_dispersion',dispersion<=protocol['max_between_replica_ligand_mean_std_A'],dispersion)
+ else:result['between_repeat_status']='not_applicable_single_trajectory'
  result['quality_protocol']=protocol;result['quality_criteria']=criteria
  result['gromacs_records_sha256']=a.digest(d/'gromacs/systems.json')
  result['provisional_md_quality_accepted']=all(x['passed'] for x in criteria)
  result['short_md_quality_passed_compounds']=sorted({r['compound_id'] for r in rows if r['compound_id']}) if result['provisional_md_quality_accepted'] else []
- result['scientific_claim']='Short-run quality gate only; convergence and peptide-function replacement remain unestablished'
+ result['scientific_claim']='Descriptive 500 ns trajectory quality gate; stability requires review and may require extension. Convergence, binding strength and activity remain unestablished.'
  a.atomic(out/'replicate_comparison.json',result);return result
 
 def docking_control(d,c,p,out,root):
@@ -84,13 +86,11 @@ def docking_control(d,c,p,out,root):
   src=source/name;target=out/'standalone'/name;target.parent.mkdir(parents=True,exist_ok=True)
   if src.is_dir():shutil.copytree(src,target,ignore=shutil.ignore_patterns('__pycache__','*.pyc'))
   else:shutil.copy2(src,target)
- a.atomic(out/'standalone/config.json',{'gnina':c['gnina'],'seeds':[17,41,97],'scope':'1DRF folate crystallographic pose recovery; no activity claim','rmsd_threshold_A':2.0})
+ a.atomic(out/'standalone/config.json',{'vina':c['vina'],'seeds':[17,41,97],'scope':'1DRF folate crystallographic pose recovery; no activity claim','rmsd_threshold_A':2.0})
  script=out/'standalone/run_control.py'
  script.write_text(CONTROL_SCRIPT)
  env={**os.environ,'PYTHONPATH':str(out/'standalone/src')}
- # The server's GNINA libraries are part of the recorded runtime, not source imports.
- from webui.workflow import gnina_environment
- env.update(gnina_environment())
+ # Vina CPU execution has no CNN library environment.
  with (out/'standalone/process.log').open('w') as log:
   r=subprocess.run([p.get('python') or c['chem_python'],str(script)],cwd=script.parent,env=env,stdout=log,stderr=subprocess.STDOUT,timeout=7200,pass_fds=a.lease_fds())
  if r.returncode:raise RuntimeError('Independent docking control failed; inspect standalone/process.log')
@@ -102,7 +102,7 @@ from pathlib import Path
 from concurrent.futures import ThreadPoolExecutor
 from rdkit import Chem
 from rdkit.Chem import rdMolAlign
-from sbvs2.docking.run_gnina import run_gnina_job
+from sbvs2.docking.vina_official import run_vina_job
 from sbvs2.docking.protocol import Protocol
 from sbvs2.docking.box import Box
 base=Path(__file__).resolve().parent;c=json.loads((base/'config.json').read_text())
@@ -112,12 +112,12 @@ if ref is None:raise ValueError('Invalid crystallographic reference')
 proto=Protocol.preset('standard',seeds=tuple(c['seeds']))
 def one(seed):
  job=base/'jobs'/str(seed)
- rec=run_gnina_job(c['gnina'],base/'data/prepared/demo_1drf/receptor_prepared.pdb',refpath,box,proto,seed,job,device='gpu',cpu=4,timeout=3600,nvidia_smi='nvidia-smi')
+ rec=run_vina_job(c['vina'],base/'data/prepared/demo_1drf/receptor_prepared.pdb',refpath,box,proto,seed,job,cpu=4,timeout=3600)
  if rec['status']!='ok':raise RuntimeError(rec['error'])
  poses=[Chem.RemoveHs(m) for m in Chem.SDMolSupplier(str(job/'poses.sdf'),removeHs=False)]
  rms=[float(rdMolAlign.CalcRMS(m,ref)) for m in poses]
- return {'seed':seed,'rmsd_A':rms,'top1_rmsd_A':rms[0],'best_rmsd_A':min(rms),'top1_recovered':rms[0]<=c['rmsd_threshold_A'],'any_recovered':min(rms)<=c['rmsd_threshold_A'],'gpu_seen':rec.get('gpu_process_seen_in_nvidia_smi')}
-with ThreadPoolExecutor(max_workers=3) as pool:rows=list(pool.map(one,c['seeds']))
+ return {'seed':seed,'rmsd_A':rms,'top1_rmsd_A':rms[0],'best_rmsd_A':min(rms),'top1_recovered':rms[0]<=c['rmsd_threshold_A'],'any_recovered':min(rms)<=c['rmsd_threshold_A'],'cpu_threads':rec['cpu']}
+with ThreadPoolExecutor(max_workers=1) as pool:rows=list(pool.map(one,c['seeds']))
 result={'scope':c['scope'],'module_import':__import__('sbvs2').__file__,'rmsd':'symmetry-aware heavy atoms in fixed receptor frame; no ligand fitting','threshold_A':c['rmsd_threshold_A'],'runs':rows,'top1_recovery_fraction':sum(r['top1_recovered'] for r in rows)/len(rows),'any_pose_recovery_fraction':sum(r['any_recovered'] for r in rows)/len(rows),'clean_environment':sys.prefix!=sys.base_prefix and 'include-system-site-packages = false' in (Path(sys.prefix)/'pyvenv.cfg').read_text().lower(),'python_executable':sys.executable,'environment_scope':'interpreter isolation is measured; dependencies are recorded separately in the installation lock'}
 (base/'result.json').write_text(json.dumps(result,indent=2,allow_nan=False))
 '''

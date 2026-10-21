@@ -502,7 +502,21 @@ def _import_single(ctx, raw, bundle, hints, templates, report):
                 )
                 notes.append("pose chemistry disagrees with declared template")
 
-    compound_row, state_row = _identity(mol, note=raw.parent_label)
+    proof_path=raw.source_file+'.qualification.json'
+    proof=None
+    if os.path.isfile(proof_path):
+        import sys
+        from pathlib import Path
+        sys.path.insert(0,str(Path(__file__).resolve().parents[4]/'02_docking/src'))
+        from yuanhe_preflight.gate import validate_evidence
+        from yuanhe_preflight.common import canonical
+        proof=validate_evidence(proof_path,canonical(mol))
+    compound_row, state_row = _identity(mol, note='' if proof else raw.parent_label)
+    if proof:
+        compound_row.update(compound_id=proof['identity']['compound_id'],canonical_smiles=proof['identity']['smiles'])
+        state_row.update(compound_id=proof['identity']['compound_id'],state_id=proof['identity']['state_id'],canonical_smiles=proof['identity']['smiles'])
+        compound_row['meta']['predocking']=proof
+        raw.props['predocking_evidence']=proof
     # Foreign keys are enforced: compound -> state -> job -> pose, in that order.
     ctx.db.upsert_compound(compound_row)
     ctx.db.upsert_state(state_row)
@@ -511,11 +525,13 @@ def _import_single(ctx, raw, bundle, hints, templates, report):
     box = report.box or {}
     box_hash = sha256_text(str(box.get("center")) + str(box.get("size")))
     protocol = {
-        "engine": (hints.get("engine") or "gnina"),
+        "engine": ("vina" if raw.scores.get("vina_affinity_kcal_mol") is not None else hints.get("engine") or "gnina"),
+        "engine_version": raw.props.get("engine_version") or hints.get("engine_version"),
         "scoring_function": (hints.get("scoring_function") or "vina"),
-        "cnn_model": hints.get("cnn_model") or "crossdock_default2018_1_3",
+        "cnn_model": None if raw.scores.get("vina_affinity_kcal_mol") is not None else hints.get("cnn_model") or "crossdock_default2018_1_3",
         "exhaustiveness": hints.get("exhaustiveness"),
         "num_modes": hints.get("num_modes"),
+        "energy_range":hints.get("energy_range"), "cpu":hints.get("cpu"),
         "seed": hints.get("seed"),
     }
     seed = safe_int(raw.extras.get("seed")) if raw.extras.get("seed") is not None else safe_int(hints.get("seed"))
@@ -541,7 +557,7 @@ def _import_single(ctx, raw, bundle, hints, templates, report):
             "protocol_hash": sha256_text(str(sorted(protocol.items()))),
             "seed": seed,
             "engine": protocol["engine"],
-            "engine_version": hints.get("engine_version") or _engine_version(hints),
+            "engine_version": protocol["engine_version"] or _engine_version(hints),
             "model_id": protocol["cnn_model"],
             "scoring_function": protocol["scoring_function"],
             "source": os.path.basename(raw.source_file),
@@ -600,6 +616,7 @@ def _base_pose_row(
         "reason_code": str(reason_code) if reason_code else None,
         "reason": "; ".join(notes) if notes else None,
         "meta": {
+            "predocking_evidence": raw.props.get('predocking_evidence'),
             "score_provenance": raw.score_provenance,
             "parent_label": raw.parent_label,
             "resname": raw.resname,

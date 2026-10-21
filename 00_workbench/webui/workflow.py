@@ -4,9 +4,14 @@ import hashlib,json,os,re,shutil,subprocess,sys,threading,time,uuid
 from pathlib import Path
 UI=Path(__file__).resolve().parents[1]
 ROOT=UI.parent
+sys.path.insert(0,str(ROOT/'02_docking/src'))
 RUNS=UI/'workflow_runs'
-STAGES=[('prepare','Complex preparation','Separate protein and peptide; retain full receptor and local pocket'),('peptide2mol','Peptide2Mol','Real model sampling and chemistry checks'),('reinvent4','REINVENT4','Expand candidate molecules after core review'),('docking','GNINA Batch docking','Full receptor · Unique molecules · Raw CNN Scores'),('screening','Virtual screening','Quality control, binding-mode and diversity screening'),('gromacs','GROMACS','Membrane minimization, equilibration, production and trajectory analysis')]
+STAGES=[('prepare','Complex preparation','Separate protein and peptide; retain full receptor and local pocket'),('peptide2mol','Peptide2Mol','Real model sampling and chemistry checks'),('reinvent4','REINVENT4','Expand candidate molecules after core review'),('risk','Substructure risk screening','Structure standardization and deduplication; rule matching, exclusion and human review'),('availability','Purchase and synthesis availability','Exact purchase evidence first; complete local retrosynthesis route validation'),('docking','AutoDock Vina batch docking','CPU · affinity / kcal mol-1 · lower is better'),('screening','Virtual screening','Quality control, binding-mode and diversity screening'),('gromacs','GROMACS','Membrane minimization, equilibration, production and trajectory analysis')]
 _lock=threading.RLock(); _active={}
+
+def stages_for(cfg):
+ return STAGES if cfg.get('research') or cfg.get('predocking') else [s for s in STAGES if s[0] not in {'risk','availability'}]
+
 
 def digest(path):
  h=hashlib.sha256()
@@ -29,24 +34,30 @@ def read(path,default=None):
 def defaults():
  cfg = {'structure':'data/structures/9nu4.pdb','receptor_chain':'A','peptide_chain':'B','receptor_range':[3,500],
  'budget':20,'generation_recovery_run':'','seed':17,'pocket_radius':6.0,'peptide_python':'','reinvent_executable':'','chem_python':sys.executable,
- 'prep_python':'/opt/yuanhe/envs/prep/bin/python','md_python':'/opt/yuanhe/envs/membrane/bin/python','screening_budget':'quick','receptor_review':{},'md_system_ids':[], 'screen_python':'','gnina':'','gnina_device':'gpu','gmx':'','target_profile':'ecmurj',
+ 'prep_python':'/opt/yuanhe/envs/prep/bin/python','md_python':'/opt/yuanhe/envs/membrane/bin/python','screening_budget':'quick','receptor_review':{},'md_system_ids':[], 'screen_python':'','vina':'vina','docking_engine':'vina','docking_seeds':[],'docking_cpu':4,'docking_workers':1,'docking_total_threads':4,'exhaustiveness':32,'num_modes':9,'energy_range':3.0,'gmx':'','target_profile':'ecmurj',
  'core_selections':[], 'docking_receptor':'','docking_box':None,'gromacs_tpr':'',
  'gromacs_system_reviewed':False,'timeout_seconds':86400}
- cfg.update({k:v for k,v in read(ROOT/'deployment/runtime.json',{}).items() if k in cfg})
+ from research.config import defaults as research_defaults
+ cfg['research']=research_defaults()
+ cfg['predocking']=cfg['research']['predocking']
+ cfg['imported_candidates']=''
+ cfg.update({k:v for k,v in read(ROOT/'deployment/runtime.json',{}).items() if k in cfg and k!='research'})
  return cfg
 
 def source_snapshot():
- roots=['00_workbench/scientific','00_workbench/webui','01_molecule_generation/src','02_docking/src','03_virtual_screening/src']
+ roots=['00_workbench/research','00_workbench/scientific','00_workbench/webui','01_molecule_generation/src','02_docking/src','03_virtual_screening/src','05_molecular_dynamics/modules']
  files=[ROOT/'00_workbench'/n for n in ['pipeline_bridge.py','studio_worker.py','md_stage.py']]
  for root in roots:files.extend((ROOT/root).rglob('*.py'))
  files.extend((ROOT/'03_virtual_screening'/'configs').rglob('*'))
+ files.extend((ROOT/'00_workbench/configs').glob('*.json'))
+ files.extend((ROOT/'02_docking/src/yuanhe_preflight/configs').glob('*.json'))
  return {str(p.relative_to(ROOT)):digest(p) for p in sorted(set(files)) if p.is_file()}
 
 def _screen_revision_allowed(name):
  return name.startswith(('03_virtual_screening/src/','03_virtual_screening/configs/')) or name in {'00_workbench/webui/server.py', '00_workbench/webui/workflow.py'}
 
 def _md_revision_allowed(name):
- return _screen_revision_allowed(name) or name in {str(UI.relative_to(ROOT))+'/'+x for x in ('scientific/membrane.py','scientific/artifacts.py','scientific/md_cli.py','scientific/validation.py','md_stage.py','studio_worker.py','webui/studio.py')}
+ return _screen_revision_allowed(name) or name.startswith("05_molecular_dynamics/modules/") or name in {str(UI.relative_to(ROOT))+'/'+x for x in ('scientific/membrane.py','scientific/artifacts.py','scientific/md_cli.py','scientific/validation.py','md_stage.py','studio_worker.py','webui/studio.py')}
 
 def continue_md(rid):
  """Audit MD-only changes without recreating or relabeling upstream results."""
@@ -119,20 +130,38 @@ def rescreen(rid):
 def create(config):
  allowed=set(defaults());unknown=set(config)-allowed
  if unknown:raise ValueError('Unknown configuration field: '+','.join(sorted(unknown)))
- cfg={**defaults(),**config};source=(ROOT/cfg['structure']).resolve()
+ cfg={**defaults(),**config}
+ # Reject malformed legacy input even when the research profile supplies its budget.
+ if 'budget' in config and (type(config['budget']) is not int or not 1<=config['budget']<=100000000):raise ValueError('budget Out of range')
+ from research.config import resolve
+ cfg['research']=resolve(cfg['research'])
+ cfg['predocking']=json.loads(json.dumps(cfg['research']['predocking']))
+ for key in ('rules_path','cache_dir'):
+  if not Path(cfg['predocking'][key]).is_absolute():cfg['predocking'][key]=str(ROOT/cfg['predocking'][key])
+ from yuanhe_preflight.config import validate
+ validate(cfg['predocking'])
+ from research.assets import snapshot
+ assets=snapshot(ROOT,cfg)
+ cfg.update(budget=cfg['research']['peptide_attempts'],docking_cpu=cfg['research']['vina_cpu'],docking_workers=cfg['research']['vina_workers'],docking_total_threads=cfg['research']['vina_thread_budget'],exhaustiveness=cfg['research']['initial']['exhaustiveness'],num_modes=cfg['research']['initial']['num_modes'])
+ validate_docking_settings(cfg);source=(ROOT/cfg['structure']).resolve()
  if not source.is_relative_to(ROOT.resolve()) or not source.is_file() or source.suffix.lower()!='.pdb':raise ValueError('Structure must be a project-local PDB')
  if cfg['receptor_chain']==cfg['peptide_chain']:raise ValueError('Receptor and peptide chains must differ')
  for k in ('receptor_chain','peptide_chain'):
   if not isinstance(cfg[k],str) or len(cfg[k])!=1:raise ValueError('PDB Chain identifiers must contain one character')
- for k,low,high in [('budget',1,10000),('seed',0,2147483647),('timeout_seconds',60,604800)]:
+ for k,low,high in [('budget',1,100000000),('seed',0,2147483647),('timeout_seconds',60,604800)]:
   if isinstance(cfg[k],bool) or not isinstance(cfg[k],int) or not low<=cfg[k]<=high:raise ValueError(k+' Out of range')
  rr=cfg['receptor_range']
  if not isinstance(rr,list) or len(rr)!=2 or not all(isinstance(x,int) for x in rr) or rr[0]>rr[1]:raise ValueError('Invalid receptor residue range')
- if cfg['gnina_device'] not in ('cpu','gpu'):raise ValueError('GNINA Invalid device')
+ if cfg['docking_engine']!='vina':raise ValueError('New tasks require official Vina; historical GNINA results remain read-only')
  if cfg['target_profile'] not in ('ecmurj','generic'):raise ValueError('Invalid target configuration')
  rid=time.strftime('%Y%m%d_%H%M%S')+'_'+uuid.uuid4().hex[:8];d=run_dir(rid);d.mkdir(parents=True)
  shutil.copyfile(source,d/'input.pdb');cfg['input_sha256']=digest(d/'input.pdb')
  # External executables are configured locally, never inferred from old machine paths.
+ from research.config import environment,fingerprint,plan
+ from research.resources import detect
+ atomic(d/'research_assets.json',assets)
+ atomic(d/'environment.json',{'runtime':environment(),'resources':detect(d)})
+ atomic(d/'resolved_config.json',{'config':cfg,'version':cfg['research']['version'],'sha256':fingerprint(cfg),'plan':plan(cfg['research'])})
  atomic(d/'source_snapshot.json',source_snapshot())
  atomic(d/'config.json',cfg);atomic(d/'run.json',{'id':rid,'created':time.time(),'config_sha256':digest(d/'config.json'),'status':'created'})
  return {'id':rid}
@@ -169,10 +198,12 @@ def status(rid):
  d=run_dir(rid);cfg=read(d/'config.json')
  if cfg is None:raise FileNotFoundError('Run not found')
  stages=[]
- for key,label,desc in STAGES:
+ for key,label,desc in stages_for(cfg):
   rec=read(d/key/'stage.json',{})
   if rec.get('status')=='running' and rid not in _active and not live_record(rec,rid):
    rec={**rec,'status':'interrupted','error':'Original process not found after restart. Stop the task to archive its interrupted state, then retry; membrane simulations retain separate checkpoints.'}
+  if rec.get('status')=='running' and key in ('risk','availability'):
+   rec={**rec,'counts':read(d/key/'progress.json',{})}
   if rec.get('status')=='running' and key=='docking':
    prog=read(d/key/'progress.json',{})
    if prog:rec={**rec,'counts':{'input':prog['input'],'processed':prog['processed'],'remaining':prog['successful'],'failed':prog['failed']}}
@@ -195,18 +226,19 @@ def status(rid):
     rec={**rec,'counts':{**rec.get('counts',{}),'md_quality_passed':len(proof['short_md_quality_passed_compounds'])},'md_quality_evidence':{'artifact':str(path.relative_to(d)),'sha256':digest(path)}}
     break
   stages.append({'key':key,'label':label,'description':desc,**rec,'status':rec.get('status','pending')})
- return {'id':rid,'config':cfg,'stages':stages,'reviews':{k:read(d/'reviews'/f'{k}.json',{}) for k,_,_ in STAGES}}
+ from research.lifecycle import md_progress
+ return {'research_plan':__import__('research.config',fromlist=['plan']).plan(cfg['research']) if cfg.get('research') else None,'md_progress':md_progress(d),'id':rid,'config':cfg,'stages':stages,'reviews':{k:read(d/'reviews'/f'{k}.json',{}) for k,_,_ in STAGES}}
 
 def inventory():
  paths={'Peptide2Mol':'01_molecule_generation/vendor/Peptide2Mol/ckpts/PMT_major.ckpt',
  'REINVENT4':'01_molecule_generation/vendor/REINVENT4/priors/libinvent.prior',
- 'GNINA adapter':'02_docking/src/sbvs2/docking/run_gnina.py',
+ 'Vina adapter':'02_docking/src/sbvs2/docking/vina_official.py',
  'Virtual screening':'03_virtual_screening/src/zvss/stages.py',
  'Membrane MD':str(UI.relative_to(ROOT)/'scientific/membrane.py')}
  modules=[{'name':n,'present':(ROOT/p).is_file(),'path':p} for n,p in paths.items()]
  return {'modules':modules,'structures':[str(p.relative_to(ROOT)) for p in sorted(list((ROOT/'data/structures').glob('*.pdb'))+list((ROOT/'inputs').glob('*.pdb')))],
  'runs':[p.name for p in sorted(RUNS.glob('*'),reverse=True) if (p/'run.json').is_file()],
- 'defaults':defaults(),'platform':sys.platform,'target_platform':'Windows + WSL2 + NVIDIA',
+ 'defaults':defaults(),'research_schema':__import__('research.config',fromlist=['defaults']).defaults(),'platform':sys.platform,'target_platform':'Windows + WSL2 + NVIDIA',
  'notice':'Code and model availability do not establish real computational acceptance. Historical scaffolds are not counted as model outputs.'}
 
 def acquire_compute():
@@ -233,12 +265,25 @@ def start(rid,stage):
    previous_record=read(target/'stage.json',{})
    if previous_record.get('status') not in {'failed','blocked','cancelled'}:
     raise RuntimeError('This stage has completed or interrupted records and cannot be overwritten')
-  previous=[k for k,_,_ in STAGES];idx=previous.index(stage)
-  if idx:require(d,previous[idx-1])
+  previous=[k for k,_,_ in stages_for(cfg)];idx=previous.index(stage)
+  if idx and not (stage=='risk' and (read(d/'reviews/risk.json',{}).get('imported_candidates') or cfg.get('imported_candidates'))):require(d,previous[idx-1])
   lease=acquire_compute()
   if target.exists():
-   archive=d/'attempts'/f'{stage}_{time.time_ns()}';archive.parent.mkdir(exist_ok=True);target.rename(archive)
-  target.mkdir();atomic(target/'review.json',read(d/'reviews'/f'{stage}.json',{}));atomic(target/'stage.json',{'status':'running','started':time.time(),'counts':{},'source_revision':read(d/'active_source_revision.json'),'config_sha256':digest(d/'config.json')})
+   archive=d/'attempts'/f'{stage}_{time.time_ns()}';archive.parent.mkdir(exist_ok=True)
+   if cfg.get('research') and stage in {'peptide2mol','reinvent4'}:
+    archive.mkdir();shutil.copyfile(target/'stage.json',archive/'stage.json')
+   else:target.rename(archive)
+  target.mkdir(exist_ok=True);atomic(target/'review.json',read(d/'reviews'/f'{stage}.json',{}));atomic(target/'stage.json',{'status':'running','started':time.time(),'counts':{},'source_revision':read(d/'active_source_revision.json'),'config_sha256':digest(d/'config.json')})
+  if cfg.get('research'):
+   from research.assets import verify
+   verify(d)
+   from research.resources import disk_guard
+   disk_guard(d,cfg['research'])
+  if cfg.get('research'):
+   from research.config import fingerprint
+   effective=dict(cfg)
+   for key in previous[:idx+1]:effective.update(read(d/'reviews'/f'{key}.json',{}))
+   atomic(target/'resolved_config.json',{'config':effective,'sha256':fingerprint(effective),'version':cfg['research']['version']})
   py=cfg.get('chem_python') or sys.executable
   logfile=(target/'process.log').open('w',encoding='utf-8')
   try:proc=subprocess.Popen([py,str(UI/'pipeline_bridge.py'),'--run-id',rid,'--stage',stage],stdout=logfile,stderr=subprocess.STDOUT,cwd=UI,start_new_session=True,pass_fds=(lease.fileno(),),env={**os.environ,'YUANHE_COMPUTE_FD':str(lease.fileno())})
@@ -294,12 +339,30 @@ REVIEW_FIELDS={
  'prepare':[],
  'peptide2mol':['peptide_python'],
  'reinvent4':['reinvent_executable','core_selections'],
- 'docking':['gnina','gnina_device','docking_receptor','docking_box','receptor_review'],
+ 'risk':['predocking','imported_candidates'],
+ 'availability':['predocking'],
+ 'docking':['vina','docking_seeds','docking_engine','docking_cpu','docking_workers','docking_total_threads','exhaustiveness','num_modes','energy_range','docking_receptor','docking_box','receptor_review'],
  'screening':['screen_python','screening_budget'],
  'gromacs':['gmx','gromacs_tpr','gromacs_system_reviewed','md_system_ids'],
 }
+def validate_docking_settings(cfg):
+ import math
+ if cfg.get('docking_engine')!='vina':raise ValueError('New tasks require official AutoDock Vina')
+ for key in ('docking_cpu','docking_workers','docking_total_threads','exhaustiveness','num_modes'):
+  value=cfg.get(key)
+  if type(value)!=int or value<1:raise ValueError(key+' must be a positive integer')
+ if cfg['num_modes']>100:raise ValueError('num_modes must not exceed 100')
+ if cfg['docking_cpu']*cfg['docking_workers']>cfg['docking_total_threads']:raise ValueError('Concurrent Vina tasks exceed the CPU thread budget')
+ value=cfg.get('energy_range')
+ if type(value) not in (int,float) or not math.isfinite(value) or value<0:raise ValueError('energy_range must be finite and nonnegative in kcal/mol')
+ seeds=cfg.get('docking_seeds',[])
+ if not isinstance(seeds,list) or any(type(v)!=int or not 0<=v<=2147483647 for v in seeds) or len(seeds)!=len(set(seeds)):raise ValueError('Docking seeds must be distinct integers from 0 to 2147483647')
+
 def review(rid,stage,payload):
  d=run_dir(rid)
+ if 'predocking' in payload:
+  from yuanhe_preflight.config import validate
+  validate(payload['predocking'])
  if 'screening_budget' in payload and payload['screening_budget'] not in {'quick','redock_trial','full'}:raise ValueError('Invalid screening budget')
  if 'docking_box' in payload and payload['docking_box'] is not None:
   import math
@@ -308,11 +371,35 @@ def review(rid,stage,payload):
   if any(not 4<=x<=50 for x in b['size']):raise ValueError('Docking box side lengths must lie within 4–50 Å')
  if stage not in REVIEW_FIELDS or set(payload)-set(REVIEW_FIELDS[stage]):raise ValueError('Invalid stage parameters')
  if not (d/'run.json').is_file():raise ValueError('Run not found')
+ if read(d/'config.json').get('research'):
+  if stage=='reinvent4' and (d/'generation_ledger').exists() and list((d/'reinvent4').glob('core_*')):raise ValueError('Core allocation is frozen after sampling starts; create a new task')
+  forbidden=set(payload)&{'docking_seeds','docking_engine','docking_cpu','docking_workers','docking_total_threads','exhaustiveness','num_modes','energy_range','screening_budget','predocking','imported_candidates'}
+  if forbidden:raise ValueError('Frozen execution parameters: create a derived run to change '+','.join(sorted(forbidden)))
+ if stage=='docking':validate_docking_settings({**read(d/'config.json'),**read(d/'reviews/docking.json',{}),**payload})
  with _lock:
   if rid in _active:raise RuntimeError('Process has not exited')
   if (d/stage).exists() and read(d/stage/'stage.json',{}).get('status') not in {'failed','blocked','cancelled'}:raise RuntimeError('Stage started or completed; settings are immutable')
   atomic(d/'reviews'/f'{stage}.json',{**read(d/'reviews'/f'{stage}.json',{}),**payload})
  return {'saved':True}
+
+
+def revise_preflight(rid,stage):
+ """Explicit UI revision of evidence only. Preserve generation and old attempts."""
+ if stage not in ('risk','availability'):raise ValueError('Invalid preflight stage')
+ d=run_dir(rid)
+ with _lock:
+  if _active:raise ValueError('Wait for active work to finish')
+  if (d/'docking').exists() or (d/'screening').exists() or (d/'md_systems').exists():raise ValueError('Downstream artifacts exist; create a separate evidence-review run')
+  lease=acquire_compute()
+  try:
+   for key in (('risk','availability') if stage=='risk' else ('availability',)):
+    target=d/key
+    if target.exists():
+     record=read(target/'stage.json',{})
+     if record.get('status')=='running':raise ValueError('Stage still running')
+     archive=d/'attempts'/(key+'_evidence_revision_'+str(time.time_ns()));archive.parent.mkdir(exist_ok=True);target.rename(archive)
+   return {'status':'pending','stage':stage,'generation_unchanged':True}
+  finally:lease.close()
 
 
 def lease_fds():

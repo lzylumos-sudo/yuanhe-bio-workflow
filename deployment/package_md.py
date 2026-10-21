@@ -10,6 +10,9 @@ def main():
  a.output.parent.mkdir(parents=True,exist_ok=True)
  files={f'scientific/{n}':ROOT/'00_workbench/scientific'/n for n in ['__init__.py','artifacts.py','membrane.py','md_cli.py']}
  for n in ['deployment/membrane-environment.yml','docs/07_MODULE_CONTRACTS.md']:files[n]=ROOT/n
+ for f in (ROOT/'05_molecular_dynamics/modules').rglob('*.py'):
+  files[str(f.relative_to(ROOT))]=f
+ files['docs/15_VINA_RESP_RESEARCH.md']=ROOT/'docs/15_VINA_RESP_RESEARCH.md'
  files.update(license_files())
  manifest={n:hashlib.sha256(p.read_bytes()).hexdigest() for n,p in files.items()}
  with zipfile.ZipFile(a.output,'x',zipfile.ZIP_DEFLATED) as z:

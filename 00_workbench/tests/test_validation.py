@@ -28,7 +28,7 @@ def test_replica_rejects_changed_parent(tmp_path):
  d,src=built(tmp_path);(src/'system.gro').write_text('tampered')
  with pytest.raises(ValueError,match='checksum'):replicas(d,{},dict(system_id='MD_original',reviewed=True),tmp_path)
 
-@pytest.mark.parametrize('seeds',[[17,17],[True,41],[0,41],[17]])
+@pytest.mark.parametrize('seeds',[[17,17],[True,41],[0,41],[]])
 def test_replica_rejects_invalid_seeds(tmp_path,seeds):
  d,src=built(tmp_path)
  with pytest.raises(ValueError):replicas(d,{},dict(system_id='MD_original',reviewed=True,seeds=seeds),tmp_path)
@@ -57,7 +57,7 @@ def completed_replicas(tmp_path):
   ident=f'MD_{seed}';folder=tmp_path/'md_systems'/ident;folder.mkdir(parents=True)
   (folder/'production.xtc').write_bytes(b'fixture, not a real trajectory')
   a.atomic(folder/'system.json',dict(status='completed',compound_id='fixture',replica=dict(parent_system_sha256='same',velocity_seed=seed),acceptance_protocol=MD_QUALITY_PROTOCOL,parameters=dict(temperature_K=310)))
-  a.atomic(folder/'analysis/summary.json',dict(source_hashes={'production.xtc':a.digest(folder/'production.xtc')},production_span_ns=5,quality_observations=dict(finite_trajectory=True,constraint_warnings=False),thermodynamics={'Temperature':{'mean':310}}))
+  a.atomic(folder/'analysis/summary.json',dict(source_hashes={'production.xtc':a.digest(folder/'production.xtc')},production_span_ns=500,production_end_ns=500,last100ns={'status':'computed_requires_review'},quality_observations=dict(finite_trajectory=True,constraint_warnings=False),thermodynamics={'Temperature':{'mean':310}}))
   a.atomic(folder/'analysis/series.json',[dict(backbone_rmsd_A=1,ligand_rmsd_A=1,minimum_contact_A=3) for _ in range(10)])
   ids.append(ident)
  record_analyses(tmp_path,ids)
@@ -106,3 +106,22 @@ def test_ui_distinguishes_md_quality_from_experimental_validation(tmp_path,monke
  assert 'md_quality_passed' not in a.read(tmp_path/'gromacs/stage.json')['counts']
  a.atomic(op/'result.json',{})
  with pytest.raises(ValueError,match='quality evidence'):workflow.status(tmp_path.name)
+
+
+def test_single_seed_is_supported(tmp_path):
+ d,_=built(tmp_path)
+ result=replicas(d,{},dict(system_id='MD_original',reviewed=True,seeds=[17]),tmp_path)
+ assert len(result['replicas'])==1
+
+
+@pytest.mark.parametrize('end,window',[(5,'computed_requires_review'),(499,'computed_requires_review'),(500,'insufficient_duration')])
+def test_quality_gate_rejects_short_or_missing_formal_window(tmp_path,end,window):
+ from scientific.validation import summarize_replicas
+ ids=completed_replicas(tmp_path)
+ for ident in ids:
+  path=tmp_path/'md_systems'/ident/'analysis/summary.json'
+  summary=a.read(path);summary.update(production_span_ns=end,production_end_ns=end,last100ns={'status':window});a.atomic(path,summary)
+ record_analyses(tmp_path,ids)
+ result=summarize_replicas(tmp_path,{},dict(system_ids=ids),tmp_path/'out')
+ assert not result['provisional_md_quality_accepted']
+ assert result['md_validated_molecules']==0
