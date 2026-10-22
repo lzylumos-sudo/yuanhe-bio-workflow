@@ -246,6 +246,10 @@ def build_prepared(d,c,p,out,row,ligand_path,receptor,source_revision=None):
  meta['software_versions']=versions
  from collections import Counter
  meta['residue_counts']=dict(Counter(r.name for r in model.topology.residues()))
+ from yuanhe.protocols import membrane as protocol_identity
+ meta['protocol']=protocol_identity(meta['parameters'])
+ meta['software_identity']=__import__('yuanhe.version',fromlist=['identity']).identity()
+ meta['forcefield_parameter_files']={str(x):w.digest(x) for x in folder.rglob('*') if x.is_file() and x.suffix in {'.xml','.itp','.top','.prmtop','.frcmod'}}
  meta['net_charge_e']=sum(float(system.getForce(i).getParticleParameters(j)[0].value_in_unit(unit.elementary_charge)) for i in range(system.getNumForces()) if system.getForce(i).__class__.__name__=='NonbondedForce' for j in range(system.getNumParticles()))
  if abs(meta['net_charge_e'])>1e-3:raise ValueError('Built system is not neutral')
  if meta['residue_counts'].get('LIG')!=1:raise ValueError('Exactly one ligand required')
@@ -357,6 +361,11 @@ def run(d,c,p,out):
   check_completion(folder,phase,recipe)
   progress['phases'][phase]={'status':'completed','tpr_sha256':tpr_hash,'files':{phase+s:w.digest(folder/(phase+s)) for s in ('.gro','.tpr','.mdp','.log','.cpt','.xtc','.edr') if (folder/(phase+s)).is_file()}}
   w.atomic(folder/'progress.json',progress);previous=phase+'.gro'
+ if meta.get('protocol'):
+  from yuanhe.configuration import integration_steps
+  expected=integration_steps(meta['parameters']['production_ns'],2)
+  actual=int(re.search(r'^nsteps\s*=\s*(\d+)',mdp('production',meta['parameters'],c['seed']),re.M).group(1))
+  if actual!=expected or meta['protocol']['production_steps']!=expected:raise ValueError('Production steps differ from frozen protocol')
  meta['status']='completed';w.atomic(folder/'system.json',meta)
  return {'system_id':meta['id'],'status':'completed','scientific_validation':'requires_trajectory_review'}
 

@@ -20,6 +20,9 @@ jobs:
         run: |
           python deployment/check_english.py
           python deployment/check_repository.py
+          python deployment/check_governance.py
+          python deployment/check_scientific_baseline.py
+          python deployment/sync_platform_version.py --check
       - name: Install recorded chemistry and web dependencies
         id: dependencies
         run: |
@@ -70,6 +73,15 @@ jobs:
       - name: Frontend syntax
         if: ${{ !cancelled() && steps.dependencies.outcome == 'success' }}
         run: node --experimental-vm-modules 00_workbench/webui/check_js.mjs
+      - name: Public demo frozen build and source contracts
+        if: ${{ !cancelled() && steps.dependencies.outcome == 'success' }}
+        working-directory: 06_websites/01_public_demo/yuanhe-public
+        run: |
+          npm install --global pnpm@11.19.0
+          pnpm install --frozen-lockfile --ignore-scripts
+          node node_modules/typescript/bin/tsc
+          node node_modules/vite/bin/vite.js build
+          node --test tests/*.test.mjs
       - name: Preserve test evidence
         if: always()
         uses: actions/upload-artifact@v7

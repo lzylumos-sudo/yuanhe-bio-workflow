@@ -13,6 +13,9 @@ def case(tmp_path,monkeypatch):
  rules=Path(__file__).resolve().parents[2]/'02_docking/src/yuanhe_preflight/configs/risk_rules.v1.json'
  target=tmp_path/'02_docking/src/yuanhe_preflight/configs/risk_rules.v1.json'
  target.parent.mkdir(parents=True);target.write_bytes(rules.read_bytes())
+ profile=Path(__file__).resolve().parents[2]/'03_virtual_screening/configs/targets/ecmurj.yaml'
+ local_profile=tmp_path/'03_virtual_screening/configs/targets/ecmurj.yaml'
+ local_profile.parent.mkdir(parents=True);local_profile.write_bytes(profile.read_bytes())
  monkeypatch.setattr(w,'ROOT',tmp_path);monkeypatch.setattr(w,'RUNS',tmp_path/'runs')
  (tmp_path/'test.pdb').write_text('HEADER TEST\nATOM      1  CA  ALA A   3       1.000   2.000   3.000  1.00 20.00           C\nEND\n')
  rid=w.create({'structure':'test.pdb'})['id'];return tmp_path,rid,w.run_dir(rid)

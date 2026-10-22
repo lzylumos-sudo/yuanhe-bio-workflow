@@ -1,18 +1,40 @@
-# 🧬 Yuanhe Bio
+# Yuanhe Bio Platform
 
-**Administrators deploying the complete browser workflow:** use the [current full workbench deployment guide](deployment/WORKBENCH_DEPLOYMENT.md) for installation, model/data prerequisites, independent diagnostics and acceptance.
-
-**AI-Driven Drug Discovery & Molecular Design Platform**
+**AI-Driven Drug Discovery Platform**
 
 *From Protein Structures to Small-Molecule Candidates.*
 
 Generative AI · Structure-Based Drug Design · Virtual Screening · Molecular Dynamics
 
-**Source-Available Research Edition · 0.4.0-rc1 · Final acceptance open**
+<!-- current-release:start -->
+**Current administrator build: 0.11.0-dev.2 (development)**
+
+[Download current package](https://github.com/lzylumos-sudo/yuanhe-bio-workflow/releases/download/v0.11.0-dev.2/yuanhe-bio-platform-0.11.0-dev.2.zip) · [Install and verify](DEPLOY.md) · [Release notes](https://github.com/lzylumos-sudo/yuanhe-bio-workflow/releases/tag/v0.11.0-dev.2) · [Historical versions](docs/releases/HISTORY.md)
+
+The package includes version and source-hash records. Target-machine acceptance remains required.
+<!-- current-release:end -->
 
 Yuanhe Bio brings molecular generation, docking and evidence-led candidate review into a traceable AIDD research workflow. Its current product focus is helping researchers decide which computational hypotheses merit further review and testing.
 
 [Screening decision layer](03_virtual_screening/README.md) · [Product value and commercial positioning](docs/product/PRODUCT_VALUE_ZH.md) · [Code and documentation map](docs/product/CODE_AND_CONTENT_MAP.md) · [Public/private boundary](docs/commercialization/public_private_boundary.md)
+
+## Architecture and version governance
+
+The integrated platform provides six module IDs: **GEN, DOCK, SCREEN, INTERACT, MD, WORKBENCH**. Peptide2Mol and REINVENT4 remain separate generators; ZVSS contains Y-MAVS; ZLIS remains the static interaction tool; OpenMM soluble MD and GROMACS membrane MD retain separate protocols. Historical implementations remain available.
+
+```bash
+python yuanhe version
+python yuanhe modules
+python yuanhe doctor
+python yuanhe protocols
+python yuanhe validate --config task.json
+python yuanhe run --config task.json  # creates only; computation requires explicit stage start
+python 00_workbench/run_webui.py --no-browser
+```
+
+Administrators use the [full workbench deployment guide](deployment/WORKBENCH_DEPLOYMENT.md) and its installation script. UI System & Versions uses actual backend prerequisites, and each new integrated run stores original software/Git/protocol identities and resolved configuration. The public demo remains static and does not expose private GPU services.
+
+[Architecture](docs/architecture/overview.md) · [Configuration](docs/reference/configuration.md) · [CLI](docs/reference/cli.md) · [Protocols](docs/protocols/overview.md) · [Migration and incomplete scope](docs/migration/architecture_refactor.md) · [Actual validation](docs/validation/refactor_validation_report.md)
 
 ## Current source migration: Vina and single-trajectory research MD
 
@@ -53,13 +75,9 @@ A research workbench for molecular generation, structure-based virtual screening
 
 The project's contribution is workflow integration, review checkpoints and evidence tracking. The underlying generation, docking and simulation methods belong to their respective upstream projects. This is research software with a noncommercial source-available license; it is not a validated predictor of binding affinity or biological activity.
 
-## Historical release evidence (before this migration)
+## Historical evidence
 
-**Release 0.4.0-rc1: reproducible research integration, with explicit scientific gates.** The browser workflow connects reviewed structures to generation, docking, screening, membrane construction, GROMACS, trajectory analysis and export. The fresh 9NU4 run completed all 16 generation attempts (one accepted), generated eight unique REINVENT molecules and docked nine molecules / 81 poses. Corrected, versioned reassessment of the archived three-seed redocking results yielded **two formally qualified screening candidates**. Qualification is distinct from MD quality and biological activity.
-
-The release includes independent docking, screening, membrane MD and peptide-contact evidence packages, clean-environment installation records, a second-target crystallographic docking control, and prespecified three-repeat MD quality criteria. See [current acceptance evidence](docs/10_INTEGRATED_ACCEPTANCE.md), [module contracts](docs/07_MODULE_CONTRACTS.md) and [application scope](docs/09_MATURITY_AND_APPLICATION_SCOPE.md). Prior 0.3 results remain historical records. Windows/WSL2 with RTX 5070 is not a validated execution platform for this release.
-
-**Final acceptance remains open.** The last remote observation on 2026-10-18 at 11:18 China Standard Time confirmed two completed 5 ns repeats; the third was in equilibration. Remote access was lost before aggregate acceptance and final export. Passing automated checks does not close those steps. The [five-part acceptance and maintenance checklist](docs/11_RELEASE_MAINTENANCE.md) defines the remaining scope, evidence requirements and release decision.
+Prior software identities and acceptance records are listed in [version history](docs/releases/HISTORY.md). They retain their original scientific status and do not identify the current administrator download.
 
 ```mermaid
 flowchart LR

@@ -47,14 +47,16 @@ def check(root=ROOT):
         if name == 'deployment/validation_5070/INSTALL_AND_VALIDATE.txt':
             if re.search(r'\bcompetition\b', source, re.I):
                 errors.append(f'{name}: outdated event framing')
-    server = root / '00_workbench/webui/server.py'
-    version = next(node.value.value for node in ast.parse(server.read_text()).body
-                   if isinstance(node, ast.Assign) and any(
-                       isinstance(t, ast.Name) and t.id == 'VERSION' for t in node.targets))
-    if f'Release {version}' not in (root/'README.md').read_text():
-        errors.append('README.md: release differs from UI/API version')
-    if f'Version {version}' not in (root/'00_workbench/webui/static/index.html').read_text():
-        errors.append('index.html: footer differs from UI/API version')
+    version = (root/'VERSION').read_text().strip()
+    import os
+    probe = subprocess.run([sys.executable, '-c', 'from webui.server import VERSION;print(VERSION)'],
+                           cwd=root, env={**os.environ, 'PYTHONPATH': str(root/'00_workbench')}, capture_output=True, text=True)
+    if probe.returncode or probe.stdout.strip() != version:
+        errors.append('UI/API imported version differs from VERSION')
+    if 'platformVersion' not in (root/'00_workbench/webui/static/index.html').read_text():
+        errors.append('index.html: dynamic platform version display missing')
+    sync = subprocess.run([sys.executable, str(root/'deployment/sync_platform_version.py'), '--check'], capture_output=True, text=True)
+    if sync.returncode: errors.append('Generated package version metadata is stale: ' + sync.stdout)
     for name in ('LICENSE', 'LICENSE_SCOPE.txt', 'THIRD_PARTY_NOTICES.txt'):
         if (root/name).read_bytes() != (root/'00_workbench/webui/static/licenses'/('LICENSE.txt' if name == 'LICENSE' else name)).read_bytes():
             errors.append(f'{name}: UI license copy differs')

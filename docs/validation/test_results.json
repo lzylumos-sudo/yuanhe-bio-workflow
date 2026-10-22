@@ -1,0 +1,125 @@
+{
+  "baseline_commit": "e4906f2c76c711522654516b2ad15111707b1484",
+  "software_version": "0.11.0-dev.1",
+  "date": "2026-10-22",
+  "execution_host": "macOS ARM64",
+  "python": "3.11.17",
+  "suites": [
+    {
+      "suite": "generation",
+      "cwd": "01_molecule_generation",
+      "command": "PYTHONPATH=. $PYTHON -m pytest tests -q -ra --junitxml=report.xml",
+      "junit_records": 63,
+      "passed": 63,
+      "failed": 0,
+      "errors": 0,
+      "skipped": 0,
+      "time_seconds": 1.677,
+      "junit_sha256": "5cebafe04d1c7e31ef5c2ddc55af8dff517daad780bd2cf717f6c3dac0ae6abd",
+      "skip_details": []
+    },
+    {
+      "suite": "workbench",
+      "cwd": "00_workbench",
+      "command": "PYTHONPATH=. $PYTHON -m pytest tests -q -ra --junitxml=report.xml",
+      "junit_records": 128,
+      "passed": 127,
+      "failed": 0,
+      "errors": 0,
+      "skipped": 1,
+      "time_seconds": 76.912,
+      "junit_sha256": "fb5d790464dba362efe99b8ce0f9614067af223a60a4a7734695ccd667c817c2",
+      "skip_details": [
+        {
+          "test": "test_docs_match_data",
+          "reason": "Historical generated results are not distributed"
+        }
+      ]
+    },
+    {
+      "suite": "screening",
+      "cwd": "03_virtual_screening",
+      "command": "PYTHONPATH=src $PYTHON -m pytest tests -q -ra --junitxml=report.xml -m 'not integration'",
+      "junit_records": 71,
+      "passed": 71,
+      "failed": 0,
+      "errors": 0,
+      "skipped": 0,
+      "time_seconds": 3.512,
+      "junit_sha256": "55d60e624826e050066ab23282a8f331a8d2e87e13483e443b7056e6ba8d44de",
+      "skip_details": []
+    },
+    {
+      "suite": "docking",
+      "cwd": "02_docking",
+      "command": "PYTHONPATH=src $PYTHON -m pytest tests -q -ra --junitxml=report.xml",
+      "junit_records": 81,
+      "passed": 79,
+      "failed": 0,
+      "errors": 0,
+      "skipped": 2,
+      "time_seconds": 14.961,
+      "junit_sha256": "3fd10d430bd665a906b383a4b43aee053cba164ad4634ca011aa6c9004525d0d",
+      "skip_details": [
+        {
+          "test": "tests.v2.test_prepare_dock",
+          "reason": "collection skipped"
+        },
+        {
+          "test": "test_molscrub_states_are_pka_based_and_tagged",
+          "reason": "molscrub not installed"
+        }
+      ]
+    },
+    {
+      "suite": "interaction",
+      "cwd": "04_interaction_analysis",
+      "command": "PYTHONPATH=src $PYTHON -m pytest tests -q -ra --junitxml=report.xml",
+      "junit_records": 40,
+      "passed": 40,
+      "failed": 0,
+      "errors": 0,
+      "skipped": 0,
+      "time_seconds": 17.375,
+      "junit_sha256": "c0f92239adfc3742179e9027d2269ca5f1d7144233d4fe2f9d98607200fe0158",
+      "skip_details": []
+    },
+    {
+      "suite": "md",
+      "cwd": "05_molecular_dynamics",
+      "command": "PYTHONPATH=. $PYTHON -m pytest tests -q -ra --junitxml=report.xml",
+      "junit_records": 80,
+      "passed": 79,
+      "failed": 0,
+      "errors": 0,
+      "skipped": 1,
+      "time_seconds": 17.741,
+      "junit_sha256": "390ed77140ec58d037f894f2f310c1960f9da497376ee5b0362ebdebb0ef2922",
+      "skip_details": [
+        {
+          "test": "test_sidechain_histidine_and_explicit_hxt_terminus",
+          "reason": "Opt-in target Ubuntu native API test"
+        }
+      ]
+    },
+    {
+      "suite": "package",
+      "cwd": "deployment",
+      "command": "PYTHONPATH=. $PYTHON -m pytest tests -q -ra --junitxml=report.xml",
+      "junit_records": 9,
+      "passed": 9,
+      "failed": 0,
+      "errors": 0,
+      "skipped": 0,
+      "time_seconds": 1.502,
+      "junit_sha256": "54cd00d38a16522670f1b83145667014ae465c1e0650d47494c7c98e23c4a5af",
+      "skip_details": []
+    }
+  ],
+  "total_passed": 468,
+  "total_failed": 0,
+  "total_errors": 0,
+  "junit_records": 472,
+  "skipped_records": 4,
+  "collection_note": "One docking module is skipped during collection; seven source test functions in that module are not collected. Remaining skips are three collected test items."
+}

@@ -1,3 +1,19 @@
+# Changelog
+
+## 0.11.0-dev.2 - integrated administrator build
+
+- Integrated the existing architecture/version-governance branch with the deployment-readiness fixes from main.
+- Preserved independent no-task diagnostics, checked UI startup, evidence-path resolution and MD runtime tools while retaining governed configuration dispatch and run provenance.
+- Added one generated current-download entrypoint, a separate historical-version index, immutable versioned administrator packages, source manifests and SHA-256 checksums.
+- Software metadata reads root VERSION; scientific protocols, MD defaults and historical results are unchanged. Target-host full workflow and 500 ns validation remain required.
+
+## 0.11.0-dev.1 - historical architecture-governance branch
+
+- Unified platform identity, registry-backed UI/API/CLI, independent scientific protocol IDs and generated package metadata.
+- Added frozen execution configuration, new-run manifests/artifact records and compatibility facades.
+- Preserved scientific defaults, algorithms, original protocols, licenses and historical records; added strict drift and lightweight regression checks.
+- No stable release, target-GPU full-chain acceptance, historical-data migration or public deployment. See docs/migration/architecture_refactor.md.
+
 ## 2026-10-21 — Vina / RESP research source migration
 
 - Official Vina 1.2.7 CPU jobs, mapped Meeko SDF export, explicit affinity semantics and engine-separated history/caches.
@@ -6,8 +22,6 @@
 - One 500 ns production trajectory, explicit GPU selection/checkpoint recovery, 400–500 ns RMSD statistics and actual PB backend.
 - Update configuration, installation/container recipes, reports, public demo source and license notes.
 - Code-only delivery by request. Task-generated acceptance results removed; target-host testing and production remain deferred. See docs/17_CODE_DELIVERY_20261021.md.
-
-# Changelog
 
 ## Unreleased — repository maintenance, 2026-10-19
 

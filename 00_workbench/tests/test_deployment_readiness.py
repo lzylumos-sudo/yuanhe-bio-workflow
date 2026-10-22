@@ -25,6 +25,9 @@ w.ROOT=temporary;w.RUNS=temporary/'runs'
 rules=temporary/'02_docking/src/yuanhe_preflight/configs/risk_rules.v1.json'
 rules.parent.mkdir(parents=True)
 rules.write_bytes((root/'02_docking/src/yuanhe_preflight/configs/risk_rules.v1.json').read_bytes())
+target=temporary/'03_virtual_screening/configs/targets/ecmurj.yaml'
+target.parent.mkdir(parents=True)
+target.write_bytes((root/'03_virtual_screening/configs/targets/ecmurj.yaml').read_bytes())
 (temporary/'input.pdb').write_text('HEADER TEST\nEND\n')
 run=w.create({'structure':'input.pdb'})
 assert (w.run_dir(run['id'])/'config.json').is_file()
