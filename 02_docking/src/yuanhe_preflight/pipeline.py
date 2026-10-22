@@ -72,7 +72,7 @@ def risk_stage(rows, config, out, *, base, batch_id):
             else:seen[r['smiles']]=r['id']
             (out/(r['id']+'.svg')).write_text(rules.svg(r['smiles']))
         except Exception as exc:r.update(decision='review',reason=type(exc).__name__+': '+str(exc))
-        r['id']=r.get('compound_id') or 'INVALID'+hash_obj({'batch':batch_id,'index':index,'smiles':r.get('original_smiles')})[:16];r.setdefault('molecule_id',r['id'])
+        r['id']=r.get('compound_id') or 'INVALID'+hash_obj({'batch':batch_id,'index':index,'smiles':r.get('original_smiles')})[:16];r.setdefault('molecule_id',r['id']);r.setdefault('canonical_smiles',None)
         r.update(filter_status={'pass':'PASS','exclude':'BLOCK'}.get(r['decision'],'REVIEW'),matched_rules=r.get('risk',{}).get('alerts',[]),alert_type=r.get('alert_types',[]),alert_severity=r.get('severity'),rule_source=[a['source'] for a in r.get('risk',{}).get('alerts',[])],rejection_reason=r.get('reason') if r.get('decision')!='pass' else '')
         results.append(r)
         if len(results)%config['batch_size']==0 or len(results)==len(rows):write(out/'progress.json',counts(results,len(rows)))
@@ -85,6 +85,7 @@ def risk_stage(rows, config, out, *, base, batch_id):
     return summary
 
 def availability_stage(rows,config,out):
+    from .toxicity_worker import SUPPORTED
     validate(config);out=Path(out);out.mkdir(parents=True,exist_ok=True);write(out/'config.snapshot.json',config)
     started=time.monotonic();timings={}
     if config.get('engine'):
@@ -151,9 +152,10 @@ def availability_stage(rows,config,out):
         results=ordered[:config['engine']['keep']]+[r for r in results if r['decision']!='pass']+[r for r in rows if r['decision']!='pass']
         for r in results:
             if 'toxicity_predictions' not in r:
-                r['toxicity_predictions']=[{'molecule_id':r['molecule_id'],'model_name':'ADMET-AI','model_version':config['engine']['toxicity']['model_version'],'endpoint':ep,'raw_prediction':None,'prediction_status':'NOT_EVALUATED','risk_level':'UNKNOWN','error_message':'Not eligible after structure/deduplication gate'} for ep in config['engine']['toxicity']['endpoints']]
-            r.setdefault('synthesis',{'molecule_id':r['molecule_id'],'sa_score':None,'sc_score':None,'screening_status':'NOT_EVALUATED'})
+                r['toxicity_predictions']=[{'molecule_id':r['molecule_id'],'model_name':'ADMET-AI','model_version':config['engine']['toxicity']['model_version'],'endpoint':ep,'raw_prediction':None,'prediction_unit':SUPPORTED.get(ep),'threshold':config['engine']['toxicity']['thresholds'][ep],'prediction_status':'NOT_EVALUATED','risk_level':'UNKNOWN','error_message':'Not eligible after structure/deduplication gate'} for ep in config['engine']['toxicity']['endpoints']]
+            r.setdefault('synthesis',{'molecule_id':r['molecule_id'],'sa_score':None,'sc_score':None,'score_version':None,'synthesis_difficulty':'UNKNOWN','prediction_status':'NOT_EVALUATED','rejection_reason':'Not eligible after structure/deduplication gate','screening_status':'NOT_EVALUATED'})
             r.setdefault('availability',{'status':'not_evaluated','availability_label':'AVAILABILITY_UNKNOWN','route_status':'NOT_EVALUATED','routes':[],'supplier_records':[]})
+            r.setdefault('ranking',{'rank':None,'mode':config['engine']['mode'],'status':'NOT_RANKED','reason':'Not eligible for final ranking'})
             r.update(final_pass=r['decision']=='pass',docking_status='QUALIFIED' if r['decision']=='pass' else 'NOT_ELIGIBLE',rejection_reason='' if r['decision']=='pass' else r.get('reason',''))
     selection=out/'selection.json'
     write(selection,{'qualified_ids':[r['compound_id'] for r in results if r['decision']=='pass'],'policy_sha256':hash_obj(config)})

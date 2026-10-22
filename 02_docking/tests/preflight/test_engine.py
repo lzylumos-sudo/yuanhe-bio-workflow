@@ -66,6 +66,11 @@ def test_failed_model_retains_all_records_and_exports(tmp_path):
     assert len(records)==3 and read(tmp_path/'availability/qualified.json')==[]
     identity_index=read(tmp_path/'availability/identity_evidence.json')
     assert len(identity_index)==1
+    for record in records:
+        assert 'canonical_smiles' in record and 'ranking' in record
+        for prediction in record['toxicity_predictions']:
+            assert {'raw_prediction','prediction_unit','threshold','error_message'} <= prediction.keys()
+        assert 'synthesis_difficulty' in record['synthesis']
     real=next(x for x in records if x.get('screening'))
     assert all(x['prediction_status']=='ERROR' and x['raw_prediction'] is None for x in real['toxicity_predictions'])
     assert real['synthesis']['sa_score']>0 and real['synthesis']['sc_score'] is None
