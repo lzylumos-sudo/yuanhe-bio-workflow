@@ -114,8 +114,13 @@ class AvailabilityFilter:
             write(cached,record)
             return {**raw,'cache_key':key,'cache_hit':False,'search_artifact':str(cached)}
 
-    def screen(self, smiles):
+    def screen(self, smiles, *, allow_search=True):
         smiles=canonical(smiles); supply=self.catalog.match(smiles)
+        external=None
+        if self.cfg.get('engine',{}).get('pubchem',{}).get('enabled'):
+            from .pubchem import PubChem
+            external=PubChem(self.cfg['engine']['pubchem'],self.cfg['cache_dir']).query(smiles)
+            supply+=external['records']
         valid=[x for x in supply if x['status'] in BUY_LABELS]
         labels=sorted({BUY_LABELS[x['status']] for x in valid}); routes=[]; raw=None
         status='purchase_supported' if valid else 'acquisition_unknown'
@@ -128,7 +133,7 @@ class AvailabilityFilter:
                     old=read(artifact)
                     if old.get('raw_sha256')==hash_obj(old.get('raw')) and old.get('assets')==self.asset_manifest and old.get('raw',{}).get('target_smiles')==smiles:
                         raw={**old['raw'],'search_artifact':str(artifact),'cache_hit':True};break
-        else:raw=self.search(smiles)
+        else:raw=self.search(smiles) if allow_search else {'status':'not_evaluated_budget','routes':[]}
         if raw and raw.get('status')=='searched':
             for tree in raw.get('routes',[]):
                 review=next((x for x in self.cfg.get('route_reviews',[]) if x.get('route_sha256')==hash_obj(tree)),None)
@@ -145,8 +150,10 @@ class AvailabilityFilter:
         if status=='route_needs_review':pending_labels.append('Incomplete route or key chemistry requires review')
         if status=='no_route_found':pending_labels.append('No route found (not evidence of infeasibility)')
         if not labels:pending_labels.append('Acquisition pathway unknown')
-        return seal({'status_labels':pending_labels,'smiles':smiles,'decision':'pass' if labels else 'pending','status':status,'labels':sorted(set(labels)),
-                     'supplier_records':supply,'routes':routes,'raw_search':raw,'asset_manifest':self.asset_manifest,
+        return seal({'route_status':'ROUTE_FOUND' if routes else 'NO_ROUTE_FOUND' if status=='no_route_found' else 'NOT_EVALUATED' if status in ('purchase_supported','not_evaluated_budget') else 'ERROR',
+                     'availability_label':'PURCHASABLE_VERIFIED' if valid else 'SYNTHESIZABLE_PREDICTED' if status=='route_supported' else 'PURCHASABLE_UNCONFIRMED' if supply else 'AVAILABILITY_UNKNOWN',
+                     'status_labels':pending_labels,'smiles':smiles,'decision':'pass' if labels else 'pending','status':status,'labels':sorted(set(labels)),
+                     'external_query':external,'supplier_records':supply,'routes':routes,'raw_search':raw,'asset_manifest':self.asset_manifest,
                      'catalog_versions':self.catalog.versions,'stock_versions':self.stock.versions,
-                     'evidence_max_age_days':self.catalog.max_age_days,'network':{'enabled':False,'sent_structures':[]},
+                     'evidence_max_age_days':self.catalog.max_age_days,'network':{'enabled':external is not None,'sent_structures':[smiles] if external else []},
                      'final_acquisition_review':'required_before_wet_lab_or_order'})

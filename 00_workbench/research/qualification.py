@@ -91,11 +91,8 @@ def supplier_rows(root,path,limit):
         handle=source.open()
         rows=csv.DictReader(handle) if source.suffix.lower()=='.csv' else ({'smiles':line.split()[0]} for line in handle if line.strip())
     try:
-        seen=set()
-        for row in rows:
-            cid,_,_=identity(row['smiles'])
-            if cid not in seen and len(seen)>=limit:break
-            seen.add(cid)
+        for index,row in enumerate(rows):
+            if index>=limit:break
             yield {**row,'source_stage':'supplier','library_sha256':sha,'library_path':str(source.relative_to(root))}
     finally:
         if handle:handle.close()
@@ -106,7 +103,7 @@ def qualify(root,d,cfg,generated,out):
     require(d,'risk');require(d,'availability')
     out.mkdir(parents=True,exist_ok=True)
     risk_rows=read(d/'risk/records.json',[]);available=read(d/'availability/records.json',[])
-    parents={r['compound_id']:r for r in read(d/'risk/parent_index.json',[])}
+    parents={r['compound_id']:r for r in read(d/'risk/parent_index.json',[]) if r.get('compound_id')}
     counts={'valid':len(parents),'unique':len(parents),'chemistry_passed':len(parents),
             'toxicity_structure_passed':sum(r['decision']=='pass' for r in risk_rows),
             'acquisition_screening_qualified':0,'screening_qualified':0}
@@ -115,8 +112,10 @@ def qualify(root,d,cfg,generated,out):
     db.execute('CREATE TABLE compounds (compound_id TEXT PRIMARY KEY, smiles TEXT, record TEXT)')
     with db, (out/'qualification.jsonl').open('w') as journal:
         for record in available:
-            cid=record['compound_id'];parent=parents.get(cid,{})
-            a=record['availability'];passed=record['decision']=='pass'
+            cid=record.get('compound_id')
+            if not cid or record.get('decision')=='duplicate':continue
+            parent=parents.get(cid,{})
+            a=record.get('availability',{});passed=record['decision']=='pass'
             status='acquisition_pending'
             if passed:
                 require_ligand(record['source_sdf'],record['qualification_evidence'])
@@ -124,10 +123,10 @@ def qualify(root,d,cfg,generated,out):
                 elif any(x.get('review') for x in a.get('routes',[])):status='synthesizable_reviewed'
                 else:status='synthesizable_predicted'
             item={**parent,**record,'sdf':record['source_sdf'],
-                  'risk':{'status':'risk_screen_passed','evidence':record['risk']},
+                  'risk':{'status':'risk_screen_passed' if record.get('risk',{}).get('decision')=='pass' else 'risk_review_or_blocked','evidence':record.get('risk')},
                   'acquisition':{'status':status,'evidence':a},'screening_qualified':passed}
             journal.write(json.dumps(item)+'\n')
-            db.execute('INSERT INTO compounds VALUES (?,?,?)',(cid,item['smiles'],json.dumps(item)))
+            db.execute('INSERT OR REPLACE INTO compounds VALUES (?,?,?)',(cid,item['smiles'],json.dumps(item)))
             if passed:rows.append(item);counts['acquisition_screening_qualified']+=1;counts['screening_qualified']+=1
     db.close()
     return rows,counts
@@ -140,24 +139,27 @@ def prepare_risk(root,d,cfg,out):
     from rdkit.Chem import AllChem
     from webui.workflow import read,atomic
     from yuanhe_preflight.pipeline import risk_stage
-    rc=cfg['research'];rows=[];seen={}
+    from yuanhe_preflight.common import identity as exact_identity
+    from yuanhe_preflight.structure import standardize
+    rc=cfg['research'];rows=[]
     inputs=out/'standardized';inputs.mkdir(parents=True,exist_ok=True)
-    for source in chain(read(d/'reinvent4/candidates.json',[]),supplier_rows(root,rc['supplier_library'],rc['external_limit'])):
-        try:cid,canon,stereo=identity(source['smiles'])
-        except ValueError:continue
-        if cid in seen:
-            seen[cid]['sources'].append(source);continue
-        mol=Chem.AddHs(Chem.MolFromSmiles(canon));params=AllChem.ETKDGv3();params.randomSeed=cfg['seed']
-        if AllChem.EmbedMolecule(mol,params)!=0:continue
-        target=inputs/(cid+'.sdf')
-        with Chem.SDWriter(str(target)) as writer:writer.write(mol)
-        row={**source,'id':cid,'compound_id':cid,'smiles':canon,'stereochemistry':stereo,'sdf':str(target.relative_to(d)),'sources':[source]}
-        seen[cid]=row;rows.append(row)
+    supplied=cfg.get('imported_candidates') or rc['supplier_library']
+    for index,source in enumerate(chain(read(d/'reinvent4/candidates.json',[]),supplier_rows(root,supplied,rc['external_limit']))):
+        try:
+            mapping=standardize(source['smiles']);ident=exact_identity(mapping['exact_smiles'])
+            cid=ident['compound_id'];canon=ident['smiles']
+            mol=Chem.MolFromSmiles(canon)
+            target=inputs/(str(index)+'.sdf')
+            with Chem.SDWriter(str(target)) as writer:writer.write(mol)
+            rows.append({**source,**ident,'id':cid,'original_smiles':source['smiles'],'standardization':mapping,'sdf':str(target.relative_to(d)),'sources':[source]})
+        except (ValueError,KeyError) as exc:
+            rows.append({**source,'id':'invalid_'+str(index),'import_error':str(exc)})
     atomic(out/'parent_index.json',rows)
     result=risk_stage(rows,cfg['predocking'],out,base=d,batch_id=d.name)
     if rc['risk_rules']:
         records=read(out/'records.json',[])
         for record in records:
+            if record.get('decision')!='pass':continue
             extra=risk(Chem.MolFromSmiles(record['smiles']),rc['risk_rules'],rc['risk_rules_review'])
             record['additional_rules']=extra
             if extra['status']!='risk_screen_passed':record['decision']='exclude' if extra['status']=='risk_blocked' else 'review'

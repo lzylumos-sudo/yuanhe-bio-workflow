@@ -2,7 +2,7 @@
 import copy, json, math, platform, sys
 from yuanhe.configuration import fingerprint
 from pathlib import Path
-PATH = Path(__file__).resolve().parents[1] / 'configs/research_dual_blackwell.json'
+PATH = Path(__file__).resolve().parents[1] / 'configs/research_predocking_v2.json'
 
 def defaults(profile='research_dual_blackwell'):
     cfg = json.loads(PATH.read_text())
@@ -46,6 +46,8 @@ def resolve(value=None):
             if type(val) is not int or val < 1: raise ValueError(phase+'.'+key+' must be positive')
         if cfg[phase]['num_modes'] > 100: raise ValueError('Vina num_modes exceeds 100')
     if not isinstance(cfg['ligand_states'],dict):raise ValueError('ligand_states must map compound IDs to reviewed states')
+    from yuanhe_preflight.config import validate as validate_predocking
+    validate_predocking(cfg['predocking'])
     return cfg
 
 def plan(cfg):

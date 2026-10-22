@@ -6,6 +6,8 @@ def snapshot(root,cfg):
     rc=cfg['research'];paths=set()
     if rc['supplier_library']:paths.add(rc['supplier_library'])
     pc=rc['predocking'];paths.add(pc['rules_path'])
+    sc=pc.get('engine',{}).get('synthesis',{}).get('scscore_path')
+    if sc:paths.add(sc)
     for key in ('model_path','templates_path','stock_path'):
         if pc['retro'].get(key):paths.add(pc['retro'][key])
     def collect(value):

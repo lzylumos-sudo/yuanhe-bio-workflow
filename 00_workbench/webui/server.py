@@ -341,6 +341,14 @@ def api_project_pose(q, rid, key):
                     atoms.append({'p':xyz,'chain':'REC','name':line[12:16].strip()})
     return _json({'atoms':atoms,'caption':caption})
 
+def api_predocking_summary(q,rid):
+    d=workflow.run_dir(rid)
+    if not (d/'config.json').is_file():raise HttpError('Run not found',404)
+    return _json({'risk':workflow.read(d/'risk/summary.json',{}),
+                  'screening':workflow.read(d/'availability/summary.json',{}),
+                  'policy':workflow.read(d/'config.json',{}).get('predocking',{}),
+                  'exports':{name:'/artifacts/'+rid+'/availability/'+name for name in ('records.json','molecules.csv','passed.sdf','excluded.sdf','review.sdf','passed.smi','screening.sqlite3') if (d/'availability'/name).is_file()}})
+
 def api_predocking_revise(q,body,rid,key):
     return _json(workflow.revise_preflight(rid,key))
 
@@ -430,6 +438,7 @@ ROUTES = [
     ('POST', r'^/api/project/runs$', api_project_create),
     ('POST', r'^/api/project/run/(?P<rid>[A-Za-z0-9_-]+)/rescreen$', api_project_rescreen),
     ('GET', r'^/api/project/run/(?P<rid>[A-Za-z0-9_-]+)$', api_project_run),
+    ('GET', r'^/api/project/run/(?P<rid>[A-Za-z0-9_-]+)/predocking/summary$', api_predocking_summary),
     ('POST', r'^/api/project/run/(?P<rid>[A-Za-z0-9_-]+)/predocking/(?P<key>risk|availability)/revise$', api_predocking_revise),
     ('GET', r'^/api/project/run/(?P<rid>[A-Za-z0-9_-]+)/predocking/(?P<key>risk|availability)$', api_predocking_detail),
     ('GET', r'^/api/project/run/(?P<rid>[A-Za-z0-9_-]+)/structure$', api_project_structure),
