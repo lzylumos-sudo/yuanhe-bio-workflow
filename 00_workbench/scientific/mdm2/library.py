@@ -99,8 +99,13 @@ def ppi_pass(p):
 
 STATE_RULE={'algorithm':'molscrub 0.2.2 acid/base at pH 7.4 and tautomer enumeration',
             'selection':'highest RDKit tautomer score; lowest absolute charge; canonical isomeric SMILES',
+            'stereo_policy':'reject enumerated states with unassigned non-nitrogen tetrahedral centers; protonated nitrogen exchange centers annotated',
             'max_states':1,'conformers':1,'etkdg_seed':20261023,'forcefield':'MMFF94s',
             'max_forcefield_iterations':400,'crystal_coordinates_as_input':False}
+
+
+def has_defined_stable_stereo(mol):
+    return not any(label=='?' and mol.GetAtomWithIdx(idx).GetAtomicNum()!=7 for idx,label in Chem.FindMolChiralCenters(mol,includeUnassigned=True))
 
 
 def prepare_one(row,folder):
@@ -126,7 +131,8 @@ def prepare_one(row,folder):
         else:
             molecule=Chem.MolFromSmiles(row['smiles'])
             enumerated=Scrub(ph_low=7.4,ph_high=7.4,skip_gen3d=True)(molecule)
-            if not enumerated:raise ValueError('no_protonation_state')
+            enumerated=[m for m in enumerated if has_defined_stable_stereo(m)]
+            if not enumerated:raise ValueError('no_state_with_defined_stable_stereochemistry')
             enumerator=rdMolStandardize.TautomerEnumerator()
             selected=sorted(enumerated,key=lambda m:(-enumerator.ScoreTautomer(m),abs(Chem.GetFormalCharge(m)),Chem.MolToSmiles(m,isomericSmiles=True)))[0]
             state_smiles=Chem.MolToSmiles(selected,isomericSmiles=True);enumerated_count=len(enumerated)

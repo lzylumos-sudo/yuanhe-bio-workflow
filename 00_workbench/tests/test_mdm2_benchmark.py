@@ -98,3 +98,11 @@ def test_evaluation_exports_full_denominator_and_separate_product(tmp_path):
     assert (root/'scientific_top50.sdf').stat().st_size>0
     assert len(a.read(root/'anonymous_rankings.json'))==126
     assert '回顾性' in (root/'validation_report.md').read_text()
+
+
+def test_state_enumeration_cannot_invent_unassigned_carbon_stereo():
+    from rdkit import Chem
+    from scientific.mdm2.library import has_defined_stable_stereo
+    assert not has_defined_stable_stereo(Chem.MolFromSmiles('CC(O)C(=O)O'))
+    assert has_defined_stable_stereo(Chem.MolFromSmiles('C[C@H](O)C(=O)O'))
+    assert has_defined_stable_stereo(Chem.MolFromSmiles('C[NH+](CC)CCC'))
