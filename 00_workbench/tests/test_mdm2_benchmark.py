@@ -73,7 +73,7 @@ def test_evaluation_exports_full_denominator_and_separate_product(tmp_path):
         labels.append({'parent_id':pid,'label':'active' if i<20 else 'unknown_background',
                        'name':['Nutlin-3a','SAR405838','Brigimadlin'][i] if i<3 else pid,
                        'source_id':'fixture','scaffold':'fixture','properties':properties})
-        prepared.append({'parent_id':pid,'status':'ok','state_id':pid+'_state'})
+        prepared.append({'parent_id':pid,'status':'ok','state_id':pid+'_state','state_smiles':'CCO'})
         filters.append({'parent_id':pid,'ppi_pass':True,'deliverable_pass':False,
                         'risk':{'decision':'pass','alert_ids':[]},'acquisition':{'decision':'pending','status':'model_missing'}})
     for name,data in [('library',library),('prepared',prepared),('filters',filters)]:a.atomic(inputs/(name+'.json'),data)
@@ -127,3 +127,21 @@ def test_coordinate_stereo_guard_repairs_inverted_geometry():
     assert not coordinates_retain_state(wrong,expected)
     repaired,used=verified_geometry(expected,wrong)
     assert used and coordinates_retain_state(repaired,expected)
+
+
+def test_bad_best_pose_fails_parent_without_alternative_pose_rescue(tmp_path):
+    from rdkit import Chem
+    from rdkit.Chem import AllChem
+    from scientific import artifacts as a
+    from scientific.mdm2.scoring import score
+    root=tmp_path;target=root/'target';target.mkdir();inputs=root/'inputs';inputs.mkdir();job=inputs/'job';job.mkdir()
+    (target/'receptor_original.pdb').write_text('ATOM      1  CA  ALA A   1       0.000   0.000   0.000  1.00  0.00           C\nEND\n')
+    for name in ('peptide_features','perturbed_features'):a.atomic(target/(name+'.json'),{'residues':['A:1:ALA']})
+    a.atomic(inputs/'library.json',[{'parent_id':'M1'}]);a.atomic(inputs/'prepared.json',[{'parent_id':'M1','state_id':'s1','status':'ok','state_smiles':'C[C@H](F)Cl'}])
+    with Chem.SDWriter(str(job/'poses.sdf')) as w:
+        for s in ('C[C@@H](F)Cl','C[C@H](F)Cl'):
+            m=Chem.AddHs(Chem.MolFromSmiles(s));assert AllChem.EmbedMolecule(m,randomSeed=20261023)==0;w.write(m)
+    a.atomic(inputs/'job_records.json',[{'parent_id':'M1','status':'ok','job_dir':str(job),'output_sha256':a.digest(job/'poses.sdf'),'poses':[{'vina_affinity':-8},{'vina_affinity':-7}]}])
+    result=score(root)[0]
+    assert result['docking_status']=='failed_pose_stereo_qc' and result['vina_affinity'] is None
+    assert result['raw_vina_status']=='ok' and result['selected_pose_stereo_pass'] is False

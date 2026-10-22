@@ -13,6 +13,16 @@ HAN = re.compile(r'[\u3400-\u9fff\uf900-\ufaff]')
 # Keep filename, syntax, JSON and license integrity checks for these files.
 BILINGUAL_DEMO_PREFIX = '06_websites/01_public_demo/yuanhe-public/'
 
+# The user-requested MDM2 validation report and its dedicated UI are localized.
+# Exceptions are exact files; all other source remains under the English check.
+LOCALIZED_BENCHMARK_FILES = {
+    '00_workbench/scientific/mdm2/evaluation.py',
+    '00_workbench/tests/test_mdm2_benchmark.py',
+    '00_workbench/webui/benchmark.py',
+    '00_workbench/webui/static/js/benchmark.js',
+    'docs/benchmarks/results/mdm2_20261023/validation_report.md',
+}
+
 def main():
     names = subprocess.check_output(['git', 'ls-files', '-z', '--cached', '--others', '--exclude-standard'], cwd=ROOT).decode().split('\0')
     errors = []
@@ -28,7 +38,7 @@ def main():
             source = path.read_text(encoding='utf-8-sig')
         except UnicodeDecodeError:
             continue
-        bilingual_demo = name.startswith(BILINGUAL_DEMO_PREFIX)
+        bilingual_demo = name.startswith(BILINGUAL_DEMO_PREFIX) or name in LOCALIZED_BENCHMARK_FILES
         if HAN.search(source) and not bilingual_demo:
             errors.append(name + ': untranslated text')
         try:

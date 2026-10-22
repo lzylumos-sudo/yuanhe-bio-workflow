@@ -1,0 +1,16 @@
+{
+  "schema": "yuanhe-scientific-baseline-amendments/1",
+  "amendments": [
+    {
+      "path": "02_docking/src/sbvs2/docking/vina_official.py",
+      "baseline_sha256": "ffeadf831cc8efaee3265ede128ce675ca38dc8e082e540dbda9d0958bf2e462",
+      "sha256": "28980c412e9a19577b16aa5968b6762af16fd6971277b9581d8a17c135026202",
+      "reason": "User-requested retrospective MDM2 benchmark: separate frozen research-only entry shares the existing Vina executor. Production acquisition evidence remains mandatory. No docking or MD default parameters changed.",
+      "evidence": [
+        "00_workbench/tests/test_mdm2_benchmark.py",
+        "docs/benchmarks/mdm2_quick.md"
+      ],
+      "implementation_commit": "1539c6cd90fff8d94b3d2df6ed9cbe32d22e8703"
+    }
+  ]
+}

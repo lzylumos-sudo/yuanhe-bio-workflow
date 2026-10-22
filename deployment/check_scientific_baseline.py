@@ -14,7 +14,15 @@ PREFIXES=('01_molecule_generation/src/adapters/peptide2mol.py','01_molecule_gene
 
 def check():
     files=[f for f in BASELINE['files'] if f['path'].startswith(PREFIXES)]
-    errors=[f['path'] for f in files if not (ROOT/f['path']).is_file() or hashlib.sha256((ROOT/f['path']).read_bytes()).hexdigest()!=f['sha256']]
+    amendments=json.loads((ROOT/'deployment/scientific_baseline_amendments.json').read_text())['amendments']
+    bypath={row['path']:row for row in amendments}
+    if len(bypath)!=len(amendments):raise ValueError('Duplicate baseline amendment')
+    protected={row['path']:row for row in files}
+    for name,row in bypath.items():
+        if name not in protected or row['baseline_sha256']!=protected[name]['sha256'] or not row.get('reason'):
+            raise ValueError('Invalid exact-hash amendment: '+name)
+        if not all((ROOT/p).is_file() for p in row['evidence']):raise ValueError('Missing amendment evidence')
+    errors=[f['path'] for f in files if not (ROOT/f['path']).is_file() or hashlib.sha256((ROOT/f['path']).read_bytes()).hexdigest()!=bypath.get(f['path'],f)['sha256']]
     if errors:raise ValueError('Scientific baseline drift: '+', '.join(errors))
-    return {'strictly_equal_files':len(files),'baseline_commit':BASELINE['baseline_commit']}
+    return {'strictly_equal_files':len(files)-len(amendments),'exact_hash_amendments':len(amendments),'baseline_commit':BASELINE['baseline_commit']}
 if __name__=='__main__':print(json.dumps(check()))

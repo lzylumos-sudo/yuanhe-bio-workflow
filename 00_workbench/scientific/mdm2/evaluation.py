@@ -58,7 +58,7 @@ def figures(root,result,labels):
     for arm in ('A0','A1','A2'):
         values=result['profiles']['ppi_benchmark'][arm]['top_k']
         for ax,key in zip(axes,('Recall','EF')):ax.plot([10,20,50],[values[str(k)][key] for k in (10,20,50)],marker='o',label=arm);ax.set_ylabel(key);ax.set_xlabel('Top-k');ax.grid(alpha=.2)
-    axes[0].set_ylim(0,1);axes[1].legend();fig.suptitle('Retrospective MDM2 benchmark: ppi_benchmark');fig.tight_layout();fig.savefig(root/'recovery_metrics.png',dpi=160);plt.close(fig)
+    axes[0].set_ylim(0,1);axes[1].legend();fig.suptitle('Retrospective MDM2 pilot: ppi_benchmark');fig.tight_layout();fig.savefig(root/'recovery_metrics.png',dpi=160);plt.close(fig)
     fig,axes=plt.subplots(2,3,figsize=(11,6))
     for ax,key in zip(axes.flat,['MW','cLogP','TPSA','HBD','HBA','RotB']):
         for label in ('active','unknown_background'):
@@ -85,7 +85,7 @@ def evaluate(root):
                     ('property_filter',True if profile=='current_product' else f['ppi_pass']),
                     ('risk_filter',f['risk']['decision']=='pass' if profile=='current_product' else True),
                     ('acquisition_filter',f['acquisition']['decision']=='pass' if profile=='current_product' else True),
-                    ('docking',row['docking_status']=='ok'),('peptide_feature_filter',True)]
+                    ('docking',row['docking_status'] in ('ok','failed_pose_stereo_qc')),('pose_stereo_qc',row.get('selected_pose_stereo_pass',False)),('peptide_feature_filter',True)]
             first=None
             for stage,passed in stages:
                 if not passed and first is None:first=stage
@@ -126,7 +126,11 @@ def evaluate(root):
             'total_parents':len(labels),'actives':sum(r['label']=='active' for r in labels),
             'unknown_background':sum(r['label']=='unknown_background' for r in labels),'experimental_negatives':0,
             'ROC_AUC':None,'PR_AUC':None,'AUC_reason':'unknown backgrounds are not experimentally confirmed negatives',
-            'docked':sum(r['docking_status']=='ok' for r in scores),'profiles':{},'scaffold_recall':[],
+            'docked':sum(r['docking_status']=='ok' for r in scores),
+            'raw_vina_completed':sum(r.get('raw_vina_status')=='ok' for r in scores),
+            'pose_stereo_qc_failures':sum(r['docking_status']=='failed_pose_stereo_qc' for r in scores),
+            'study_design_status':'pilot: chemistry/QC protocol amended before label unblinding; not a fully prospective preregistration',
+            'profiles':{},'scaffold_recall':[],
             'limitations':['17/20 actives from one medicinal chemistry series','single docking seed; no independent replication',
                 'residue contacts are not a validated chemical pharmacophore','retrospective recovery, not new molecule discovery']}
     for profile in ('current_product','ppi_benchmark'):
@@ -162,16 +166,18 @@ def evaluate(root):
         'A1_point_estimate_exceeds_A2':a1>research['A2']['top_k']['50']['active_hits'],'generalizable_peptide_gain_proven':False,
         'current_product_success':result['profiles']['current_product']['A1']['top_k']['50']['active_hits']>0}
     environment=a.read(root/'environment.json')
-    result['resources']={phase:resource_summary(root/phase/'resource_samples.json',environment['effective_cpu_quota']) for phase in ('development','inputs')}
+    resource_root=Path(manifest.get('compute_resource_root',str(root)))
+    result['resource_evidence_root']=str(resource_root)
+    result['resources']={phase:resource_summary(resource_root/phase/'resource_samples.json',environment['effective_cpu_quota']) for phase in ('development','inputs')}
     result['throughput_preflight']=a.read(root/'throughput.json')
     a.atomic(root/'metrics.json',result)
     figures(root,result,labels)
     manifest.update(status='completed' if complete else 'incomplete',finished_at=finished.isoformat(),elapsed_minutes=elapsed,
                     frozen_protocol_sha256=a.digest(frozen_path),git_commit=frozen.get('git_commit'),results_alias='root scientific_top50 = ppi_benchmark/A1; deliverable separately qualified')
     a.atomic(root/'run_manifest.json',manifest)
-    lines=['# MDM2–p53 肽引导虚拟筛选回收验证报告','',f'实际耗时 **{elapsed:.1f}分钟**。冻结库 **{len(labels)}** 个唯一母体，其中真实活性 **{result["actives"]}** 个，未知背景 **{result["unknown_background"]}** 个；成功对接 **{result["docked"]}** 个。',
+    lines=['# MDM2–p53 肽引导虚拟筛选回收验证报告','',f'本次因解盲前技术质检协议修订，标记为pilot。实际耗时 **{elapsed:.1f}分钟**。冻结库 **{len(labels)}** 个唯一母体，其中真实活性 **{result["actives"]}** 个，未知背景 **{result["unknown_background"]}** 个；实际Vina成功 **{result["raw_vina_completed"]}** 个，通过最佳姿势立体质检 **{result["docked"]}** 个；姿势质检失败 **{result["pose_stereo_qc_failures"]}** 个。',
         '', '这是回顾性混库回收验证，不是新分子发现。背景没有实验阴性标签；未计算ROC-AUC/PR-AUC。',
-        '',f'协议修订记录：{result.get("protocol_amendment")}。前两版在解盲前分别发现互变异构处理丢失E/Z构型和12个三维构象未保留指定构型，原始记录保留。正式版本保留来源互变异构形式、只作pH7.4处理，并从实际三维坐标反推构型核验；不合格构象统一采用ETKDGv3/MMFF94s重新生成，再次失败则保留失败记录。没有按活性标签改变处理。复用严格满足Vina输入字节和全部对接参数完全相同的{result["reused_docking_jobs"]}个既有结果，其余真实计算；未按参考排名调参。总耗时包含旧版审计与作废计算。',
+        '',f'协议修订记录：{result.get("protocol_amendment")}。前期版本在解盲前分别发现互变异构处理丢失E/Z构型和12个三维构象未保留指定构型，原始记录保留。正式版本保留来源互变异构形式、只作pH7.4处理，并从实际三维坐标反推构型核验；不合格构象统一采用ETKDGv3/MMFF94s重新生成，再次失败则保留失败记录。另外，统一剔除最佳对接姿势发生构型翻转的母体，保留其完整评价分母，不用次优姿势替代。该技术质检规则在标签解盲前冻结，但发生于原始对接之后，因此标记pilot，不宣称完全前瞻预注册。没有按活性标签改变处理。复用严格满足Vina输入字节和全部对接参数完全相同的{result["reused_docking_jobs"]}个既有结果，其余真实计算；未按参考排名调参。总耗时包含旧版审计与作废计算。',
         '', '## 参考分子结果','', '|配置|实验臂|分子|最终排名|首次淘汰阶段|','|---|---|---|---:|---|']
     for r in recovery:lines.append(f'|{r["profile"]}|{r["arm"]}|{r["name"]}|{r["rank"] if r["rank"] is not None else "无排名"}|{r.get("first_exclusion_stage") or "保留"}|')
     lines+=['','## 完整库指标','','|配置|臂|k|命中|Recall@k|EF@k|','|---|---|---:|---:|---:|---:|']

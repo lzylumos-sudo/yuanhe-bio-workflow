@@ -36,7 +36,7 @@ def snapshot():
             'preparation_failures':len(frozen.get('preparation_failures',[])),
             'reused_jobs':read(path/'reuse_manifest.json',{}).get('imported_jobs',0),
             'scientific_git_commit':frozen.get('git_commit'),'results_ready':ready(path),
-            'scope':'回顾性虚拟筛选验证；不进入MD；未知背景不是实验阴性'}
+            'scope':('回顾性虚拟筛选pilot；技术质检方案在解盲前修订；' if manifest.get('protocol_amendment',{}).get('quality_filter_added_after_raw_docking') else '回顾性虚拟筛选验证；')+'不进入MD；未知背景不是实验阴性'}
     # No labels, drug names, scores or recovery metrics are opened before evaluation.
     if result['results_ready']:
         result['metrics']=read(path/'metrics.json')

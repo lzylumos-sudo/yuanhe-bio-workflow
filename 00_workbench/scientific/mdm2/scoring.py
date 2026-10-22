@@ -3,7 +3,7 @@ from pathlib import Path
 from rdkit import Chem
 from scientific import artifacts as a
 from scientific.peptide_contacts import read_heavy_atoms, contact_signature, contact_overlap
-from .library import ppi_pass
+from .library import ppi_pass, coordinates_retain_state
 from .common import write_csv
 
 PROFILES={'current_product':{'risk':'existing defaults, exclude/review block','acquisition':'existing default evidence gate',
@@ -51,6 +51,11 @@ def score(root):
             index=min(range(len(job['poses'])),key=lambda i:job['poses'][i]['vina_affinity'])
             mol=Chem.SDMolSupplier(str(path),removeHs=True)[index]
             if mol is None:raise ValueError('Invalid output molecule '+pid)
+            result.update(raw_vina_status='ok',raw_vina_affinity=job['poses'][index]['vina_affinity'],pose_id=pid+'_pose_'+str(index+1),pose_sdf=str(path),pose_index=index,pose_sha256=a.digest(path))
+            result['selected_pose_stereo_pass']=coordinates_retain_state(mol,prep['state_smiles'])
+            if not result['selected_pose_stereo_pass']:
+                result.update(docking_status='failed_pose_stereo_qc',error='Selected minimum-affinity pose changes specified stereochemistry; no alternative pose substitution')
+                rows.append(result);continue
             contacts=contact_signature(receptor,mol.GetConformer().GetPositions())
             result.update(vina_affinity=job['poses'][index]['vina_affinity'],pose_id=pid+'_pose_'+str(index+1),
                           pose_sdf=str(path),pose_index=index,pose_sha256=a.digest(path),
