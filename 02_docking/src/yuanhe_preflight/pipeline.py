@@ -45,7 +45,7 @@ def risk_stage(rows, config, out, *, base, batch_id):
     validate(config);out=Path(out);out.mkdir(parents=True,exist_ok=True);base=Path(base)
     rules=RiskRules(config['rules_path'],config['risk_policies']);write(out/'rules.snapshot.json',rules.data)
     write(out/'config.snapshot.json',config);write(out/'raw_input.json',rows)
-    from .structure import screen
+    from .structure import screen, standardize
     started=time.monotonic()
     results=[];seen={}
     for index,row in enumerate(rows):
@@ -53,6 +53,7 @@ def risk_stage(rows, config, out, *, base, batch_id):
            'alert_ids':[],'alert_types':[],'matched_atom_indices':{},'severity':'unknown','rule_version':rules.version,
            'source_core':row.get('source_core',row.get('core')),'original_id':row.get('id'), 'input_index':index}
         try:
+            r['standardization']=standardize(row['smiles'])
             ident=identity(row['smiles']);r.update(ident);r['id']=ident['compound_id'];r['molecule_id']=ident['compound_id'];r['canonical_smiles']=ident['smiles']
             source=(base/(row.get('sdf') or row.get('raw_sdf',''))).resolve()
             if sdf_smiles(source)!=r['smiles']:raise ValueError('SMILES_SDF_identity_mismatch')

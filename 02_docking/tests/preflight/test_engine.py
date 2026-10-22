@@ -40,6 +40,7 @@ def test_full_catalog_review_not_toxicity_and_configurable():
     engine=engine_defaults();rules=RiskRules()
     r=screen('Oc1ccccc1O',rules,[],engine)
     assert r['filter_status']=='REVIEW'
+    assert r['severity']=='medium'
     assert any(x['rule_id'].startswith('PAINS:') for x in r['alerts'])
     assert 'toxicity_risk' not in r['alert_types']
     engine['catalog_actions']={'PAINS':'warn','BRENK':'warn'}
@@ -168,3 +169,13 @@ def test_incomplete_or_invalid_model_values_cannot_enter_success_cache(bad):
 def test_regression_ld50_is_not_a_probability():
     from yuanhe_preflight.toxicity_worker import validate_raw
     validate_raw({'AMES':0.1,'hERG':0.2,'DILI':0.3,'LD50_Zhu':3.2})
+
+
+def test_partial_retrosynthesis_is_not_route_found(tmp_path,monkeypatch):
+    from yuanhe_preflight.availability_synthesis_filter import AvailabilityFilter
+    cfg=defaults(tmp_path)
+    f=AvailabilityFilter(cfg,'test')
+    monkeypatch.setattr(f,'search',lambda smiles:{'status':'searched','routes':[{'type':'mol','smiles':smiles,'in_stock':False,'route_metadata':{'is_solved':False}}]})
+    result=f.screen('CCO')
+    assert result['route_status']=='NO_ROUTE_FOUND'
+    assert result['decision']=='pending' and result['routes']

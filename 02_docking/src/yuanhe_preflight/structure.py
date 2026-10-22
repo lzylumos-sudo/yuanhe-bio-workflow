@@ -45,7 +45,8 @@ def screen(smiles, rules, exceptions, engine=None):
     handled = {x['rule_id'] for x in result['exceptions']}
     blocking = [a for a in alerts if a['rule_id'] not in handled and a['action'] in ('exclude', 'review')]
     decision = 'exclude' if any(a['action'] == 'exclude' for a in blocking) else 'review' if blocking else 'pass'
-    result.update(alerts=alerts, alert_ids=[x['rule_id'] for x in alerts],
+    result.update(severity=next((v for v in ('high','medium','low') if any(a['severity']==v for a in alerts)), 'none'),
+                  alerts=alerts, alert_ids=[x['rule_id'] for x in alerts],
                   alert_types=sorted({x['risk_category'] for x in alerts}),
                   matched_atom_indices={x['rule_id']: x['matched_atom_indices'] for x in alerts},
                   decision=decision, filter_status={'pass': 'PASS', 'review': 'REVIEW', 'exclude': 'BLOCK'}[decision],

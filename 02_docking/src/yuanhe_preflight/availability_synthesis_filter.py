@@ -150,8 +150,9 @@ class AvailabilityFilter:
         if status=='route_needs_review':pending_labels.append('Incomplete route or key chemistry requires review')
         if status=='no_route_found':pending_labels.append('No route found (not evidence of infeasibility)')
         if not labels:pending_labels.append('Acquisition pathway unknown')
-        return seal({'route_status':'ROUTE_FOUND' if routes else 'NO_ROUTE_FOUND' if status=='no_route_found' else 'NOT_EVALUATED' if status in ('purchase_supported','not_evaluated_budget') else 'ERROR',
-                     'availability_label':'PURCHASABLE_VERIFIED' if valid else 'SYNTHESIZABLE_PREDICTED' if status=='route_supported' else 'PURCHASABLE_UNCONFIRMED' if supply else 'AVAILABILITY_UNKNOWN',
+        solved=any(r.get('step_count',0)>0 and (r.get('tree',{}).get('route_metadata',{}).get('is_solved') is True or r.get('status')=='complete') for r in routes)
+        return seal({'route_status':'ROUTE_FOUND' if solved else 'NO_ROUTE_FOUND' if status=='no_route_found' or (raw and raw.get('status')=='searched') else 'NOT_EVALUATED' if status in ('purchase_supported','not_evaluated_budget') else 'ERROR',
+                     'availability_label':'PURCHASABLE_VERIFIED' if valid else 'SYNTHESIZABLE_PREDICTED' if solved else 'PURCHASABLE_UNCONFIRMED' if supply else 'NOT_MATCHED' if external and external['label']=='NOT_MATCHED' else 'AVAILABILITY_UNKNOWN',
                      'status_labels':pending_labels,'smiles':smiles,'decision':'pass' if labels else 'pending','status':status,'labels':sorted(set(labels)),
                      'external_query':external,'supplier_records':supply,'routes':routes,'raw_search':raw,'asset_manifest':self.asset_manifest,
                      'catalog_versions':self.catalog.versions,'stock_versions':self.stock.versions,
