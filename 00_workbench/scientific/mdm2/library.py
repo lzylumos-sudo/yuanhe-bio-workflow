@@ -97,15 +97,40 @@ def ppi_pass(p):
             and p['HBD']<=6 and p['HBA']<=15 and -2<=p['formal_charge']<=2)
 
 
-STATE_RULE={'algorithm':'molscrub 0.2.2 acid/base at pH 7.4 and tautomer enumeration',
+STATE_RULE={'algorithm':'molscrub 0.2.2 acid/base at pH 7.4; preserve source tautomer (skip_tautomers=True)',
             'selection':'highest RDKit tautomer score; lowest absolute charge; canonical isomeric SMILES',
-            'stereo_policy':'reject enumerated states with unassigned non-nitrogen tetrahedral centers; protonated nitrogen exchange centers annotated',
+            'stereo_policy':'source double bonds must be specified; preserve all source tetrahedral and E/Z stereo; reject unresolved non-N state centers; exchangeable protonated N annotated',
             'max_states':1,'conformers':1,'etkdg_seed':20261023,'forcefield':'MMFF94s',
             'max_forcefield_iterations':400,'crystal_coordinates_as_input':False}
 
 
 def has_defined_stable_stereo(mol):
     return not any(label=='?' and mol.GetAtomWithIdx(idx).GetAtomicNum()!=7 for idx,label in Chem.FindMolChiralCenters(mol,includeUnassigned=True))
+
+
+def has_defined_source_stereo(mol):
+    return has_defined_stable_stereo(mol) and not any(str(x.type)=='Bond_Double' and str(x.specified)=='Unspecified' for x in Chem.FindPotentialStereo(mol))
+
+
+def retains_source_stereo(source,state):
+    query=Chem.RWMol()
+    assigned_types=(Chem.BondStereo.STEREOE,Chem.BondStereo.STEREOZ,Chem.BondStereo.STEREOCIS,Chem.BondStereo.STEREOTRANS)
+    for atom in source.GetAtoms():
+        qa=Chem.AtomFromSmarts('[#%d]'%atom.GetAtomicNum());qa.SetChiralTag(atom.GetChiralTag());qa.SetNumExplicitHs(atom.GetNumExplicitHs());query.AddAtom(qa)
+    for bond in source.GetBonds():
+        assigned=bond.GetStereo() in assigned_types
+        query.AddBond(bond.GetBeginAtomIdx(),bond.GetEndAtomIdx(),Chem.BondType.DOUBLE if assigned else Chem.BondType.SINGLE)
+        if not assigned:query.ReplaceBond(query.GetNumBonds()-1,Chem.BondFromSmarts('~'))
+    for bond in source.GetBonds():
+        if bond.GetStereo() in assigned_types:
+            qb=query.GetBondWithIdx(bond.GetIdx());qb.SetStereoAtoms(*bond.GetStereoAtoms());qb.SetStereo(bond.GetStereo())
+    return source.GetNumAtoms()==state.GetNumAtoms() and state.HasSubstructMatch(query.GetMol(),useChirality=True)
+
+
+def state_geometry_key(smiles):
+    # Anonymous IDs and source tautomer do not affect identical prepared geometry.
+    import importlib.metadata as im
+    return sha([smiles,20261023,400,'ETKDG/MMFF94s',im.version('rdkit'),im.version('molscrub')])
 
 
 def prepare_one(row,folder):
@@ -130,15 +155,24 @@ def prepare_one(row,folder):
             result['preparation_cache_hit']=True
         else:
             molecule=Chem.MolFromSmiles(row['smiles'])
-            enumerated=Scrub(ph_low=7.4,ph_high=7.4,skip_gen3d=True)(molecule)
-            enumerated=[m for m in enumerated if has_defined_stable_stereo(m)]
+            if not has_defined_source_stereo(molecule):raise ValueError('source_stereochemistry_incomplete')
+            enumerated=Scrub(ph_low=7.4,ph_high=7.4,skip_tautomers=True,skip_gen3d=True)(molecule)
+            enumerated=[m for m in enumerated if has_defined_source_stereo(m) and retains_source_stereo(molecule,m)]
             if not enumerated:raise ValueError('no_state_with_defined_stable_stereochemistry')
             enumerator=rdMolStandardize.TautomerEnumerator()
             selected=sorted(enumerated,key=lambda m:(-enumerator.ScoreTautomer(m),abs(Chem.GetFormalCharge(m)),Chem.MolToSmiles(m,isomericSmiles=True)))[0]
             state_smiles=Chem.MolToSmiles(selected,isomericSmiles=True);enumerated_count=len(enumerated)
-            gen=Scrub(skip_acidbase=True,skip_tautomers=True,numconfs=1,etkdg_rng_seed=20261023,max_ff_iter=400)
-            prepared=gen(Chem.MolFromSmiles(state_smiles))[0]
-            result['preparation_cache_hit']=False
+            state_cache=folder.parents[1]/'preparation_cache/by_state'/state_geometry_key(state_smiles)
+            state_record=a.read(state_cache/'record.json',{})
+            if state_record:
+                if a.digest(state_cache/'structure.sdf')!=state_record['sha256']:raise ValueError('State geometry cache changed')
+                prepared=Chem.SDMolSupplier(str(state_cache/'structure.sdf'),removeHs=False)[0]
+                if prepared is None:raise ValueError('Invalid cached geometry')
+                result['preparation_cache_hit']=True
+            else:
+                gen=Scrub(skip_acidbase=True,skip_tautomers=True,numconfs=1,etkdg_rng_seed=20261023,max_ff_iter=400)
+                prepared=gen(Chem.MolFromSmiles(state_smiles))[0]
+                result['preparation_cache_hit']=False
         # Strip all data-source names and molecule properties before compute.
         for name in list(prepared.GetPropNames(includePrivate=True,includeComputed=False)):prepared.ClearProp(name)
         prepared.SetProp('_Name',identifier);prepared.SetProp('parent_id',identifier)
@@ -197,12 +231,13 @@ def prepare(root,count=550,select_only=False):
     seen=set();actives=[]
     for row in curated:
         s=canonical_parent(row['smiles'])
+        if not has_defined_source_stereo(Chem.MolFromSmiles(s)):raise ValueError('Active source stereo incomplete; curate before screening')
         if s in seen:raise ValueError('Curated parent duplicate')
         seen.add(s);actives.append({**row,'smiles':s,'properties':properties(s),'scaffold':scaffold(s),'label':'active'})
     if not 20<=len(actives)<=30:raise ValueError('Quick benchmark requires 20-30 verified actives')
     banned={r['smiles'] for r in development};banned_scaffolds={r['scaffold'] for r in development}
     if any(r['smiles'] in banned or r['scaffold'] in banned_scaffolds for r in actives):raise ValueError('Development/test chemical series overlap')
-    pool=[r for r in background_pool(root) if r['smiles'] not in seen|banned and r['scaffold'] not in banned_scaffolds]
+    pool=[r for r in background_pool(root) if r['smiles'] not in seen|banned and r['scaffold'] not in banned_scaffolds and has_defined_source_stereo(Chem.MolFromSmiles(r['smiles']))]
     names=['MW','cLogP','TPSA','HBD','HBA','RotB','formal_charge'];scale=np.array([25,.8,12,.5,.7,.75,1])
     values=np.array([[r['properties'][k] for k in names] for r in pool])/scale
     targets=np.array([[r['properties'][k] for k in names] for r in actives])/scale

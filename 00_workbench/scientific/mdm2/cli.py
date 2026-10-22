@@ -9,9 +9,10 @@ def main(argv=None):
     for part in ('02_docking/src','01_molecule_generation'):
         sys.path.insert(0,str(ROOT/part))
     p=argparse.ArgumentParser(prog='yuanhe benchmark')
-    p.add_argument('action',choices=['preflight','acquire','prepare-target','curate','prepare-library','throughput','freeze','run','evaluate','status'])
+    p.add_argument('action',choices=['preflight','acquire','prepare-target','curate','prepare-library','throughput','freeze','reuse','run','evaluate','status'])
     p.add_argument('--root',type=Path,required=True)
     p.add_argument('--vina',type=Path)
+    p.add_argument('--from-root',type=Path)
     p.add_argument('--started-at',help='ISO8601 task start including timezone; existing run start is immutable')
     p.add_argument('--select-only',action='store_true',help='Review library matching before spending 3D preparation time')
     p.add_argument('--count',type=int,default=550)
@@ -33,6 +34,10 @@ def main(argv=None):
         elif args.action=='prepare-library':
             from .library import prepare
             result=prepare(args.root,args.count,args.select_only)
+        elif args.action=='reuse':
+            from .reuse import reuse
+            if not args.from_root:p.error('--from-root required for reuse')
+            result=reuse(args.root,args.from_root)
         elif args.action in {'throughput','freeze','run'}:
             from .execution import dispatch
             result=dispatch(args.root,args.action)

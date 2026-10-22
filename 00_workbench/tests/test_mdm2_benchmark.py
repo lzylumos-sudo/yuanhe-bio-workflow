@@ -106,3 +106,13 @@ def test_state_enumeration_cannot_invent_unassigned_carbon_stereo():
     assert not has_defined_stable_stereo(Chem.MolFromSmiles('CC(O)C(=O)O'))
     assert has_defined_stable_stereo(Chem.MolFromSmiles('C[C@H](O)C(=O)O'))
     assert has_defined_stable_stereo(Chem.MolFromSmiles('C[NH+](CC)CCC'))
+
+def test_source_ez_is_not_silently_lost_or_flipped():
+    from rdkit import Chem
+    from scientific.mdm2.library import retains_source_stereo,has_defined_source_stereo
+    e=Chem.MolFromSmiles('C/C=C/C');z=Chem.MolFromSmiles('C/C=C\\C')
+    assert retains_source_stereo(e,e)
+    assert not retains_source_stereo(e,z)
+    assert not retains_source_stereo(e,Chem.MolFromSmiles('CCCC'))
+    assert not has_defined_source_stereo(Chem.MolFromSmiles('CC=CC'))
+    assert has_defined_source_stereo(e)

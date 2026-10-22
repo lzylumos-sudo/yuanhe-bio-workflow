@@ -149,6 +149,9 @@ def evaluate(root):
     shutil.copyfile(root/'inputs/blinded_library.sdf',root/'blinded_library.sdf')
     manifest=a.read(root/'run_manifest.json');finished=datetime.datetime.now(datetime.timezone.utc)
     elapsed=(finished-datetime.datetime.fromisoformat(manifest['started_at'])).total_seconds()/60
+    result['protocol_amendment']=manifest.get('protocol_amendment')
+    result['reused_docking_jobs']=a.read(root/'reuse_manifest.json',{}).get('imported_jobs',0)
+    result['docking_summary']=a.read(root/'docking_summary.json',{})
     result['elapsed_minutes']=elapsed;result['within_180_minutes']=elapsed<=180
     complete=result['docked']==result['total_parents'];result['complete_docking']=complete
     research=result['profiles']['ppi_benchmark'];a1=research['A1']['top_k']['50']['active_hits']
@@ -167,6 +170,7 @@ def evaluate(root):
     a.atomic(root/'run_manifest.json',manifest)
     lines=['# MDM2–p53 肽引导虚拟筛选回收验证报告','',f'实际耗时 **{elapsed:.1f}分钟**。冻结库 **{len(labels)}** 个唯一母体，其中真实活性 **{result["actives"]}** 个，未知背景 **{result["unknown_background"]}** 个；成功对接 **{result["docked"]}** 个。',
         '', '这是回顾性混库回收验证，不是新分子发现。背景没有实验阴性标签；未计算ROC-AUC/PR-AUC。',
+        '',f'协议修订记录：{result.get("protocol_amendment")}。旧版在解盲前因互变异构处理丢失E/Z构型而作废，原始记录保留。正式版本统一保留来源互变异构形式、只作pH7.4处理，并拒绝来源构型不明确者。复用严格满足Vina输入字节和全部对接参数完全相同的{result["reused_docking_jobs"]}个既有结果，其余真实计算；未按参考排名调参。总耗时包含旧版审计与作废计算。',
         '', '## 参考分子结果','', '|配置|实验臂|分子|最终排名|首次淘汰阶段|','|---|---|---|---:|---|']
     for r in recovery:lines.append(f'|{r["profile"]}|{r["arm"]}|{r["name"]}|{r["rank"] if r["rank"] is not None else "无排名"}|{r.get("first_exclusion_stage") or "保留"}|')
     lines+=['','## 完整库指标','','|配置|臂|k|命中|Recall@k|EF@k|','|---|---|---:|---:|---:|---:|']
@@ -179,11 +183,11 @@ def evaluate(root):
         'ppi_benchmark采用预先固定的MW 150–800、cLogP -1–7.5、TPSA≤180、RotB≤18、HBD≤6、HBA≤15、电荷-2至+2；风险和可获取性仍记录。研究范围不是通用开发标准。根目录scientific_top50为ppi_benchmark/A1；deliverable仍必须通过真实产品证据门控。',
         '', '## 结构、盲法和计算','',
         '正式受体仅来自1YCR；按UniProt实体映射分离MDM2与p53，从肽接触重原子确定搜索盒后移除多肽。Phe19、Trp23、Leu26界面检查见target_audit.json。补建末端OXT，不改变已观测重原子坐标。5Z02、5TRF、8PWC及CCD仅用于独立身份核查和解释，其共晶坐标不用于配体3D或搜索盒。',
-        '所有分子统一标准化、盐片段处理、pH7.4状态枚举与固定规则选一状态、ETKDG/MMFF94s三维化、Meeko PDBQT。SAR405838的7HC描述缺少环己醇相对立体化学，已与原始Figure1a及CHEMBL2381408交叉核验。',
+        '所有分子统一标准化、盐片段处理、保留来源互变异构形式、pH7.4酸碱状态枚举与固定规则选一状态、ETKDG/MMFF94s三维化、Meeko PDBQT。SAR405838的7HC描述缺少环己醇相对立体化学，已与原始Figure1a及CHEMBL2381408交叉核验。',
         '筛选代码只读匿名ID、结构及计算属性；排序后封存anonymous_rankings.json，再打开evaluation/labels.json。冻结文件、源代码与软件哈希见inputs/preregistered_protocol.json。',
-        'Vina 1.2.7，exhaustiveness=8，num_modes=5，seed=20261023；5个worker×4 CPU。GPU不参与标准Vina。A0按Vina排序，A1按既有多肽残基接触召回再按Vina排序，A2对接触原子作限定刚体扰动后同样排序；三组复用同一最佳Vina姿势、同一计算预算和Top-k名额。',
+        'Vina 1.2.7，exhaustiveness=8，num_modes=5，seed=20261023；5个worker×4 CPU。GPU不参与标准Vina。GPU遥测可能显示100%利用率但0 MiB显存且无可见GPU进程，该异常不能归因于本次CPU计算，独立记录见evaluation/gpu_telemetry_audit.json。A0按Vina排序，A1按既有多肽残基接触召回再按Vina排序，A2对接触原子作限定刚体扰动后同样排序；三组复用同一最佳Vina姿势、同一计算预算和Top-k名额。',
         'A2保持特征数量、元素类型及内部距离，位置在盒内并排除严重重叠；参数由几何条件确定，未按测试排名调参。同时导出RDKit原子化学规则识别的芳香、疏水、供受体等药效团描述及其A2刚体扰动坐标。描述用于界面解释，排名仍为现有距离接触指纹；不能宣称完整化学药效团模型已获性能验证。',
-        '',f'资源实测（整个容器配额）：`{result["resources"]}`。50分子预检耗时{result["throughput_preflight"]["elapsed_seconds"]:.1f}秒，平均单分子{result["throughput_preflight"]["mean_job_seconds"]:.1f}秒；失败率{result["throughput_preflight"]["failure_rate_including_preparation"]:.1%}。',
+        '',f'资源实测（整个容器配额）：`{result["resources"]}`。50分子预检使用修订前状态策略，仅用于CPU吞吐估计；耗时{result["throughput_preflight"]["elapsed_seconds"]:.1f}秒，平均单分子{result["throughput_preflight"]["mean_job_seconds"]:.1f}秒；失败率{result["throughput_preflight"]["failure_rate_including_preparation"]:.1%}。',
         '', '![回收指标](recovery_metrics.png)', '', '![性质匹配](property_matching.png)',
         '', '## 实验依据与边界','',
         '17个稳定D系列分子：原始J Med Chem 2014 Table6，DOI 10.1021/jm501541j，human MDM2(1–118)竞争FP Ki；逐条核对ChEMBL3380268与compound_record，排除不稳定C异构体。',

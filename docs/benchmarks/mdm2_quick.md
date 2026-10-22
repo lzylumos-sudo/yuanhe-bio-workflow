@@ -29,3 +29,7 @@ A0 ranks Vina affinity. A1 ranks existing peptide residue-contact recall then af
 Top-k recall uses all frozen active parents. EF uses fixed k slots and the full frozen prevalence; unfilled slots are misses. Unknown backgrounds are not experimental negatives. 17/20 actives belong to one paper series, so broad scaffold generalization is not established. No MD, MM/PBSA or FEP runs.
 
 Root scientific Top-50 is explicitly `ppi_benchmark/A1`. All six profile/arm lists are in `profiles/`; deliverable lists additionally require risk/acquisition qualification. Do not present research recovery as product success.
+
+Chemical state selection preserves the standardized source tautomer and specified tetrahedral/double-bond stereochemistry, with uniform molscrub acid/base enumeration at pH 7.4. Unspecified stable stereochemistry is rejected before library freezing. All preparation failures remain in the evaluation denominator.
+
+A chemistry-integrity failure invalidated the first batch before unblinding before any recovery metrics were opened. The amended run keeps the original start and deadline. `yuanhe benchmark reuse --root NEW_ROOT --from-root OLD_ROOT` reuses a successful job only when the actual regenerated ligand PDBQT bytes, receptor, engine, search box, protocol, seed and CPU match. Original raw job records remain unchanged; an explicit binding records changed anonymous IDs and input-file hashes. Initial development throughput is an estimate from the earlier preparation policy, not a second validation population.

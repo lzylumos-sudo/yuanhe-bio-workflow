@@ -103,7 +103,7 @@ def run(root,development=False):
                 if rp.exists():
                     rec=a.read(rp)
                     if rec['status']=='ok' and a.digest(jd/'poses.sdf')==rec['output_sha256']:
-                        return {**rec,'parent_id':lig['parent_id'],'state_id':lig['state_id'],'job_dir':str(jd),'cache_identity':cache_key}
+                        return {**rec,'parent_id':lig['parent_id'],'state_id':lig['state_id'],'job_dir':str(jd),'cache_identity':cache_key,'cache_hit':True,'reuse_evidence':a.read(jd/'reuse_evidence.json')}
                     continue
                 if jd.exists():continue # Interrupted attempt retained; never overwrite.
                 if time.time()>=cutoff:return {'parent_id':lig['parent_id'],'status':'not_started_budget'}
@@ -135,6 +135,7 @@ def run(root,development=False):
              'failure_rate_including_preparation':1-len(ok)/frozen['input_parent_count'],
              'mean_job_seconds':statistics.mean(times) if times else None,'median_job_seconds':statistics.median(times) if times else None,
              'projected_550_seconds':elapsed/max(1,len(records))*550,
+             'cache_hits':sum(r.get('cache_hit',False) for r in records),'cross_run_reused':sum(bool(r.get('reuse_evidence')) for r in records),
              'workers':frozen['workers'],'cpu_per_worker':frozen['cpu_per_worker'],'resource_samples':str(base/'resource_samples.json')}
     a.atomic(root/('throughput.json' if development else 'docking_summary.json'),summary)
     return summary
