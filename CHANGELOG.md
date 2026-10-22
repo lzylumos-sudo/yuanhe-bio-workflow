@@ -1,3 +1,10 @@
+## 0.11.0-dev.1 - architecture governance (unreleased)
+
+- Unified platform identity, registry-backed UI/API/CLI, independent scientific protocol IDs and generated package metadata.
+- Added frozen execution configuration, new-run manifests/artifact records and compatibility facades.
+- Preserved scientific defaults, algorithms, original protocols, licenses and historical records; added strict drift and lightweight regression checks.
+- No stable release, target-GPU full-chain acceptance, historical-data migration or public deployment. See docs/migration/architecture_refactor.md.
+
 ## 2026-10-21 — Vina / RESP research source migration
 
 - Official Vina 1.2.7 CPU jobs, mapped Meeko SDF export, explicit affinity semantics and engine-separated history/caches.

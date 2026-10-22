@@ -1,9 +1,9 @@
 cff-version: 1.2.0
 message: "If you use this workflow, cite this repository and the exact revision; also cite the upstream methods actually used."
-title: "Yuanhe Bio Workflow"
+title: "Yuanhe Bio Platform"
 type: software
 authors:
-  - name: "Yuanhe Bio Workflow contributors"
+  - name: "Yuanhe Bio Platform contributors"
 repository-code: "https://github.com/lzylumos-sudo/yuanhe-bio-workflow"
 url: "https://github.com/lzylumos-sudo/yuanhe-bio-workflow"
 abstract: "A research workbench connecting molecular generation, structure-based virtual screening and membrane-protein modeling through reviewed inputs and traceable file handoffs."
