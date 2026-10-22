@@ -1,0 +1,250 @@
+{
+  "schema_version": "1.0.0",
+  "protocols": [
+    {
+      "schema_version": "1.0.0",
+      "registered_from_commit": "e4906f2c76c711522654516b2ad15111707b1484",
+      "status": "active",
+      "scientific_validation": "not_established",
+      "historical_runs_relabelled": false,
+      "software_versions": "record actual environment; unknown if absent",
+      "protocol_id": "murj-discovery",
+      "protocol_version": "1.0.0",
+      "backend": [
+        "peptide2mol",
+        "reinvent4",
+        "vina",
+        "zvss",
+        "gromacs_membrane"
+      ],
+      "source": "00_workbench/configs/research_dual_blackwell.json",
+      "locked": {
+        "profile": "research_dual_blackwell",
+        "peptide_attempts": 5000,
+        "core_limit": 200,
+        "reinvent_attempts": 200000,
+        "generated_unique_limit": 50000,
+        "external_limit": 50000,
+        "initial_limit": 100000,
+        "refine_limit": 2000,
+        "review_limit": 50,
+        "md_limit": 8,
+        "md_production_ns": 500,
+        "md_replicas": 1,
+        "wetlab_min": 4,
+        "wetlab_max": 8,
+        "initial": {
+          "receptors": 1,
+          "states": 1,
+          "seeds": 1,
+          "exhaustiveness": 8,
+          "num_modes": 5
+        },
+        "refine": {
+          "receptors": 2,
+          "states": 2,
+          "seeds": 2,
+          "exhaustiveness": 32,
+          "num_modes": 10
+        },
+        "selection_mode": "diversity",
+        "risk_rules": [],
+        "predocking": {
+          "rules_path": "02_docking/src/yuanhe_preflight/configs/risk_rules.v1.json",
+          "risk_policies": {},
+          "risk_exceptions": [],
+          "catalogs": [],
+          "stock_catalogs": [],
+          "evidence_max_age_days": 30,
+          "retro": {
+            "python": "python",
+            "model_path": "",
+            "templates_path": "",
+            "stock_path": "",
+            "model_version": "",
+            "templates_version": "",
+            "stock_version": "",
+            "model_license": "",
+            "templates_license": "",
+            "stock_license": "",
+            "time_limit_seconds": 120,
+            "max_depth": 6,
+            "iteration_limit": 100,
+            "startup_grace_seconds": 60
+          },
+          "cache_dir": "data/predocking_cache",
+          "workers": 1,
+          "batch_size": 32,
+          "route_reviews": [],
+          "external_interfaces": []
+        }
+      },
+      "parameters": {
+        "version": "1.0.0",
+        "profile": "research_dual_blackwell",
+        "peptide_attempts": 5000,
+        "core_limit": 200,
+        "reinvent_attempts": 200000,
+        "generated_unique_limit": 50000,
+        "external_limit": 50000,
+        "initial_limit": 100000,
+        "refine_limit": 2000,
+        "review_limit": 50,
+        "md_limit": 8,
+        "md_production_ns": 500,
+        "md_replicas": 1,
+        "md_concurrency": 2,
+        "wetlab_min": 4,
+        "wetlab_max": 8,
+        "generation_workers": 2,
+        "reinvent_device": "auto",
+        "vina_workers": 24,
+        "vina_cpu": 2,
+        "vina_thread_budget": 48,
+        "initial": {
+          "receptors": 1,
+          "states": 1,
+          "seeds": 1,
+          "exhaustiveness": 8,
+          "num_modes": 5
+        },
+        "refine": {
+          "receptors": 2,
+          "states": 2,
+          "seeds": 2,
+          "exhaustiveness": 32,
+          "num_modes": 10
+        },
+        "selection_mode": "diversity",
+        "risk_rules": [],
+        "risk_rules_review": null,
+        "supplier_library": "",
+        "receptor_ensemble": [],
+        "disk_reserve_gb": 50,
+        "estimated_md_gb_per_candidate": null,
+        "predocking": {
+          "rules_path": "02_docking/src/yuanhe_preflight/configs/risk_rules.v1.json",
+          "risk_policies": {},
+          "risk_exceptions": [],
+          "catalogs": [],
+          "stock_catalogs": [],
+          "evidence_max_age_days": 30,
+          "retro": {
+            "python": "python",
+            "model_path": "",
+            "templates_path": "",
+            "stock_path": "",
+            "model_version": "",
+            "templates_version": "",
+            "stock_version": "",
+            "model_license": "",
+            "templates_license": "",
+            "stock_license": "",
+            "time_limit_seconds": 120,
+            "max_depth": 6,
+            "iteration_limit": 100,
+            "startup_grace_seconds": 60
+          },
+          "cache_dir": "data/predocking_cache",
+          "workers": 1,
+          "batch_size": 32,
+          "route_reviews": [],
+          "external_interfaces": []
+        },
+        "ligand_states": {},
+        "md_task_timeout_seconds": 5184000
+      },
+      "scope": "Default orchestration recipe. Target, assets, reviewed chemical states and stage overrides are separately frozen; registration is not scientific validation.",
+      "source_sha256": "0cc21d27a357094b8a993422ad112b40cb309828f006c7897540451628b03aa1",
+      "workflow_locked": {
+        "energy_range": 3.0,
+        "docking_engine": "vina",
+        "pocket_radius": 6.0,
+        "screening_budget": "quick",
+        "target_profile": "ecmurj",
+        "receptor_chain": "A",
+        "peptide_chain": "B",
+        "receptor_range": [
+          3,
+          500
+        ]
+      }
+    },
+    {
+      "schema_version": "1.0.0",
+      "registered_from_commit": "e4906f2c76c711522654516b2ad15111707b1484",
+      "status": "active",
+      "scientific_validation": "not_established",
+      "historical_runs_relabelled": false,
+      "software_versions": "record actual environment; unknown if absent",
+      "protocol_id": "soluble-protein-md",
+      "protocol_version": "1.0.0",
+      "backend": [
+        "openmm_soluble"
+      ],
+      "source": "05_molecular_dynamics/config/default.yaml",
+      "locked": {},
+      "parameters": {
+        "temperature_K": 300,
+        "pressure": {
+          "value": 1,
+          "unit": "atm"
+        },
+        "timestep_fs": 2,
+        "production_ns": 500,
+        "replicas": 1,
+        "forcefields": [
+          "amber14-all.xml",
+          "amber14/tip3p.xml",
+          "gaff-2.11"
+        ],
+        "charge_method": "HF/6-31G* two-stage RESP"
+      },
+      "scope": "Complete canonical engine configuration is frozen in source_snapshot below.",
+      "source_sha256": "11375f4b476c5e9e307258154d866a704330b15069f6dc852ce9cb61c0c2a261",
+      "source_snapshot": "protein:\n  rebuild_hydrogens: true\n  ph: 7.0\n  remove_water: true\n  remove_heterogens: false\n  allow_missing_residues: false\nMD:\n  engine: openmm\n  temperature: 300\n  pressure: 1\n  timestep: 2fs\n  minimization: true\n  minimization_max_iterations: 5000\n  equilibration: 2ns\n  nvt: 1ns\n  npt: 1ns\n  heating_duration: 100ps\n  initial_temperature: 50\n  production: 500ns\n  protein_forcefield: amber14-all.xml\n  water_forcefield: amber14/tip3p.xml\n  ligand_forcefield: gaff-2.11\n  water_model: tip3p\n  padding_nm: 1.2\n  ionic_strength_molar: 0.15\n  nonbonded_cutoff_nm: 0.9\n  switch_distance_nm: 0.8\n  friction_per_ps: 1.0\n  restraint_k_kj_mol_nm2: 1000\n  platform: auto\n  require_gpu: true\n  device_index: \"0\"\n  charge_method: resp\n  qm_threads: 4\n  segment_length: 1ns\n  precision: mixed\n  cpu_threads: 4\n  report_interval: 10ps\n  checkpoint_interval: 100ps\n  seed: 20261008\n  pressure_unit: atm\nanalysis:\n  formal_window_ns: [400, 500]\n  alignment_selection: \"protein and backbone\"\n  block_ns: 10\n  rmsd: true\n  rmsf: true\n  hbond: true\n  contacts: true\n  distance: true\n  stride: 1\n  discard_ns: 0\n  contact_cutoff_angstrom: 4.5\n  hbond_distance_angstrom: 3.0\n  hbond_angle_degrees: 150\n  key_residue_occupancy: 0.3\n  distance_pairs: []\n  groups: {}\n  sasa: true\n  sasa_stride: 10\n  sasa_points: 100\n  sasa_probe_angstrom: 1.4\nreplicates: 1\nmmgbsa:\n  enabled: false\n  igb: 5\n  salt_molar: 0.15\n  max_frames: 200\n  start_ns: 0\n  entropy: false\nmmpbsa:\n  enabled: true\n  start_ns: 400\n  end_ns: 500\n  stride: 10\n  interior_dielectric: 1.0\n  exterior_dielectric: 80.0\n  salt_molar: 0.15\n  entropy: false\n  membrane: false\n"
+    },
+    {
+      "schema_version": "1.0.0",
+      "registered_from_commit": "e4906f2c76c711522654516b2ad15111707b1484",
+      "status": "active",
+      "scientific_validation": "not_established",
+      "historical_runs_relabelled": false,
+      "software_versions": "record actual environment; unknown if absent",
+      "protocol_id": "murj-membrane-md",
+      "protocol_version": "1.0.0",
+      "backend": [
+        "openmm_system_builder",
+        "gromacs_membrane"
+      ],
+      "source": "00_workbench/scientific/membrane.py",
+      "locked": {},
+      "parameters": {
+        "temperature_K": 310,
+        "pressure": {
+          "value": 1,
+          "unit": "bar"
+        },
+        "pressure_coupling": "semiisotropic",
+        "timestep_fs": 2,
+        "production_ns": 500,
+        "replicas": 1,
+        "equilibration_ns": 2,
+        "forcefields": [
+          "amber14-all.xml",
+          "amber14/tip3p.xml",
+          "gaff-2.11"
+        ],
+        "charge_method": "HF/6-31G* two-stage RESP",
+        "lipid_default": "POPE",
+        "lipid_parameter_version": "unknown; inspect actual XML include tree and freeze hashes at build",
+        "salt_M": 0.15,
+        "padding_nm": 1.2,
+        "alignment_selection": "protein and backbone"
+      },
+      "scope": "OpenMM construction, ParmEd conversion, GROMACS MDP recipe. Do not infer Lipid17 solely from AMBER family naming.",
+      "source_sha256": "6afdf27c42c1002da2a0b5a3c24fadcc9eb7b76560c3d06fd87f92eebdff9bca",
+      "mdp_recipe_source": "def mdp(phase,p,seed):\n temp=float(p['temperature_K']);ns=float(p['production_ns'] if phase=='production' else p['equilibration_ns'])\n em=phase=='em';nvt=phase=='nvt';restrained=phase!='production'\n steps=5000 if em else max(1,round((.1 if nvt else ns if phase=='production' else ns/2)*500000))\n lines=['integrator = '+('steep' if em else 'md'),f'nsteps = {steps}','dt = 0.002','emtol = 1000','emstep = 0.01','cutoff-scheme = Verlet','nstlist = 20','rlist = 1.0','coulombtype = PME','rcoulomb = 1.0','vdwtype = Cut-off','rvdw = 1.0','DispCorr = EnerPres','pbc = xyz','constraints = h-bonds','constraint-algorithm = lincs','nstenergy = 500','nstlog = 500','nstxout-compressed = '+str(round(float(p.get('output_interval_ps',10))/.002)),'compressed-x-grps = System','nstxout = 0','nstvout = 0','nstfout = 0']\n if restrained:lines+=['define = -DPOSRES -DPOSRES_FC='+('100' if phase=='npt_soft' else '1000'),'refcoord-scaling = com']\n if not em:\n  lines+=[f'ld-seed = {seed}','tcoupl = V-rescale','tc-grps = System','tau-t = 1.0',f'ref-t = {temp}','continuation = '+('no' if nvt else 'yes'),'gen-vel = '+('yes' if nvt else 'no')]\n  if nvt:lines +=['gen-temp = 50',f'gen-seed = {seed}','annealing = single','annealing-npoints = 2','annealing-time = 0 100',f'annealing-temp = 50 {temp}']\n  lines+=['pcoupl = '+('no' if nvt else 'Parrinello-Rahman' if phase=='production' else 'C-rescale')]\n  if not nvt:lines+=['pcoupltype = semiisotropic','tau-p = 5.0','ref-p = 1.0 1.0','compressibility = 4.5e-5 4.5e-5']\n return '\\n'.join(lines)+'\\n'"
+    }
+  ]
+}

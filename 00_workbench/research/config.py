@@ -1,5 +1,6 @@
 """Single definition used by UI/API/CLI and actual adapters."""
-import copy, hashlib, json, math, platform, sys
+import copy, json, math, platform, sys
+from yuanhe.configuration import fingerprint
 from pathlib import Path
 PATH = Path(__file__).resolve().parents[1] / 'configs/research_dual_blackwell.json'
 
@@ -15,6 +16,7 @@ def defaults(profile='research_dual_blackwell'):
     return cfg
 
 def resolve(value=None):
+    if value is not None and not isinstance(value,dict):raise ValueError('Research configuration must be an object')
     value = value or {}
     cfg = defaults(value.get('profile', 'research_dual_blackwell'))
     if set(value) - set(cfg): raise ValueError('Unknown research configuration keys')
@@ -45,9 +47,6 @@ def resolve(value=None):
         if cfg[phase]['num_modes'] > 100: raise ValueError('Vina num_modes exceeds 100')
     if not isinstance(cfg['ligand_states'],dict):raise ValueError('ligand_states must map compound IDs to reviewed states')
     return cfg
-
-def fingerprint(value):
-    return hashlib.sha256(json.dumps(value,sort_keys=True,separators=(',',':'),allow_nan=False).encode()).hexdigest()
 
 def plan(cfg):
     return {'parent_limits':{'initial':cfg['initial_limit'],'refine':cfg['refine_limit']},

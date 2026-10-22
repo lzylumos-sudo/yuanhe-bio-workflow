@@ -1,0 +1,491 @@
+{
+  "schema_version": "1.0.0",
+  "product": "Yuanhe Bio Platform",
+  "modules": [
+    {
+      "module_id": "GEN",
+      "display_name": "Molecular Generation",
+      "description": "Molecular Generation in Yuanhe Bio Platform",
+      "implementation_path": "01_molecule_generation",
+      "entrypoint": "00_workbench/pipeline_bridge.py:stage_peptide2mol",
+      "capabilities": [
+        "pocket_conditioned_generation",
+        "scaffold_decoration",
+        "pretrained_sampling"
+      ],
+      "backend": [
+        "peptide2mol",
+        "reinvent4"
+      ],
+      "status": "active",
+      "dependencies": [
+        "peptide2mol",
+        "reinvent4"
+      ],
+      "supported_protocols": [
+        "murj-discovery@1.0.0"
+      ],
+      "input_schema": "yuanhe.stage-input/1",
+      "output_schema": "yuanhe.stage-output/1",
+      "deprecated_aliases": [
+        "01"
+      ]
+    },
+    {
+      "module_id": "DOCK",
+      "display_name": "Molecular Docking",
+      "description": "Molecular Docking in Yuanhe Bio Platform",
+      "implementation_path": "02_docking",
+      "entrypoint": "02_docking/src/docking/__init__.py:run_vina_job",
+      "capabilities": [
+        "ligand_preparation",
+        "receptor_preparation",
+        "rigid_receptor_docking",
+        "multi_conformation_docking",
+        "pose_export"
+      ],
+      "backend": [
+        "vina"
+      ],
+      "status": "active",
+      "dependencies": [
+        "vina"
+      ],
+      "supported_protocols": [
+        "murj-discovery@1.0.0"
+      ],
+      "input_schema": "yuanhe.stage-input/1",
+      "output_schema": "yuanhe.stage-output/1",
+      "deprecated_aliases": [
+        "sbvs",
+        "sbvs2"
+      ]
+    },
+    {
+      "module_id": "SCREEN",
+      "display_name": "Virtual Screening",
+      "description": "Virtual Screening in Yuanhe Bio Platform",
+      "implementation_path": "03_virtual_screening",
+      "entrypoint": "03_virtual_screening/src/zvss/cli.py:main",
+      "capabilities": [
+        "evidence_screening",
+        "membrane_compatibility",
+        "diversity"
+      ],
+      "backend": [
+        "zvss"
+      ],
+      "status": "active",
+      "dependencies": [
+        "zvss"
+      ],
+      "supported_protocols": [
+        "murj-discovery@1.0.0"
+      ],
+      "input_schema": "yuanhe.stage-input/1",
+      "output_schema": "yuanhe.stage-output/1",
+      "deprecated_aliases": [
+        "03"
+      ]
+    },
+    {
+      "module_id": "INTERACT",
+      "display_name": "Interaction Analysis",
+      "description": "Interaction Analysis in Yuanhe Bio Platform",
+      "implementation_path": "04_interaction_analysis",
+      "entrypoint": "04_interaction_analysis/src/zlis/cli.py:main",
+      "capabilities": [
+        "static_interactions",
+        "structure_visualization"
+      ],
+      "backend": [
+        "zlis"
+      ],
+      "status": "active",
+      "dependencies": [
+        "zlis"
+      ],
+      "supported_protocols": [
+        "murj-discovery@1.0.0"
+      ],
+      "input_schema": "yuanhe.stage-input/1",
+      "output_schema": "yuanhe.stage-output/1",
+      "deprecated_aliases": []
+    },
+    {
+      "module_id": "MD",
+      "display_name": "Molecular Dynamics",
+      "description": "Molecular Dynamics in Yuanhe Bio Platform",
+      "implementation_path": "05_molecular_dynamics",
+      "entrypoint": "00_workbench/scientific/md_cli.py:main",
+      "capabilities": [
+        "parameterization",
+        "membrane_system_building",
+        "minimization",
+        "equilibration",
+        "production",
+        "trajectory_analysis"
+      ],
+      "backend": [
+        "openmm_soluble",
+        "gromacs_membrane",
+        "openmm_system_builder"
+      ],
+      "status": "active",
+      "dependencies": [
+        "openmm_soluble",
+        "gromacs_membrane",
+        "openmm_system_builder"
+      ],
+      "supported_protocols": [
+        "soluble-protein-md@1.0.0",
+        "murj-membrane-md@1.0.0"
+      ],
+      "input_schema": "yuanhe.stage-input/1",
+      "output_schema": "yuanhe.stage-output/1",
+      "deprecated_aliases": [
+        "Nexus_MD_v2"
+      ]
+    },
+    {
+      "module_id": "WORKBENCH",
+      "display_name": "Research Workbench",
+      "description": "Research Workbench in Yuanhe Bio Platform",
+      "implementation_path": "00_workbench",
+      "entrypoint": "00_workbench/run_research.py:main",
+      "capabilities": [
+        "task_orchestration",
+        "review",
+        "artifact_management"
+      ],
+      "backend": [
+        "workbench"
+      ],
+      "status": "active",
+      "dependencies": [
+        "workbench"
+      ],
+      "supported_protocols": [
+        "murj-discovery@1.0.0"
+      ],
+      "input_schema": "yuanhe.stage-input/1",
+      "output_schema": "yuanhe.stage-output/1",
+      "deprecated_aliases": [
+        "WEDGE-Design",
+        "Yuanhe Workflow",
+        "Yuanhe Research Studio"
+      ]
+    }
+  ],
+  "backends": [
+    {
+      "backend_id": "peptide2mol",
+      "module_id": "GEN",
+      "implementation_path": "01_molecule_generation/src/adapters/peptide2mol.py",
+      "entrypoint": "run",
+      "dependencies": [
+        "torch",
+        "rdkit"
+      ],
+      "status": "active",
+      "environment": "peptide_python",
+      "required_files": [
+        "01_molecule_generation/vendor/Peptide2Mol/ckpts/PMT_major.ckpt"
+      ],
+      "executables": [],
+      "supported_protocols": [],
+      "parent": null,
+      "verification": "unknown",
+      "verification_evidence": [],
+      "input_schema": "yuanhe.stage-input/1",
+      "output_schema": "yuanhe.stage-output/1"
+    },
+    {
+      "backend_id": "reinvent4",
+      "module_id": "GEN",
+      "implementation_path": "01_molecule_generation/src/adapters/reinvent4.py",
+      "entrypoint": "run",
+      "dependencies": [
+        "torch",
+        "rdkit"
+      ],
+      "status": "active",
+      "environment": "reinvent_python",
+      "required_files": [
+        "01_molecule_generation/vendor/REINVENT4/priors/libinvent.prior"
+      ],
+      "executables": [
+        "reinvent_executable"
+      ],
+      "supported_protocols": [],
+      "parent": null,
+      "verification": "unknown",
+      "verification_evidence": [],
+      "input_schema": "yuanhe.stage-input/1",
+      "output_schema": "yuanhe.stage-output/1"
+    },
+    {
+      "backend_id": "vina",
+      "module_id": "DOCK",
+      "implementation_path": "02_docking/src/sbvs2/docking/vina_official.py",
+      "entrypoint": "run_vina_job",
+      "dependencies": [
+        "rdkit",
+        "meeko",
+        "gemmi"
+      ],
+      "status": "active",
+      "environment": "chem_python",
+      "required_files": [],
+      "executables": [
+        "vina"
+      ],
+      "supported_protocols": [],
+      "parent": null,
+      "verification": "unknown",
+      "verification_evidence": [],
+      "input_schema": "yuanhe.stage-input/1",
+      "output_schema": "yuanhe.stage-output/1"
+    },
+    {
+      "backend_id": "gnina_legacy",
+      "module_id": "DOCK",
+      "implementation_path": "02_docking/src/sbvs2/docking/run_gnina.py",
+      "entrypoint": "",
+      "dependencies": [],
+      "status": "deprecated",
+      "environment": "chem_python",
+      "required_files": [],
+      "executables": [
+        "gnina"
+      ],
+      "supported_protocols": [],
+      "parent": null,
+      "verification": "unknown",
+      "verification_evidence": [],
+      "input_schema": "yuanhe.stage-input/1",
+      "output_schema": "yuanhe.stage-output/1"
+    },
+    {
+      "backend_id": "zvss",
+      "module_id": "SCREEN",
+      "implementation_path": "03_virtual_screening/src/zvss/cli.py",
+      "entrypoint": "main",
+      "dependencies": [
+        "rdkit",
+        "yaml",
+        "pandas",
+        "MDAnalysis",
+        "posebusters"
+      ],
+      "status": "active",
+      "environment": "screen_python",
+      "required_files": [],
+      "executables": [],
+      "supported_protocols": [
+        "murj-discovery@1.0.0"
+      ],
+      "parent": null,
+      "verification": "unknown",
+      "verification_evidence": [],
+      "input_schema": "yuanhe.stage-input/1",
+      "output_schema": "yuanhe.stage-output/1"
+    },
+    {
+      "backend_id": "ymavs",
+      "module_id": "SCREEN",
+      "implementation_path": "03_virtual_screening/src/zvss/membrane/environment.py",
+      "entrypoint": "",
+      "dependencies": [
+        "numpy",
+        "MDAnalysis"
+      ],
+      "status": "active",
+      "environment": "screen_python",
+      "required_files": [],
+      "executables": [],
+      "supported_protocols": [],
+      "parent": "zvss",
+      "verification": "unknown",
+      "verification_evidence": [],
+      "input_schema": "yuanhe.stage-input/1",
+      "output_schema": "yuanhe.stage-output/1"
+    },
+    {
+      "backend_id": "zlis",
+      "module_id": "INTERACT",
+      "implementation_path": "04_interaction_analysis/src/zlis/cli.py",
+      "entrypoint": "main",
+      "dependencies": [
+        "rdkit",
+        "Bio",
+        "numpy"
+      ],
+      "status": "active",
+      "environment": "chem_python",
+      "required_files": [],
+      "executables": [
+        "pymol"
+      ],
+      "supported_protocols": [],
+      "parent": null,
+      "verification": "unknown",
+      "verification_evidence": [],
+      "input_schema": "yuanhe.stage-input/1",
+      "output_schema": "yuanhe.stage-output/1"
+    },
+    {
+      "backend_id": "openmm_soluble",
+      "module_id": "MD",
+      "implementation_path": "05_molecular_dynamics/modules/md/openmm_engine.py",
+      "entrypoint": "",
+      "dependencies": [
+        "openmm",
+        "openmmforcefields",
+        "parmed",
+        "rdkit",
+        "openff.toolkit",
+        "psi4"
+      ],
+      "status": "active",
+      "environment": "md_python",
+      "required_files": [],
+      "executables": [
+        "antechamber"
+      ],
+      "supported_protocols": [
+        "soluble-protein-md@1.0.0"
+      ],
+      "parent": null,
+      "verification": "unknown",
+      "verification_evidence": [],
+      "input_schema": "yuanhe.stage-input/1",
+      "output_schema": "yuanhe.stage-output/1"
+    },
+    {
+      "backend_id": "openmm_system_builder",
+      "module_id": "MD",
+      "implementation_path": "00_workbench/scientific/membrane.py",
+      "entrypoint": "build",
+      "dependencies": [
+        "openmm",
+        "openmmforcefields",
+        "parmed",
+        "rdkit",
+        "openff.toolkit",
+        "psi4"
+      ],
+      "status": "active",
+      "environment": "prep_python",
+      "required_files": [],
+      "executables": [
+        "antechamber"
+      ],
+      "supported_protocols": [
+        "murj-membrane-md@1.0.0"
+      ],
+      "parent": null,
+      "verification": "unknown",
+      "verification_evidence": [],
+      "input_schema": "yuanhe.stage-input/1",
+      "output_schema": "yuanhe.stage-output/1"
+    },
+    {
+      "backend_id": "gromacs_membrane",
+      "module_id": "MD",
+      "implementation_path": "00_workbench/scientific/membrane.py",
+      "entrypoint": "run",
+      "dependencies": [
+        "MDAnalysis"
+      ],
+      "status": "active",
+      "environment": "md_python",
+      "required_files": [],
+      "executables": [
+        "gmx"
+      ],
+      "supported_protocols": [
+        "murj-membrane-md@1.0.0"
+      ],
+      "parent": null,
+      "verification": "unknown",
+      "verification_evidence": [],
+      "input_schema": "yuanhe.stage-input/1",
+      "output_schema": "yuanhe.stage-output/1"
+    },
+    {
+      "backend_id": "workbench",
+      "module_id": "WORKBENCH",
+      "implementation_path": "00_workbench/webui/workflow.py",
+      "entrypoint": "create",
+      "dependencies": [],
+      "status": "active",
+      "environment": "current",
+      "required_files": [],
+      "executables": [],
+      "supported_protocols": [],
+      "parent": null,
+      "verification": "unknown",
+      "verification_evidence": [],
+      "input_schema": "yuanhe.stage-input/1",
+      "output_schema": "yuanhe.stage-output/1"
+    },
+    {
+      "backend_id": "pepwedge_legacy",
+      "module_id": "GEN",
+      "implementation_path": "00_workbench/pepwedge",
+      "entrypoint": "",
+      "dependencies": [],
+      "status": "deprecated",
+      "environment": "chem_python",
+      "required_files": [],
+      "executables": [],
+      "supported_protocols": [],
+      "parent": null,
+      "verification": "unknown",
+      "verification_evidence": [],
+      "input_schema": "yuanhe.stage-input/1",
+      "output_schema": "yuanhe.stage-output/1"
+    },
+    {
+      "backend_id": "docking_prototype",
+      "module_id": "DOCK",
+      "implementation_path": "archive/docking_prototype",
+      "entrypoint": "",
+      "dependencies": [],
+      "status": "archived",
+      "environment": "chem_python",
+      "required_files": [],
+      "executables": [],
+      "supported_protocols": [],
+      "parent": null,
+      "verification": "unknown",
+      "verification_evidence": [],
+      "input_schema": "yuanhe.stage-input/1",
+      "output_schema": "yuanhe.stage-output/1"
+    }
+  ],
+  "format": "JSON is a YAML 1.2 subset; stdlib runtime loader",
+  "legacy_inventory": [
+    {
+      "name": "Peptide2Mol",
+      "path": "01_molecule_generation/vendor/Peptide2Mol/ckpts/PMT_major.ckpt"
+    },
+    {
+      "name": "REINVENT4",
+      "path": "01_molecule_generation/vendor/REINVENT4/priors/libinvent.prior"
+    },
+    {
+      "name": "Vina adapter",
+      "path": "02_docking/src/sbvs2/docking/vina_official.py"
+    },
+    {
+      "name": "Virtual screening",
+      "path": "03_virtual_screening/src/zvss/stages.py"
+    },
+    {
+      "name": "Membrane MD",
+      "path": "00_workbench/scientific/membrane.py"
+    }
+  ]
+}

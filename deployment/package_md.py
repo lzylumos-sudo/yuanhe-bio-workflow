@@ -13,6 +13,9 @@ def main():
  for f in (ROOT/'05_molecular_dynamics/modules').rglob('*.py'):
   files[str(f.relative_to(ROOT))]=f
  files['docs/15_VINA_RESP_RESEARCH.md']=ROOT/'docs/15_VINA_RESP_RESEARCH.md'
+ for f in (ROOT/'00_workbench/yuanhe').glob('*.py'):files['yuanhe/'+f.name]=f
+ for n in ['VERSION','configs/module_registry.yaml','configs/protocol_registry.yaml']:files[n]=ROOT/n
+ for f in (ROOT/'configs/schemas').glob('*.json'):files[str(f.relative_to(ROOT))]=f
  files.update(license_files())
  manifest={n:hashlib.sha256(p.read_bytes()).hexdigest() for n,p in files.items()}
  with zipfile.ZipFile(a.output,'x',zipfile.ZIP_DEFLATED) as z:

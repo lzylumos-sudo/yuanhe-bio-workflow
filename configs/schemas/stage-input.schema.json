@@ -1,0 +1,12 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "yuanhe.stage-input/1",
+  "type": "object",
+  "required": [
+    "run_id",
+    "stage_id",
+    "config_hash",
+    "input_artifacts"
+  ],
+  "additionalProperties": true
+}

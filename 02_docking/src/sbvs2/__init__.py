@@ -1,3 +1,3 @@
 """GNINA/Vina structure-based virtual screening platform (v2)."""
-__version__ = "0.1.0"
+from ._platform_version import __version__
 SCHEMA_VERSION = 2

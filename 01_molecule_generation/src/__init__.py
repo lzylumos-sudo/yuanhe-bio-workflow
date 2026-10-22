@@ -1,3 +1,3 @@
 """MurJ v2 auditable pre-docking library pipeline."""
 
-__version__ = "0.1.0"
+from ._platform_version import __version__

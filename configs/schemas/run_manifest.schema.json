@@ -1,0 +1,25 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "yuanhe.run_manifest/1",
+  "type": "object",
+  "required": [
+    "run_id",
+    "software_version",
+    "git_commit",
+    "git_dirty",
+    "protocol_id",
+    "protocol_version",
+    "config_hash",
+    "target_id",
+    "input_artifacts",
+    "model_versions",
+    "tool_versions",
+    "stage_status",
+    "output_artifacts",
+    "start_time",
+    "end_time",
+    "status",
+    "scientific_review"
+  ],
+  "additionalProperties": true
+}

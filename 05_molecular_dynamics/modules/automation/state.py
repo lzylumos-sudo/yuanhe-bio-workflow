@@ -35,6 +35,9 @@ def update(job, status, **fields):
     write(path, data)
     with (Path(job)/'events.jsonl').open('a', encoding='utf-8') as f:
         f.write(json.dumps({'time': now(), 'status':status, **fields}, ensure_ascii=False)+'\n')
+    from . import governance
+    records=governance()
+    if records:records.sync_soluble(job,data)
     return data
 
 def files_under(root, folders):

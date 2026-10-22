@@ -1,6 +1,6 @@
 # Administrator deployment: complete research workbench
 
-This is the current deployment entrypoint for the browser workflow. Use a complete Git checkout. The public minimal CLI test, historical 5070 notes, and `Dockerfile.research` alone do **not** install or validate the full workbench.
+Start with the [current administrator download and verification entrypoint](../DEPLOY.md). This guide configures the complete browser workflow. Use a complete Git checkout or the verified named administrator ZIP. The public minimal CLI test, historical 5070 notes, and `Dockerfile.research` alone do **not** install or validate the full workbench.
 
 The administrator performs installation and service management. Researchers operate only the supplied UI URL; they do not need SSH or a local compute installation. A code update requires the administrator to deploy the updated revision and restart the service. Merely refreshing the browser cannot change server dependencies or its running Python.
 
@@ -40,7 +40,7 @@ cd yuanhe-bio-workflow
 git rev-parse HEAD
 ```
 
-Use the approved release/commit, not an arbitrary older archive. Choose a new dedicated installation prefix owned by the service account, for example `/srv/yuanhe/release-20261022`. The commands below use `YUANHE_PREFIX`; replace the example path once, consistently.
+Select the current immutable tag from `deployment/current_release.json` and verify the software version. For the named ZIP, follow `DEPLOY.md` and `verify_release.py`; do not mistake a source commit hash for the product version. Choose a new dedicated installation prefix owned by the service account, for example `/srv/yuanhe/release-20261022`. The commands below use `YUANHE_PREFIX`; replace the example path once, consistently.
 
 GitHub deliberately does not contain model weights, installed environments or supplier data. Obtain the sources/weights in [model_dependencies.json](model_dependencies.json) under their upstream terms. Either restore the administrator's existing licensed bundle:
 
