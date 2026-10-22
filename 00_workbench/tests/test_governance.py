@@ -64,7 +64,7 @@ def test_frozen_paths_preserve_protocol_but_changed_rules_do_not():
     cfg['research']['predocking']['rules_path'] = str(ROOT/'different-rules.json')
     assert not protocol_for(cfg)['conforms']
     cfg, _, _ = workflow.validate_config({})
-    cfg['research']['predocking']['evidence_max_age_days'] = 365
+    cfg['research']['predocking']['retro']['max_depth'] = 8
     assert not protocol_for(cfg)['conforms']
 
 

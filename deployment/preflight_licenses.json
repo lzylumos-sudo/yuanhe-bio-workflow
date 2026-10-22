@@ -39,9 +39,5 @@
     "provided": false,
     "license": "not supplied; review raw material database terms"
   },
-  "supplier_catalogs": {
-    "provided": false,
-    "license": "not supplied; local import requires source/version/license metadata and authority to use catalog"
-  },
-  "commercial_scope": "Software licenses do not grant model, template, stock, supplier-data or project commercial rights. Existing project LICENSE_SCOPE remains authoritative."
+  "commercial_scope": "Software licenses do not grant model, template, planning building-block data or project commercial rights. Existing project LICENSE_SCOPE remains authoritative."
 }

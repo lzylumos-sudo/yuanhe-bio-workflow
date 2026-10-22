@@ -3,8 +3,7 @@ Hashes detect changed evidence; validity is recomputed, not trusted as a boolean
 from pathlib import Path
 from .common import read, verify_seal, file_hash, canonical, sdf_smiles, hash_obj, identity
 from .toxicity_substructure_filter import RiskRules
-from .availability_synthesis_filter import BUY_LABELS, validate_route, assets
-from .catalog import Catalog
+from .synthesis_routes import validate_route, assets
 
 class QualificationError(ValueError): pass
 
@@ -12,7 +11,7 @@ def validate_evidence(evidence, smiles, *, input_file=None):
     if not evidence:raise QualificationError('predocking_evidence_required')
     proof=read(evidence) if isinstance(evidence,(str,Path)) else evidence
     verify_seal(proof)
-    if proof.get('schema')!='yuanhe-predocking/1':raise QualificationError('invalid_evidence_schema')
+    if proof.get('schema')!='yuanhe-predocking/2':raise QualificationError('invalid_evidence_schema')
     current=identity(smiles)
     if any(proof['identity'].get(k)!=current[k] for k in ('smiles','structure_sha256','compound_id','state_id')):
         raise QualificationError('structure_identity_mismatch')
@@ -38,12 +37,6 @@ def validate_evidence(evidence, smiles, *, input_file=None):
         if selected.get('policy_sha256')!=hash_obj(cfg) or current['compound_id'] not in selected.get('qualified_ids',[]):
             raise QualificationError('Molecule excluded by final selection')
     if availability.get('smiles')!=current['smiles']:raise QualificationError('availability_identity_mismatch')
-    catalog=Catalog(cfg['catalogs'],cfg['evidence_max_age_days'])
-    stock=Catalog(cfg['stock_catalogs'],cfg['evidence_max_age_days'])
-    if catalog.versions!=availability['catalog_versions'] or stock.versions!=availability['stock_versions']:
-        raise QualificationError('catalog_or_stock_version_changed')
-    valid=catalog.valid(current['smiles'])
-    purchase=any(any(r==saved for saved in availability['supplier_records']) for r in valid)
     route_ok=False
     if availability['routes']:
         manifest,error=assets(cfg['retro'])
@@ -58,9 +51,9 @@ def validate_evidence(evidence, smiles, *, input_file=None):
         if canonical(original['raw'].get('target_smiles',''))!=current['smiles']:raise QualificationError('raw_search_target_mismatch')
         for route in availability['routes']:
             if not any(hash_obj(t)==route['route_sha256'] for t in trees):raise QualificationError('route_not_in_raw_search')
-            checked=validate_route(route['tree'],current['smiles'],stock,route_review=route.get('review'))
+            checked=validate_route(route['tree'],current['smiles'],route_review=route.get('review'))
             if checked['status']=='complete' and checked==route:route_ok=True
-    if not purchase and not route_ok:raise QualificationError('no_current_supply_or_complete_route_evidence')
+    if not route_ok:raise QualificationError('no_complete_synthesis_route_evidence')
     return proof
 
 def require_ligand(ligand, evidence=None):

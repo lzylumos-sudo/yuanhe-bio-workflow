@@ -300,7 +300,7 @@ def stage_screening(d,cfg,out):
  for row in rows:
   evidence=evidence_index.get(row.get('compound_id'))
   if evidence:row.update({k:v for k,v in evidence.items() if k not in ('compound_id','state_id')})
- atomic(out/'predocking_handoff.json',{'scope':'acquisition evidence only; MD parameters and final wet-lab review unchanged','compounds':evidence_index})
+ atomic(out/'predocking_handoff.json',{'scope':'synthesis evidence only; MD parameters and final wet-lab review unchanged','compounds':evidence_index})
  selected=out/'selected_poses';selected.mkdir()
  for row in rows:
   pid=row.get('pose_id','')

@@ -31,8 +31,9 @@ def test_stable_parent_identity_preserves_enantiomers():
 
 def test_no_evidence_never_qualifies(tmp_path):
     pytest.importorskip('rdkit')
-    from research.qualification import acquisition
-    assert acquisition(tmp_path,'CCO',[])['status']=='acquisition_pending'
+    from yuanhe_preflight.synthesis_routes import SynthesisFilter
+    from yuanhe_preflight.config import defaults as predocking_defaults
+    assert SynthesisFilter(predocking_defaults(tmp_path),'test').screen('CCO')['decision']=='pending'
 
 def test_risk_requires_review_and_pains_cannot_be_toxicity_block():
     Chem=pytest.importorskip('rdkit.Chem')

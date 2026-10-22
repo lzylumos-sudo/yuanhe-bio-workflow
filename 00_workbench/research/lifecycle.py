@@ -73,15 +73,15 @@ def handoff(rid,reviews):
             'identity_clear':q.get('stereochemistry')=='specified_or_not_applicable',
             'chemistry_passed':bool(q.get('smiles')),
             'risk_screen_passed':q.get('risk',{}).get('status')=='risk_screen_passed',
-            'acquisition_confirmed':bool(m.get('acquisition_confirmed') and m.get('acquisition_evidence')),
+            'synthesis_reviewed':bool(m.get('synthesis_reviewed') and m.get('synthesis_evidence')),
             'structural_reviewed':m.get('structural_reviewed') is True,
             'md_completed':rec.get('md_completed') is True and a.get('production_end_ns',0)>=rc['md_production_ns'],
             'md_analysis_completed':rec.get('md_analysis_completed') is True,
             'manual_review_approved':m.get('approved') is True and bool(m.get('reviewer')) and bool(m.get('date')),
             'uncertainties_recorded':bool(m.get('uncertainties'))}
-        if checks['acquisition_confirmed']:
+        if checks['synthesis_reviewed']:
             from .qualification import verified_file
-            verified_file(w.ROOT,m['acquisition_evidence'])
+            verified_file(w.ROOT,m['synthesis_evidence'])
         row={'compound_id':cid,'qualification':q,'md':rec,'manual_review':m,'checks':checks,'wetlab_ready':all(checks.values())}
         (ready if row['wetlab_ready'] else pending).append(row)
     if len(ready)>rc['wetlab_max']:raise ValueError('Approved candidates exceed wet-lab cap; submit an explicit selection')

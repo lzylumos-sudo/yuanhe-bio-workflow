@@ -2,7 +2,7 @@
 import copy, json, math, platform, sys
 from yuanhe.configuration import fingerprint
 from pathlib import Path
-PATH = Path(__file__).resolve().parents[1] / 'configs/research_predocking_v2.json'
+PATH = Path(__file__).resolve().parents[1] / 'configs/research_synthesis.json'
 
 def defaults(profile='research_dual_blackwell'):
     cfg = json.loads(PATH.read_text())

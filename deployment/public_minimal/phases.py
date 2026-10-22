@@ -37,20 +37,12 @@ def prepare():
     AllChem.UFFOptimizeMolecule(mol,maxIters=50)
     sdf=inputs/'ethanol.sdf'
     with Chem.SDWriter(str(sdf)) as w:w.write(mol)
-    source=OUT/'sources/ethanol_supplier.html'
-    data=[json.loads(s) for s in re.findall(r'<script type="application/ld\+json">(.*?)</script>',source.read_text(),re.S)]
-    product=next(x for x in data if x.get('@type')=='Product')
-    molecular=next(x for x in data if x.get('smiles')=='CCO')
-    offer=next(x for x in product['offers'] if x.get('availability')=='https://schema.org/InStock')
-    assert molecular['inChIKey']=='LFQSCWFLJHTTHZ-UHFFFAOYSA-N'
-    today=datetime.now(ZoneInfo('Asia/Shanghai')).date().isoformat()
-    row={'smiles':'CCO','vendor':'Molekula','sku':offer['sku'],'supply_type':'in_stock','checked_at':today,
-         'catalog_date':today,'evidence_kind':'stock_confirmation','evidence_file':str(source),'evidence_sha256':sha(source)}
-    catalog=inputs/'catalog.csv'
-    with catalog.open('w',newline='') as f:w=csv.DictWriter(f,fieldnames=list(row));w.writeheader();w.writerow(row)
-    pre=defaults(OUT);pre['workers']=1;pre['batch_size']=1
-    pre['catalogs']=[{'path':str(catalog),'version':today,'source':product['url'],
-        'license':'Public supplier page retained locally for validation; no redistribution license inferred','trusted':True}]
+    # Same synthesis-only gate as production. Models live in independent environments.
+    config_path=os.environ.get('YUANHE_PREDOCKING_CONFIG')
+    if not config_path:raise ValueError('YUANHE_PREDOCKING_CONFIG must point to an installed real-model configuration')
+    from yuanhe_preflight.config import validate,absolute_paths
+    pre=absolute_paths(validate(read(Path(config_path))),ROOT)
+    pre['cache_dir']=str(OUT/'predocking_cache');pre['workers']=1;pre['batch_size']=1
     risk_stage([{'id':'public_ethanol','smiles':'CCO','sdf':str(sdf),'source_core':'public-input'}],pre,OUT/'risk',base=OUT,batch_id='PUBLIC_ENGINEERING_ONLY')
     availability_stage(read(OUT/'risk/records.json'),pre,OUT/'availability')
     assert len(read(OUT/'availability/qualified.json'))==1
@@ -60,7 +52,7 @@ def prepare():
           'review_note':'Public 1CRN complete 46-residue chain; engineering-only solvent test, not a binding hypothesis.'}
     prep=backend.prepare(pcfg,paths(),plan)
     write(OUT/'md_config.json',cfg);write(OUT/'protein_plan.json',plan)
-    checkpoint('preparation',{'status':'passed','protein':'1CRN','ligand':'ethanol','molecules':1,'supply_snapshot':sha(source),'protein_preparation':prep})
+    checkpoint('preparation',{'status':'passed','protein':'1CRN','ligand':'ethanol','molecules':1,'synthesis_evidence':read(OUT/'availability/qualified.json')[0]['qualification_sha256'],'protein_preparation':prep})
 def dock():
     import numpy as np
     from openmm import app,unit

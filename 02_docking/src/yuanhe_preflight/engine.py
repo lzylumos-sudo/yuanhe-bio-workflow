@@ -32,7 +32,7 @@ def evaluate(rows, cfg, out):
             reasons.append(syn['rejection_reason'])
         record = seal({'smiles': row['smiles'], 'molecule_id': row['compound_id'],
                        'toxicity_predictions': tox, 'synthesis': syn,
-                       'policy_sha256': hash_obj(settings), 'version': '2.0.0',
+                       'policy_sha256': hash_obj(settings), 'version': settings['version'],
                        'decision': 'review' if reasons else 'pass', 'reasons': reasons})
         scored[row['compound_id']] = {**row, 'screening': record, 'toxicity_predictions': tox,
                                       'synthesis': syn, 'decision': record['decision'],
@@ -45,7 +45,7 @@ def evaluate(rows, cfg, out):
 
 def validate_screening(record, settings, smiles):
     verify_seal(record)
-    if record['smiles'] != smiles or record['policy_sha256'] != hash_obj(settings):
+    if record.get('version') != settings['version'] or record['smiles'] != smiles or record['policy_sha256'] != hash_obj(settings):
         raise ValueError('Screening identity or policy changed')
     tox = record['toxicity_predictions']
     if [x['endpoint'] for x in tox] != settings['toxicity']['endpoints']:
@@ -73,16 +73,16 @@ def rank(rows, settings):
     """Independent threshold tiers, lexicographic objectives, scaffold diversity.
 
     No addition of SA, SC or endpoint raw scores. Deterministic ties use IDs.
-    Discovery alternates scaffolds; balanced alternates within acquisition tier;
-    delivery prefers verified acquisition and independent difficulty objectives.
+    Discovery alternates scaffolds; balanced alternates within synthesis tier;
+    delivery prefers validated synthesis routes and independent difficulty objectives.
     """
     def key(r):
         syn = r.get('synthesis', {})
         a = r.get('availability', {})
-        acquisition = 0 if a.get('status') == 'purchase_supported' else 1 if a.get('status') == 'route_supported' else 2
+        synthesis_tier = 0 if a.get('status') == 'route_supported' else 1
         tox = r.get('toxicity_predictions', [])
         tox_tier = sum(x.get('raw_prediction', 0) >= x.get('threshold', 1) * .75 for x in tox)
-        return (acquisition, tox_tier, syn.get('sa_score') or 10, syn.get('sc_score') or 5, r['compound_id'])
+        return (synthesis_tier, tox_tier, syn.get('sa_score') or 10, syn.get('sc_score') or 5, r['compound_id'])
     ordered = sorted(rows, key=key)
     for row in ordered:
         row['ranking'] = {'mode': settings['mode'], 'objectives': list(key(row)),

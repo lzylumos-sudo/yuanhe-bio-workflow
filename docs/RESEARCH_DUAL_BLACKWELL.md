@@ -4,7 +4,7 @@ The original upgrade delivered code changes and static acceptance only. It did n
 
 ## Shared configuration and defaults
 
-`00_workbench/configs/research_dual_blackwell.json` is the authoritative definition; `00_workbench/research/config.py` validates UI/API/CLI settings. The independent `00_workbench/configs/smoke.json` retains one 500 ns MD production trajectory; smoke does not automatically start MD.
+`00_workbench/configs/research_synthesis.json` is the current authoritative definition; `00_workbench/research/config.py` validates UI/API/CLI settings. Historical dual-Blackwell and smoke snapshots are retained unchanged; new tasks use the current schema. The `smoke` profile still retains one 500 ns MD production trajectory and does not automatically start MD.
 
 | Field | Default |
 |---|---|
@@ -31,9 +31,9 @@ All counts are limits or targets. If only one receptor or chemical state is avai
 
 Workbench creation → `workflow.create` → `research.config.resolve` → frozen configuration, hashes, environment and asset manifests.
 
-Peptide2Mol → human core review → global REINVENT4 quota → parent standardization in `research.qualification.prepare_risk` → shared `yuanhe_preflight` risk screening → supply evidence/local AiZynthFinder route review → two-stage official Vina in `research.docking.run` → independent Y-MAVS per receptor → structural review → existing membrane building → `research.md_queue` → existing standalone GROMACS/analysis entry points → human wet-lab review.
+Peptide2Mol → human core review → global REINVENT4 quota → parent standardization in `research.qualification.prepare_risk` → shared `yuanhe_preflight` risk screening → ADMET-AI toxicity -> SA/SCScore -> local AiZynthFinder route validation → two-stage official Vina in `research.docking.run` → independent Y-MAVS per receptor → structural review → existing membrane building → `research.md_queue` → existing standalone GROMACS/analysis entry points → human wet-lab review.
 
-Default rules are a traceable subset of the existing pre-docking module, not comprehensive toxicity prediction. Missing catalogs, models, templates, starting-material stock or qualified routes remain pending. SA/QED scores never grant acquisition labels. Vina does not start without qualified molecules.
+Current rules include curated SMARTS and full RDKit PAINS/Brenk; AI endpoints and their limits are in the pre-docking guide. Missing models, templates, planning building blocks or complete routes remain pending. SA/SCScore alone never qualifies a route. Vina does not start without qualified molecules.
 
 The MD `build` wrapper binds the actual docking receptor. `build_prepared`, force fields, charges, membrane models, MDP, run, checkpoint_probe and analyze retain the integration baseline. The existing independent 20 ps checkpoint self-check is a backend recovery check, not a new MD screening stage.
 
@@ -51,12 +51,12 @@ Run from the repository root in the configured chemistry environment:
 
 ```sh
 python -m pytest 00_workbench/tests/test_research_dual_blackwell.py 02_docking/tests/preflight -q
-python 00_workbench/run_research.py preview --config 00_workbench/configs/smoke.json
+python 00_workbench/run_research.py preview --config 00_workbench/configs/research_synthesis.json
 python deployment/preflight_doctor.py
 python 00_workbench/run_webui.py --help
 ```
 
-Run creation accepts the complete workbench configuration: `python 00_workbench/run_research.py create --config <complete-config.json>`. Preview does not create a run; creation does not execute computation. Starting a stage requires explicit `start --run-id <ID> --stage <stage>`. First supply actual execution paths, reviewed cores, receptor, search box and acquisition evidence.
+Run creation accepts the complete workbench configuration: `python 00_workbench/run_research.py create --config <complete-config.json>`. Preview does not create a run; creation does not execute computation. Starting a stage requires explicit `start --run-id <ID> --stage <stage>`. First supply actual execution paths, reviewed cores, receptor, search box and synthesis evidence.
 
 ## Outstanding work and target-host validation
 

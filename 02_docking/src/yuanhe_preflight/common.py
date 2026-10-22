@@ -3,7 +3,7 @@ import hashlib, json, os, uuid
 from pathlib import Path
 from rdkit import Chem, rdBase
 
-SCHEMA = 'yuanhe-predocking/1'
+SCHEMA = 'yuanhe-predocking/2'
 
 def hash_obj(value):
     return hashlib.sha256(json.dumps(value, sort_keys=True, ensure_ascii=False, allow_nan=False, separators=(',', ':')).encode()).hexdigest()

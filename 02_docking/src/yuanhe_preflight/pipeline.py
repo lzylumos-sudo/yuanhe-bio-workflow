@@ -8,7 +8,7 @@ from rdkit import Chem
 from .common import identity, canonical, sdf_smiles, file_hash, hash_obj, seal, write, read, SCHEMA
 from .config import validate
 from .toxicity_substructure_filter import RiskRules
-from .availability_synthesis_filter import AvailabilityFilter
+from .synthesis_routes import SynthesisFilter
 
 
 def counts(rows, input_count=None):
@@ -95,14 +95,14 @@ def availability_stage(rows,config,out):
         if config['engine']['missing_policy']=='abort' and any(r.get('screening',{}).get('decision')=='review' and (any(t['prediction_status']!='SUCCESS' for t in r.get('toxicity_predictions',[])) or r.get('synthesis',{}).get('prediction_status')=='ERROR') for r in rows):
             write(out/'summary.json',{**counts(rows),'timings':timings})
             raise RuntimeError('Required prediction unavailable; see persisted molecular failure records')
-    filt=AvailabilityFilter(config,file_hash(config['rules_path']));eligible=[r for r in rows if r['decision']=='pass'];results=[]
+    filt=SynthesisFilter(config,file_hash(config['rules_path']));eligible=[r for r in rows if r['decision']=='pass'];results=[]
     if config.get('engine'):
         eligible=rank(eligible,config['engine'])
-    retro_ids=set(r['compound_id'] for r in eligible if not filt.catalog.valid(r['smiles']))
+    retro_ids=set(r['compound_id'] for r in eligible)
     if config.get('engine'):
         retro_ids=set(r['compound_id'] for r in eligible if r['compound_id'] in retro_ids)
         retro_ids=set([r['compound_id'] for r in eligible if r['compound_id'] in retro_ids][:config['engine']['retro_max_candidates']])
-    acquisition_started=time.monotonic()
+    retro_started=time.monotonic()
     def process(row):
         from .common import verify_seal
         verify_seal(row['risk'])
@@ -112,21 +112,15 @@ def availability_stage(rows,config,out):
         if actual!=row['risk'] or actual['decision']!='pass':raise ValueError('risk_evidence_changed')
         availability=filt.screen(row['smiles'],allow_search=row['compound_id'] in retro_ids)
         archived={}
-        # Preserve raw supply documents and raw searches in run exports; model
-        # weights remain external, identified by immutable hashes.
-        sources=[Path(x['path']) for x in availability['catalog_versions']+availability['stock_versions']]
-        supplier_rows=list(availability['supplier_records'])
-        for route in availability['routes']:
-            for leaf in route.get('terminal_materials',[]):supplier_rows.extend(leaf['supplier_records'])
-        sources += [Path(x['path']) for x in (availability.get('external_query') or {}).get('evidence',[])]
-        sources += [Path(x['evidence_path']) for x in supplier_rows if x.get('evidence_path')]
+        # Archive the raw computed routes; asset hashes identify external model files.
+        sources=[]
         raw=availability.get('raw_search') or {}
         if raw.get('search_artifact'):sources.append(Path(raw['search_artifact']))
         for src in sources:
             if not src.is_file():continue
             sha=file_hash(src);dest=out/'source_evidence'/(sha+src.suffix)
             dest.parent.mkdir(exist_ok=True)
-            # Multiple worker threads may preserve the same catalog; unique
+            # Multiple worker threads may preserve the same search artifact; unique
             # temporary files avoid partial readers and retain a hash check.
             import uuid,os
             temp=dest.with_name(dest.name+'.'+uuid.uuid4().hex+'.tmp')
@@ -143,7 +137,7 @@ def availability_stage(rows,config,out):
         for start in range(0,len(eligible),config['batch_size']):
             for r in pool.map(process,eligible[start:start+config['batch_size']]):
                 results.append(r);write(out/'progress.json',counts(results,len(eligible)))
-    timings['acquisition_seconds']=time.monotonic()-acquisition_started
+    timings['retrosynthesis_seconds']=time.monotonic()-retro_started
     if config.get('engine'):
         ordered=rank([r for r in results if r['decision']=='pass'],config['engine'])
         keep={r['compound_id'] for r in ordered[:config['engine']['keep']]}
@@ -154,7 +148,7 @@ def availability_stage(rows,config,out):
             if 'toxicity_predictions' not in r:
                 r['toxicity_predictions']=[{'molecule_id':r['molecule_id'],'model_name':'ADMET-AI','model_version':config['engine']['toxicity']['model_version'],'endpoint':ep,'raw_prediction':None,'prediction_unit':SUPPORTED.get(ep),'threshold':config['engine']['toxicity']['thresholds'][ep],'prediction_status':'NOT_EVALUATED','risk_level':'UNKNOWN','error_message':'Not eligible after structure/deduplication gate'} for ep in config['engine']['toxicity']['endpoints']]
             r.setdefault('synthesis',{'molecule_id':r['molecule_id'],'sa_score':None,'sc_score':None,'score_version':None,'synthesis_difficulty':'UNKNOWN','prediction_status':'NOT_EVALUATED','rejection_reason':'Not eligible after structure/deduplication gate','screening_status':'NOT_EVALUATED'})
-            r.setdefault('availability',{'status':'not_evaluated','availability_label':'AVAILABILITY_UNKNOWN','route_status':'NOT_EVALUATED','routes':[],'supplier_records':[]})
+            r.setdefault('availability',{'status':'not_evaluated','synthesis_label':'NOT_EVALUATED','route_status':'NOT_EVALUATED','routes':[]})
             r.setdefault('ranking',{'rank':None,'mode':config['engine']['mode'],'status':'NOT_RANKED','reason':'Not eligible for final ranking'})
             r.update(final_pass=r['decision']=='pass',docking_status='QUALIFIED' if r['decision']=='pass' else 'NOT_ELIGIBLE',rejection_reason='' if r['decision']=='pass' else r.get('reason',''))
     selection=out/'selection.json'

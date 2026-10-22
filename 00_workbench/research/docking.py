@@ -34,7 +34,7 @@ def run(root,d,cfg,out,executable):
     rc=cfg['research'];disk_guard(d,rc)
     rows,counts=qualify(root,d,cfg,read(d/'reinvent4/candidates.json',[]),out/'qualification')
     atomic(out/'qualification_counts.json',counts)
-    if not rows:raise ValueError('No risk/acquisition-qualified molecules; pending evidence is not a pass')
+    if not rows:raise ValueError('No risk/synthesis-qualified molecules; pending evidence is not a pass')
     rows=rows[:rc['initial_limit']]
     receptors=[]
     supplied=rc['receptor_ensemble'] or [{'path':cfg['docking_receptor'],**cfg.get('receptor_review',{})}]

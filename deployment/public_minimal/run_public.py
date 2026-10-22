@@ -18,8 +18,7 @@ ASSETS = {
     'vina_1.2.7_linux_x86_64': (
         'https://github.com/ccsb-scripps/AutoDock-Vina/releases/download/v1.2.7/vina_1.2.7_linux_x86_64',
         'f31f774f723bba7bbe6e9d1c47577020eea9a8da16424284c043d22593570644'),
-    'ethanol_supplier.html': (
-        'https://molekula.com/catalog/64-17-5/90005199-ethanol-absolute-p-a?locale=en', None),
+
 }
 
 def digest(path):

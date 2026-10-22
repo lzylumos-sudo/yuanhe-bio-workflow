@@ -2,9 +2,9 @@
 
 Purpose: traceable structure-informed candidate generation, qualification, Vina docking, ZVSS/Y-MAVS evidence filtering, MD and reviewed experimental handoff.
 
-Authority: `00_workbench/configs/research_dual_blackwell.json` and registered source hash. Structure is a task input (default project 9NU4); its bytes and chain/range/pocket settings are frozen in the run. Peptide2Mol is pocket-conditioned inference. REINVENT4 uses LibInvent prior scaffold decoration; this path does not execute RL or fine-tuning.
+Authority: `00_workbench/configs/research_synthesis.json` and registered source hash. Structure is a task input (default project 9NU4); its bytes and chain/range/pocket settings are frozen in the run. Peptide2Mol is pocket-conditioned inference. REINVENT4 uses LibInvent prior scaffold decoration; this path does not execute RL or fine-tuning.
 
-Budgets and Vina settings are listed in the [configuration reference](../reference/configuration.md). Chemical identity, risk and purchase/synthesis evidence gates remain in their existing implementations. Sampling attempts, valid samples and unique parent/state identities remain different counts. Scores are empirical docking scores, not experimental affinity probabilities.
+Budgets and Vina settings are listed in the [configuration reference](../reference/configuration.md). Chemical identity, toxicity and synthesis evidence gates remain in their existing implementations. Sampling attempts, valid samples and unique parent/state identities remain different counts. Scores are empirical docking scores, not experimental affinity probabilities.
 
 Outputs: raw model records, valid/failed/duplicate counts, qualified candidates, per-job poses, evidence decisions, system handoffs and reviewed reports. Tool/model versions come from actual execution records; unavailable models are unknown, not verified from configured hashes alone.
 
