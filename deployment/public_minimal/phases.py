@@ -43,7 +43,7 @@ def prepare():
     molecular=next(x for x in data if x.get('smiles')=='CCO')
     offer=next(x for x in product['offers'] if x.get('availability')=='https://schema.org/InStock')
     assert molecular['inChIKey']=='LFQSCWFLJHTTHZ-UHFFFAOYSA-N'
-    today=datetime.now(ZoneInfo('Asia/Shanghai')).date().isoformat()
+    today=datetime.fromisoformat(read(OUT/'public_sources.json')['ethanol_supplier.html']['fetched_at_utc']).astimezone(ZoneInfo('Asia/Shanghai')).date().isoformat()
     row={'smiles':'CCO','vendor':'Molekula','sku':offer['sku'],'supply_type':'in_stock','checked_at':today,
          'catalog_date':today,'evidence_kind':'stock_confirmation','evidence_file':str(source),'evidence_sha256':sha(source)}
     catalog=inputs/'catalog.csv'

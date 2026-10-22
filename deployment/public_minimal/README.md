@@ -25,7 +25,25 @@ bash deployment/public_minimal/install.sh "$HOME/yuanhe-public-env"
 bash deployment/public_minimal/run_public.sh "$HOME/yuanhe-public-env" "$HOME/yuanhe-public-run-001"
 ```
 
-The environment and output paths must be new absolute paths; existing paths are rejected. Installation failures retain diagnostic files: resolve the cause and retry with a new environment path. For run failures, inspect the logs and retry with a new output path. Automatic resume is not implemented. Existing research environments are not installed into, activated or modified. Caches, quantum-chemistry scratch files, public source snapshots and results remain separate from research projects.
+Installation requires a new absolute environment path; the first run requires a new absolute output path. Installation failures retain diagnostic files: resolve the cause and retry with a new environment path. Existing research environments are not installed into, activated or modified. Caches, quantum-chemistry scratch files, public source snapshots and results remain separate from research projects.
+
+## Resume an interrupted run
+
+For a run created by this version, use the same checkout, environment, GPU selection and output path:
+
+```bash
+bash deployment/public_minimal/run_public.sh --resume "$HOME/yuanhe-public-env" "$HOME/yuanhe-public-run-001"
+```
+
+- `RUN_STATE.json` commits completed stages and SHA-256 artifact manifests atomically. Resume verifies the code/configuration snapshot, interpreter, installed package versions, Conda metadata and GPU identity before reusing work. Changed or missing committed inputs fail closed.
+- Completed stages are verified and skipped. Failed download, preparation, docking, screening, build or analysis attempts are archived under `.recovery/interrupted-*`, then retried from the last committed stage. Upstream scientific artifacts must still match their recorded hashes. Recovery never upgrades old runs without `RUN_STATE.json`.
+- Interrupted MD retains its replica workspace and delegates continuation to the existing OpenMM backend. That backend verifies the system, committed trajectory segments and checkpoint before continuing; incompatible checkpoints fail without reseeding. An uncommitted segment is replayed from the last committed checkpoint. Before the first checkpoint, MD starts from the unchanged built system.
+- SIGINT/SIGTERM stops the active phase process group and records interruption. A per-run OS lock prevents concurrent writers; the phase subprocess inherits the lock so a killed parent cannot immediately launch a competing resume. SIGKILL cannot record a final status; the next invocation uses the persisted active-stage record.
+- Failed logs and metadata are retained. A successful finish archives stale `FAILED.json`; a rejected resume does not overwrite failure evidence. Snapshot backups require additional disk space and are intended for this tiny public control, not long production trajectories.
+- Resume reuses the original supplier snapshot and its actual fetch date; it does not refresh inventory or certify current stock. Create a new run for fresh availability evidence.
+- Dependency/CUDA preflight happens before a run record is created. If that preflight fails and no `RUN_STATE.json` exists, fix the environment and use a new output path. Resume does not install dependencies or repair an environment.
+
+Recovery regression tests use injected failures and real OS subprocess/signal/locking checks. They do not establish CUDA checkpoint continuation on a target machine. The historical `VALIDATION.json` predates this recovery change; repeat interrupted CUDA acceptance on Linux/WSL before claiming that new path is GPU-validated.
 
 Use `CUDA_VISIBLE_DEVICES=0` to select one GPU if needed. This is a single-GPU acceptance run, not multi-GPU scaling validation. Vina uses one CPU thread; MD uses OpenMM CUDA. The environment includes CPU PyTorch dependencies but does not run generation models.
 
