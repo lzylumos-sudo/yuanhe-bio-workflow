@@ -5,3 +5,6 @@
 *.ps1 text eol=crlf
 02_docking/docs/licenses/* text eol=lf
 deployment/public_minimal/* text eol=lf
+# Preserve exported validation data bytes and RDKit SDF property formatting.
+docs/benchmarks/results/mdm2_20261023/*.csv -text whitespace=cr-at-eol
+docs/benchmarks/results/mdm2_20261023/*.sdf -text whitespace=-blank-at-eol

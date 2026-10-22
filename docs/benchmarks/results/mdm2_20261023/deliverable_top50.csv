@@ -1,0 +1,1 @@
+parent_id,state_id,preparation_status,docking_status,error,vina_affinity,pose_id,pose_sdf,pose_index,A1_recall,A2_recall,raw_vina_status,raw_vina_affinity,pose_sha256,selected_pose_stereo_pass,contact_residues,profile,arm,run_id,seed,rank,first_exclusion_stage,deliverable_eligible,acquisition_status

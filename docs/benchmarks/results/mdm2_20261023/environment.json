@@ -1,0 +1,52 @@
+{
+  "checked_at": "2026-10-22T19:17:39.276274+00:00",
+  "os": "Linux-5.15.0-78-generic-x86_64-with-glibc2.35",
+  "python": "3.12.3 | packaged by Anaconda, Inc. | (main, May  6 2024, 19:46:43) [GCC 11.2.0]",
+  "executable": "/root/autodl-tmp/yuanhe-mdm2/env/bin/python",
+  "affinity_threads": 208,
+  "cpu_max": "2200000 100000",
+  "effective_cpu_quota": 22,
+  "workers": 5,
+  "cpu_per_worker": 4,
+  "memory_max_bytes": "118111600640",
+  "memory_current_bytes": "2753007616",
+  "disk": {
+    "total": 53687091200,
+    "used": 2129145856,
+    "free": 51557945344
+  },
+  "gpu": {
+    "returncode": 0,
+    "stdout": "NVIDIA RTX PRO 6000 Blackwell Server Edition, 97887 MiB, 580.76.05",
+    "stderr": ""
+  },
+  "packages": {
+    "rdkit": "2026.9.1",
+    "numpy": "2.5.4",
+    "scipy": "1.18.1",
+    "pandas": "3.1.0",
+    "biopython": "1.88",
+    "gemmi": "0.7.5",
+    "meeko": "0.8.0",
+    "openmm": "8.6.1",
+    "pdbfixer": "1.12.0",
+    "molscrub": "0.2.2",
+    "psutil": "7.2.2"
+  },
+  "vina_version": "1.2.7",
+  "vina_sha256": "f31f774f723bba7bbe6e9d1c47577020eea9a8da16424284c043d22593570644",
+  "vina_path": "/root/autodl-tmp/yuanhe-mdm2/bin/vina",
+  "git_commit": {
+    "returncode": 0,
+    "stdout": "9a383b2ce2e96a6a68e9f46726b1d8557b92486e",
+    "stderr": ""
+  },
+  "git_status": {
+    "returncode": 0,
+    "stdout": "## benchmark/mdm2-peptide-recall",
+    "stderr": ""
+  },
+  "generation_models": "not_required_disabled",
+  "md": "not_requested",
+  "gpu_scoring": "not_requested"
+}

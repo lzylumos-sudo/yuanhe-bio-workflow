@@ -1,0 +1,48 @@
+{
+  "run_id": "mdm2_quick_20261023_v4",
+  "target_type": "soluble_PPI",
+  "started_at": "2026-10-22T17:16:00+00:00",
+  "hard_budget_minutes": 180,
+  "report_reserve_minutes": 15,
+  "hard_deadline": "2026-10-22T20:16:00+00:00",
+  "new_docking_cutoff": "2026-10-22T20:01:00+00:00",
+  "status": "incomplete",
+  "scope": "retrospective pilot; technical QC amendment before unblinding; no MD",
+  "git_commit": "9a383b2ce2e96a6a68e9f46726b1d8557b92486e",
+  "phase_times": {
+    "preflight_completed": "2026-10-22T17:26:20.622120+00:00"
+  },
+  "predecessor": "/root/autodl-tmp/yuanhe-mdm2/runs/mdm2_quick_20261023_v3",
+  "protocol_amendment": {
+    "time": "2026-10-22T19:16:36.869764+00:00",
+    "reason": "uniform selected-pose coordinate stereo QC; failed parent retained in full denominator; no alternate-pose rescue",
+    "ranking_or_reference_recovery_observed": false,
+    "ranking_algorithm_changed": false,
+    "docking_parameters_changed": false,
+    "quality_filter_added_after_raw_docking": true,
+    "study_design_status": "pilot; analysis rule frozen before label unblinding, not fully prospectively preregistered",
+    "original_task_start_and_deadline_preserved": true
+  },
+  "earlier_protocol_amendment": {
+    "time": "2026-10-22T18:31:18.612882+00:00",
+    "reason": "preserve source tautomer and all specified E/Z stereo; exclude source-ambiguous backgrounds",
+    "ranking_or_reference_recovery_observed": false,
+    "ranking_algorithm_changed": false,
+    "docking_parameters_changed": false,
+    "original_task_start_and_deadline_preserved": true
+  },
+  "scientific_git_commit": "cb9edd2f8a03e57c6dc90bebd561789d4a7c1495",
+  "compute_resource_root": "/root/autodl-tmp/yuanhe-mdm2/runs/mdm2_quick_20261023_v3",
+  "prior_amendment_3d": {
+    "time": "2026-10-22T18:44:13.764263+00:00",
+    "reason": "3D-coordinate stereo verification for every molecule; deterministic ETKDGv3/MMFF94s fallback for invalid geometry; full 550 membership unchanged",
+    "ranking_or_reference_recovery_observed": false,
+    "ranking_algorithm_changed": false,
+    "docking_parameters_changed": false,
+    "original_task_start_and_deadline_preserved": true
+  },
+  "finished_at": "2026-10-22T19:18:39.416305+00:00",
+  "elapsed_minutes": 122.65693841666666,
+  "frozen_protocol_sha256": "46ea4517a5646644e871c2758ed25914d8662a1f9becdd754da7b0e1acc2547a",
+  "results_alias": "root scientific_top50 = ppi_benchmark/A1; deliverable separately qualified"
+}

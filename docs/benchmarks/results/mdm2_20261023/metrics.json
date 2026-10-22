@@ -1,0 +1,1132 @@
+{
+  "run_id": "mdm2_quick_20261023_v4",
+  "seed": 20261023,
+  "evaluation_population": "entire frozen parent library; failures retained",
+  "total_parents": 550,
+  "actives": 20,
+  "unknown_background": 530,
+  "experimental_negatives": 0,
+  "ROC_AUC": null,
+  "PR_AUC": null,
+  "AUC_reason": "unknown backgrounds are not experimentally confirmed negatives",
+  "docked": 547,
+  "raw_vina_completed": 549,
+  "pose_stereo_qc_failures": 2,
+  "study_design_status": "pilot: chemistry/QC protocol amended before label unblinding; not a fully prospective preregistration",
+  "profiles": {
+    "current_product": {
+      "A0": {
+        "input_parent_count": 550,
+        "active_count": 20,
+        "eligible_ranked_count": 0,
+        "top_k": {
+          "10": {
+            "active_hits": 0,
+            "retrieved": 0,
+            "Recall": 0.0,
+            "EF": 0.0,
+            "EF_denominator": "fixed k slots; unfilled slots are misses; frozen full-library prevalence"
+          },
+          "20": {
+            "active_hits": 0,
+            "retrieved": 0,
+            "Recall": 0.0,
+            "EF": 0.0,
+            "EF_denominator": "fixed k slots; unfilled slots are misses; frozen full-library prevalence"
+          },
+          "50": {
+            "active_hits": 0,
+            "retrieved": 0,
+            "Recall": 0.0,
+            "EF": 0.0,
+            "EF_denominator": "fixed k slots; unfilled slots are misses; frozen full-library prevalence"
+          }
+        }
+      },
+      "A1": {
+        "input_parent_count": 550,
+        "active_count": 20,
+        "eligible_ranked_count": 0,
+        "top_k": {
+          "10": {
+            "active_hits": 0,
+            "retrieved": 0,
+            "Recall": 0.0,
+            "EF": 0.0,
+            "EF_denominator": "fixed k slots; unfilled slots are misses; frozen full-library prevalence"
+          },
+          "20": {
+            "active_hits": 0,
+            "retrieved": 0,
+            "Recall": 0.0,
+            "EF": 0.0,
+            "EF_denominator": "fixed k slots; unfilled slots are misses; frozen full-library prevalence"
+          },
+          "50": {
+            "active_hits": 0,
+            "retrieved": 0,
+            "Recall": 0.0,
+            "EF": 0.0,
+            "EF_denominator": "fixed k slots; unfilled slots are misses; frozen full-library prevalence"
+          }
+        }
+      },
+      "A2": {
+        "input_parent_count": 550,
+        "active_count": 20,
+        "eligible_ranked_count": 0,
+        "top_k": {
+          "10": {
+            "active_hits": 0,
+            "retrieved": 0,
+            "Recall": 0.0,
+            "EF": 0.0,
+            "EF_denominator": "fixed k slots; unfilled slots are misses; frozen full-library prevalence"
+          },
+          "20": {
+            "active_hits": 0,
+            "retrieved": 0,
+            "Recall": 0.0,
+            "EF": 0.0,
+            "EF_denominator": "fixed k slots; unfilled slots are misses; frozen full-library prevalence"
+          },
+          "50": {
+            "active_hits": 0,
+            "retrieved": 0,
+            "Recall": 0.0,
+            "EF": 0.0,
+            "EF_denominator": "fixed k slots; unfilled slots are misses; frozen full-library prevalence"
+          }
+        }
+      },
+      "differences": {
+        "A1_minus_A0": {
+          "10": 0.0,
+          "20": 0.0,
+          "50": 0.0
+        },
+        "A2_minus_A0": {
+          "10": 0.0,
+          "20": 0.0,
+          "50": 0.0
+        }
+      }
+    },
+    "ppi_benchmark": {
+      "A0": {
+        "input_parent_count": 550,
+        "active_count": 20,
+        "eligible_ranked_count": 547,
+        "top_k": {
+          "10": {
+            "active_hits": 0,
+            "retrieved": 10,
+            "Recall": 0.0,
+            "EF": 0.0,
+            "EF_denominator": "fixed k slots; unfilled slots are misses; frozen full-library prevalence"
+          },
+          "20": {
+            "active_hits": 0,
+            "retrieved": 20,
+            "Recall": 0.0,
+            "EF": 0.0,
+            "EF_denominator": "fixed k slots; unfilled slots are misses; frozen full-library prevalence"
+          },
+          "50": {
+            "active_hits": 1,
+            "retrieved": 50,
+            "Recall": 0.05,
+            "EF": 0.55,
+            "EF_denominator": "fixed k slots; unfilled slots are misses; frozen full-library prevalence"
+          }
+        }
+      },
+      "A1": {
+        "input_parent_count": 550,
+        "active_count": 20,
+        "eligible_ranked_count": 547,
+        "top_k": {
+          "10": {
+            "active_hits": 1,
+            "retrieved": 10,
+            "Recall": 0.05,
+            "EF": 2.7500000000000004,
+            "EF_denominator": "fixed k slots; unfilled slots are misses; frozen full-library prevalence"
+          },
+          "20": {
+            "active_hits": 1,
+            "retrieved": 20,
+            "Recall": 0.05,
+            "EF": 1.3750000000000002,
+            "EF_denominator": "fixed k slots; unfilled slots are misses; frozen full-library prevalence"
+          },
+          "50": {
+            "active_hits": 4,
+            "retrieved": 50,
+            "Recall": 0.2,
+            "EF": 2.2,
+            "EF_denominator": "fixed k slots; unfilled slots are misses; frozen full-library prevalence"
+          }
+        }
+      },
+      "A2": {
+        "input_parent_count": 550,
+        "active_count": 20,
+        "eligible_ranked_count": 547,
+        "top_k": {
+          "10": {
+            "active_hits": 1,
+            "retrieved": 10,
+            "Recall": 0.05,
+            "EF": 2.7500000000000004,
+            "EF_denominator": "fixed k slots; unfilled slots are misses; frozen full-library prevalence"
+          },
+          "20": {
+            "active_hits": 1,
+            "retrieved": 20,
+            "Recall": 0.05,
+            "EF": 1.3750000000000002,
+            "EF_denominator": "fixed k slots; unfilled slots are misses; frozen full-library prevalence"
+          },
+          "50": {
+            "active_hits": 8,
+            "retrieved": 50,
+            "Recall": 0.4,
+            "EF": 4.4,
+            "EF_denominator": "fixed k slots; unfilled slots are misses; frozen full-library prevalence"
+          }
+        }
+      },
+      "differences": {
+        "A1_minus_A0": {
+          "10": 0.05,
+          "20": 0.05,
+          "50": 0.15000000000000002
+        },
+        "A2_minus_A0": {
+          "10": 0.05,
+          "20": 0.05,
+          "50": 0.35000000000000003
+        }
+      }
+    }
+  },
+  "scaffold_recall": [
+    {
+      "profile": "current_product",
+      "arm": "A0",
+      "scaffold": "O=C(NC1CCCCC1)C1NCC2(C(=O)Nc3ccccc32)C1c1ccccc1",
+      "active_count": 4,
+      "hits50": 0,
+      "recall50": 0.0
+    },
+    {
+      "profile": "current_product",
+      "arm": "A0",
+      "scaffold": "O=C1Nc2ccccc2C12CNCC2c1ccccc1",
+      "active_count": 1,
+      "hits50": 0,
+      "recall50": 0.0
+    },
+    {
+      "profile": "current_product",
+      "arm": "A0",
+      "scaffold": "O=C1Nc2ccccc2C12C(c1ccccc1)C1C(Cc3c4ccccc4nn31)N2CC1CC1",
+      "active_count": 1,
+      "hits50": 0,
+      "recall50": 0.0
+    },
+    {
+      "profile": "current_product",
+      "arm": "A0",
+      "scaffold": "O=C(NCCN1CCOCC1)C1NCC2(C(=O)Nc3ccccc32)C1c1ccccc1",
+      "active_count": 1,
+      "hits50": 0,
+      "recall50": 0.0
+    },
+    {
+      "profile": "current_product",
+      "arm": "A0",
+      "scaffold": "O=C(NC1CCCCC1)C1NC2(CCCCCC2)C2(C(=O)Nc3ccccc32)C1c1ccccc1",
+      "active_count": 1,
+      "hits50": 0,
+      "recall50": 0.0
+    },
+    {
+      "profile": "current_product",
+      "arm": "A0",
+      "scaffold": "O=C(NC1CCCCC1)C1NC2(CCCCC2)C2(C(=O)Nc3ccccc32)C1c1ccccc1",
+      "active_count": 1,
+      "hits50": 0,
+      "recall50": 0.0
+    },
+    {
+      "profile": "current_product",
+      "arm": "A0",
+      "scaffold": "O=C(NCCN1CCOCC1)C1NC2(CCC2)C2(C(=O)Nc3ccccc32)C1c1ccccc1",
+      "active_count": 1,
+      "hits50": 0,
+      "recall50": 0.0
+    },
+    {
+      "profile": "current_product",
+      "arm": "A0",
+      "scaffold": "O=C1CN(C(=O)N2C(c3ccccc3)=NC(c3ccccc3)C2c2ccccc2)CCN1",
+      "active_count": 1,
+      "hits50": 0,
+      "recall50": 0.0
+    },
+    {
+      "profile": "current_product",
+      "arm": "A0",
+      "scaffold": "O=C(NC1CCC1)C1NC2(CCC2)C2(C(=O)Nc3ccccc32)C1c1ccccc1",
+      "active_count": 1,
+      "hits50": 0,
+      "recall50": 0.0
+    },
+    {
+      "profile": "current_product",
+      "arm": "A0",
+      "scaffold": "O=C(NC1CCCCC1)C1NC2(CCC2)C2(C(=O)Nc3ccccc32)C1c1ccccc1",
+      "active_count": 1,
+      "hits50": 0,
+      "recall50": 0.0
+    },
+    {
+      "profile": "current_product",
+      "arm": "A0",
+      "scaffold": "O=C1Nc2ccccc2C12C(c1ccccc1)CNC21CCC1",
+      "active_count": 1,
+      "hits50": 0,
+      "recall50": 0.0
+    },
+    {
+      "profile": "current_product",
+      "arm": "A0",
+      "scaffold": "O=C(NC1CCC1)C1NC2(CCCCC2)C2(C(=O)Nc3ccccc32)C1c1ccccc1",
+      "active_count": 1,
+      "hits50": 0,
+      "recall50": 0.0
+    },
+    {
+      "profile": "current_product",
+      "arm": "A0",
+      "scaffold": "O=C(NC1CCC1)C1NCC2(C(=O)Nc3ccccc32)C1c1ccccc1",
+      "active_count": 1,
+      "hits50": 0,
+      "recall50": 0.0
+    },
+    {
+      "profile": "current_product",
+      "arm": "A0",
+      "scaffold": "O=C(NC1CCCCC1)C1NC2(CCCC2)C2(C(=O)Nc3ccccc32)C1c1ccccc1",
+      "active_count": 1,
+      "hits50": 0,
+      "recall50": 0.0
+    },
+    {
+      "profile": "current_product",
+      "arm": "A0",
+      "scaffold": "O=C(NCCN1CCOCC1)C1NC2(CCCCC2)C2(C(=O)Nc3ccccc32)C1c1ccccc1",
+      "active_count": 1,
+      "hits50": 0,
+      "recall50": 0.0
+    },
+    {
+      "profile": "current_product",
+      "arm": "A0",
+      "scaffold": "O=C1Nc2ccccc2C12C(c1ccccc1)CNC21CCCCC1",
+      "active_count": 1,
+      "hits50": 0,
+      "recall50": 0.0
+    },
+    {
+      "profile": "current_product",
+      "arm": "A0",
+      "scaffold": "O=C(Nc1ccccc1)C1NC2(CCCCC2)C2(C(=O)Nc3ccccc32)C1c1ccccc1",
+      "active_count": 1,
+      "hits50": 0,
+      "recall50": 0.0
+    },
+    {
+      "profile": "current_product",
+      "arm": "A1",
+      "scaffold": "O=C(NC1CCCCC1)C1NCC2(C(=O)Nc3ccccc32)C1c1ccccc1",
+      "active_count": 4,
+      "hits50": 0,
+      "recall50": 0.0
+    },
+    {
+      "profile": "current_product",
+      "arm": "A1",
+      "scaffold": "O=C1Nc2ccccc2C12CNCC2c1ccccc1",
+      "active_count": 1,
+      "hits50": 0,
+      "recall50": 0.0
+    },
+    {
+      "profile": "current_product",
+      "arm": "A1",
+      "scaffold": "O=C1Nc2ccccc2C12C(c1ccccc1)C1C(Cc3c4ccccc4nn31)N2CC1CC1",
+      "active_count": 1,
+      "hits50": 0,
+      "recall50": 0.0
+    },
+    {
+      "profile": "current_product",
+      "arm": "A1",
+      "scaffold": "O=C(NCCN1CCOCC1)C1NCC2(C(=O)Nc3ccccc32)C1c1ccccc1",
+      "active_count": 1,
+      "hits50": 0,
+      "recall50": 0.0
+    },
+    {
+      "profile": "current_product",
+      "arm": "A1",
+      "scaffold": "O=C(NC1CCCCC1)C1NC2(CCCCCC2)C2(C(=O)Nc3ccccc32)C1c1ccccc1",
+      "active_count": 1,
+      "hits50": 0,
+      "recall50": 0.0
+    },
+    {
+      "profile": "current_product",
+      "arm": "A1",
+      "scaffold": "O=C(NC1CCCCC1)C1NC2(CCCCC2)C2(C(=O)Nc3ccccc32)C1c1ccccc1",
+      "active_count": 1,
+      "hits50": 0,
+      "recall50": 0.0
+    },
+    {
+      "profile": "current_product",
+      "arm": "A1",
+      "scaffold": "O=C(NCCN1CCOCC1)C1NC2(CCC2)C2(C(=O)Nc3ccccc32)C1c1ccccc1",
+      "active_count": 1,
+      "hits50": 0,
+      "recall50": 0.0
+    },
+    {
+      "profile": "current_product",
+      "arm": "A1",
+      "scaffold": "O=C1CN(C(=O)N2C(c3ccccc3)=NC(c3ccccc3)C2c2ccccc2)CCN1",
+      "active_count": 1,
+      "hits50": 0,
+      "recall50": 0.0
+    },
+    {
+      "profile": "current_product",
+      "arm": "A1",
+      "scaffold": "O=C(NC1CCC1)C1NC2(CCC2)C2(C(=O)Nc3ccccc32)C1c1ccccc1",
+      "active_count": 1,
+      "hits50": 0,
+      "recall50": 0.0
+    },
+    {
+      "profile": "current_product",
+      "arm": "A1",
+      "scaffold": "O=C(NC1CCCCC1)C1NC2(CCC2)C2(C(=O)Nc3ccccc32)C1c1ccccc1",
+      "active_count": 1,
+      "hits50": 0,
+      "recall50": 0.0
+    },
+    {
+      "profile": "current_product",
+      "arm": "A1",
+      "scaffold": "O=C1Nc2ccccc2C12C(c1ccccc1)CNC21CCC1",
+      "active_count": 1,
+      "hits50": 0,
+      "recall50": 0.0
+    },
+    {
+      "profile": "current_product",
+      "arm": "A1",
+      "scaffold": "O=C(NC1CCC1)C1NC2(CCCCC2)C2(C(=O)Nc3ccccc32)C1c1ccccc1",
+      "active_count": 1,
+      "hits50": 0,
+      "recall50": 0.0
+    },
+    {
+      "profile": "current_product",
+      "arm": "A1",
+      "scaffold": "O=C(NC1CCC1)C1NCC2(C(=O)Nc3ccccc32)C1c1ccccc1",
+      "active_count": 1,
+      "hits50": 0,
+      "recall50": 0.0
+    },
+    {
+      "profile": "current_product",
+      "arm": "A1",
+      "scaffold": "O=C(NC1CCCCC1)C1NC2(CCCC2)C2(C(=O)Nc3ccccc32)C1c1ccccc1",
+      "active_count": 1,
+      "hits50": 0,
+      "recall50": 0.0
+    },
+    {
+      "profile": "current_product",
+      "arm": "A1",
+      "scaffold": "O=C(NCCN1CCOCC1)C1NC2(CCCCC2)C2(C(=O)Nc3ccccc32)C1c1ccccc1",
+      "active_count": 1,
+      "hits50": 0,
+      "recall50": 0.0
+    },
+    {
+      "profile": "current_product",
+      "arm": "A1",
+      "scaffold": "O=C1Nc2ccccc2C12C(c1ccccc1)CNC21CCCCC1",
+      "active_count": 1,
+      "hits50": 0,
+      "recall50": 0.0
+    },
+    {
+      "profile": "current_product",
+      "arm": "A1",
+      "scaffold": "O=C(Nc1ccccc1)C1NC2(CCCCC2)C2(C(=O)Nc3ccccc32)C1c1ccccc1",
+      "active_count": 1,
+      "hits50": 0,
+      "recall50": 0.0
+    },
+    {
+      "profile": "current_product",
+      "arm": "A2",
+      "scaffold": "O=C(NC1CCCCC1)C1NCC2(C(=O)Nc3ccccc32)C1c1ccccc1",
+      "active_count": 4,
+      "hits50": 0,
+      "recall50": 0.0
+    },
+    {
+      "profile": "current_product",
+      "arm": "A2",
+      "scaffold": "O=C1Nc2ccccc2C12CNCC2c1ccccc1",
+      "active_count": 1,
+      "hits50": 0,
+      "recall50": 0.0
+    },
+    {
+      "profile": "current_product",
+      "arm": "A2",
+      "scaffold": "O=C1Nc2ccccc2C12C(c1ccccc1)C1C(Cc3c4ccccc4nn31)N2CC1CC1",
+      "active_count": 1,
+      "hits50": 0,
+      "recall50": 0.0
+    },
+    {
+      "profile": "current_product",
+      "arm": "A2",
+      "scaffold": "O=C(NCCN1CCOCC1)C1NCC2(C(=O)Nc3ccccc32)C1c1ccccc1",
+      "active_count": 1,
+      "hits50": 0,
+      "recall50": 0.0
+    },
+    {
+      "profile": "current_product",
+      "arm": "A2",
+      "scaffold": "O=C(NC1CCCCC1)C1NC2(CCCCCC2)C2(C(=O)Nc3ccccc32)C1c1ccccc1",
+      "active_count": 1,
+      "hits50": 0,
+      "recall50": 0.0
+    },
+    {
+      "profile": "current_product",
+      "arm": "A2",
+      "scaffold": "O=C(NC1CCCCC1)C1NC2(CCCCC2)C2(C(=O)Nc3ccccc32)C1c1ccccc1",
+      "active_count": 1,
+      "hits50": 0,
+      "recall50": 0.0
+    },
+    {
+      "profile": "current_product",
+      "arm": "A2",
+      "scaffold": "O=C(NCCN1CCOCC1)C1NC2(CCC2)C2(C(=O)Nc3ccccc32)C1c1ccccc1",
+      "active_count": 1,
+      "hits50": 0,
+      "recall50": 0.0
+    },
+    {
+      "profile": "current_product",
+      "arm": "A2",
+      "scaffold": "O=C1CN(C(=O)N2C(c3ccccc3)=NC(c3ccccc3)C2c2ccccc2)CCN1",
+      "active_count": 1,
+      "hits50": 0,
+      "recall50": 0.0
+    },
+    {
+      "profile": "current_product",
+      "arm": "A2",
+      "scaffold": "O=C(NC1CCC1)C1NC2(CCC2)C2(C(=O)Nc3ccccc32)C1c1ccccc1",
+      "active_count": 1,
+      "hits50": 0,
+      "recall50": 0.0
+    },
+    {
+      "profile": "current_product",
+      "arm": "A2",
+      "scaffold": "O=C(NC1CCCCC1)C1NC2(CCC2)C2(C(=O)Nc3ccccc32)C1c1ccccc1",
+      "active_count": 1,
+      "hits50": 0,
+      "recall50": 0.0
+    },
+    {
+      "profile": "current_product",
+      "arm": "A2",
+      "scaffold": "O=C1Nc2ccccc2C12C(c1ccccc1)CNC21CCC1",
+      "active_count": 1,
+      "hits50": 0,
+      "recall50": 0.0
+    },
+    {
+      "profile": "current_product",
+      "arm": "A2",
+      "scaffold": "O=C(NC1CCC1)C1NC2(CCCCC2)C2(C(=O)Nc3ccccc32)C1c1ccccc1",
+      "active_count": 1,
+      "hits50": 0,
+      "recall50": 0.0
+    },
+    {
+      "profile": "current_product",
+      "arm": "A2",
+      "scaffold": "O=C(NC1CCC1)C1NCC2(C(=O)Nc3ccccc32)C1c1ccccc1",
+      "active_count": 1,
+      "hits50": 0,
+      "recall50": 0.0
+    },
+    {
+      "profile": "current_product",
+      "arm": "A2",
+      "scaffold": "O=C(NC1CCCCC1)C1NC2(CCCC2)C2(C(=O)Nc3ccccc32)C1c1ccccc1",
+      "active_count": 1,
+      "hits50": 0,
+      "recall50": 0.0
+    },
+    {
+      "profile": "current_product",
+      "arm": "A2",
+      "scaffold": "O=C(NCCN1CCOCC1)C1NC2(CCCCC2)C2(C(=O)Nc3ccccc32)C1c1ccccc1",
+      "active_count": 1,
+      "hits50": 0,
+      "recall50": 0.0
+    },
+    {
+      "profile": "current_product",
+      "arm": "A2",
+      "scaffold": "O=C1Nc2ccccc2C12C(c1ccccc1)CNC21CCCCC1",
+      "active_count": 1,
+      "hits50": 0,
+      "recall50": 0.0
+    },
+    {
+      "profile": "current_product",
+      "arm": "A2",
+      "scaffold": "O=C(Nc1ccccc1)C1NC2(CCCCC2)C2(C(=O)Nc3ccccc32)C1c1ccccc1",
+      "active_count": 1,
+      "hits50": 0,
+      "recall50": 0.0
+    },
+    {
+      "profile": "ppi_benchmark",
+      "arm": "A0",
+      "scaffold": "O=C(NC1CCCCC1)C1NCC2(C(=O)Nc3ccccc32)C1c1ccccc1",
+      "active_count": 4,
+      "hits50": 0,
+      "recall50": 0.0
+    },
+    {
+      "profile": "ppi_benchmark",
+      "arm": "A0",
+      "scaffold": "O=C1Nc2ccccc2C12CNCC2c1ccccc1",
+      "active_count": 1,
+      "hits50": 0,
+      "recall50": 0.0
+    },
+    {
+      "profile": "ppi_benchmark",
+      "arm": "A0",
+      "scaffold": "O=C1Nc2ccccc2C12C(c1ccccc1)C1C(Cc3c4ccccc4nn31)N2CC1CC1",
+      "active_count": 1,
+      "hits50": 0,
+      "recall50": 0.0
+    },
+    {
+      "profile": "ppi_benchmark",
+      "arm": "A0",
+      "scaffold": "O=C(NCCN1CCOCC1)C1NCC2(C(=O)Nc3ccccc32)C1c1ccccc1",
+      "active_count": 1,
+      "hits50": 0,
+      "recall50": 0.0
+    },
+    {
+      "profile": "ppi_benchmark",
+      "arm": "A0",
+      "scaffold": "O=C(NC1CCCCC1)C1NC2(CCCCCC2)C2(C(=O)Nc3ccccc32)C1c1ccccc1",
+      "active_count": 1,
+      "hits50": 0,
+      "recall50": 0.0
+    },
+    {
+      "profile": "ppi_benchmark",
+      "arm": "A0",
+      "scaffold": "O=C(NC1CCCCC1)C1NC2(CCCCC2)C2(C(=O)Nc3ccccc32)C1c1ccccc1",
+      "active_count": 1,
+      "hits50": 0,
+      "recall50": 0.0
+    },
+    {
+      "profile": "ppi_benchmark",
+      "arm": "A0",
+      "scaffold": "O=C(NCCN1CCOCC1)C1NC2(CCC2)C2(C(=O)Nc3ccccc32)C1c1ccccc1",
+      "active_count": 1,
+      "hits50": 0,
+      "recall50": 0.0
+    },
+    {
+      "profile": "ppi_benchmark",
+      "arm": "A0",
+      "scaffold": "O=C1CN(C(=O)N2C(c3ccccc3)=NC(c3ccccc3)C2c2ccccc2)CCN1",
+      "active_count": 1,
+      "hits50": 0,
+      "recall50": 0.0
+    },
+    {
+      "profile": "ppi_benchmark",
+      "arm": "A0",
+      "scaffold": "O=C(NC1CCC1)C1NC2(CCC2)C2(C(=O)Nc3ccccc32)C1c1ccccc1",
+      "active_count": 1,
+      "hits50": 0,
+      "recall50": 0.0
+    },
+    {
+      "profile": "ppi_benchmark",
+      "arm": "A0",
+      "scaffold": "O=C(NC1CCCCC1)C1NC2(CCC2)C2(C(=O)Nc3ccccc32)C1c1ccccc1",
+      "active_count": 1,
+      "hits50": 0,
+      "recall50": 0.0
+    },
+    {
+      "profile": "ppi_benchmark",
+      "arm": "A0",
+      "scaffold": "O=C1Nc2ccccc2C12C(c1ccccc1)CNC21CCC1",
+      "active_count": 1,
+      "hits50": 0,
+      "recall50": 0.0
+    },
+    {
+      "profile": "ppi_benchmark",
+      "arm": "A0",
+      "scaffold": "O=C(NC1CCC1)C1NC2(CCCCC2)C2(C(=O)Nc3ccccc32)C1c1ccccc1",
+      "active_count": 1,
+      "hits50": 0,
+      "recall50": 0.0
+    },
+    {
+      "profile": "ppi_benchmark",
+      "arm": "A0",
+      "scaffold": "O=C(NC1CCC1)C1NCC2(C(=O)Nc3ccccc32)C1c1ccccc1",
+      "active_count": 1,
+      "hits50": 0,
+      "recall50": 0.0
+    },
+    {
+      "profile": "ppi_benchmark",
+      "arm": "A0",
+      "scaffold": "O=C(NC1CCCCC1)C1NC2(CCCC2)C2(C(=O)Nc3ccccc32)C1c1ccccc1",
+      "active_count": 1,
+      "hits50": 0,
+      "recall50": 0.0
+    },
+    {
+      "profile": "ppi_benchmark",
+      "arm": "A0",
+      "scaffold": "O=C(NCCN1CCOCC1)C1NC2(CCCCC2)C2(C(=O)Nc3ccccc32)C1c1ccccc1",
+      "active_count": 1,
+      "hits50": 0,
+      "recall50": 0.0
+    },
+    {
+      "profile": "ppi_benchmark",
+      "arm": "A0",
+      "scaffold": "O=C1Nc2ccccc2C12C(c1ccccc1)CNC21CCCCC1",
+      "active_count": 1,
+      "hits50": 0,
+      "recall50": 0.0
+    },
+    {
+      "profile": "ppi_benchmark",
+      "arm": "A0",
+      "scaffold": "O=C(Nc1ccccc1)C1NC2(CCCCC2)C2(C(=O)Nc3ccccc32)C1c1ccccc1",
+      "active_count": 1,
+      "hits50": 1,
+      "recall50": 1.0
+    },
+    {
+      "profile": "ppi_benchmark",
+      "arm": "A1",
+      "scaffold": "O=C(NC1CCCCC1)C1NCC2(C(=O)Nc3ccccc32)C1c1ccccc1",
+      "active_count": 4,
+      "hits50": 0,
+      "recall50": 0.0
+    },
+    {
+      "profile": "ppi_benchmark",
+      "arm": "A1",
+      "scaffold": "O=C1Nc2ccccc2C12CNCC2c1ccccc1",
+      "active_count": 1,
+      "hits50": 0,
+      "recall50": 0.0
+    },
+    {
+      "profile": "ppi_benchmark",
+      "arm": "A1",
+      "scaffold": "O=C1Nc2ccccc2C12C(c1ccccc1)C1C(Cc3c4ccccc4nn31)N2CC1CC1",
+      "active_count": 1,
+      "hits50": 0,
+      "recall50": 0.0
+    },
+    {
+      "profile": "ppi_benchmark",
+      "arm": "A1",
+      "scaffold": "O=C(NCCN1CCOCC1)C1NCC2(C(=O)Nc3ccccc32)C1c1ccccc1",
+      "active_count": 1,
+      "hits50": 0,
+      "recall50": 0.0
+    },
+    {
+      "profile": "ppi_benchmark",
+      "arm": "A1",
+      "scaffold": "O=C(NC1CCCCC1)C1NC2(CCCCCC2)C2(C(=O)Nc3ccccc32)C1c1ccccc1",
+      "active_count": 1,
+      "hits50": 0,
+      "recall50": 0.0
+    },
+    {
+      "profile": "ppi_benchmark",
+      "arm": "A1",
+      "scaffold": "O=C(NC1CCCCC1)C1NC2(CCCCC2)C2(C(=O)Nc3ccccc32)C1c1ccccc1",
+      "active_count": 1,
+      "hits50": 1,
+      "recall50": 1.0
+    },
+    {
+      "profile": "ppi_benchmark",
+      "arm": "A1",
+      "scaffold": "O=C(NCCN1CCOCC1)C1NC2(CCC2)C2(C(=O)Nc3ccccc32)C1c1ccccc1",
+      "active_count": 1,
+      "hits50": 0,
+      "recall50": 0.0
+    },
+    {
+      "profile": "ppi_benchmark",
+      "arm": "A1",
+      "scaffold": "O=C1CN(C(=O)N2C(c3ccccc3)=NC(c3ccccc3)C2c2ccccc2)CCN1",
+      "active_count": 1,
+      "hits50": 0,
+      "recall50": 0.0
+    },
+    {
+      "profile": "ppi_benchmark",
+      "arm": "A1",
+      "scaffold": "O=C(NC1CCC1)C1NC2(CCC2)C2(C(=O)Nc3ccccc32)C1c1ccccc1",
+      "active_count": 1,
+      "hits50": 0,
+      "recall50": 0.0
+    },
+    {
+      "profile": "ppi_benchmark",
+      "arm": "A1",
+      "scaffold": "O=C(NC1CCCCC1)C1NC2(CCC2)C2(C(=O)Nc3ccccc32)C1c1ccccc1",
+      "active_count": 1,
+      "hits50": 0,
+      "recall50": 0.0
+    },
+    {
+      "profile": "ppi_benchmark",
+      "arm": "A1",
+      "scaffold": "O=C1Nc2ccccc2C12C(c1ccccc1)CNC21CCC1",
+      "active_count": 1,
+      "hits50": 0,
+      "recall50": 0.0
+    },
+    {
+      "profile": "ppi_benchmark",
+      "arm": "A1",
+      "scaffold": "O=C(NC1CCC1)C1NC2(CCCCC2)C2(C(=O)Nc3ccccc32)C1c1ccccc1",
+      "active_count": 1,
+      "hits50": 1,
+      "recall50": 1.0
+    },
+    {
+      "profile": "ppi_benchmark",
+      "arm": "A1",
+      "scaffold": "O=C(NC1CCC1)C1NCC2(C(=O)Nc3ccccc32)C1c1ccccc1",
+      "active_count": 1,
+      "hits50": 0,
+      "recall50": 0.0
+    },
+    {
+      "profile": "ppi_benchmark",
+      "arm": "A1",
+      "scaffold": "O=C(NC1CCCCC1)C1NC2(CCCC2)C2(C(=O)Nc3ccccc32)C1c1ccccc1",
+      "active_count": 1,
+      "hits50": 0,
+      "recall50": 0.0
+    },
+    {
+      "profile": "ppi_benchmark",
+      "arm": "A1",
+      "scaffold": "O=C(NCCN1CCOCC1)C1NC2(CCCCC2)C2(C(=O)Nc3ccccc32)C1c1ccccc1",
+      "active_count": 1,
+      "hits50": 1,
+      "recall50": 1.0
+    },
+    {
+      "profile": "ppi_benchmark",
+      "arm": "A1",
+      "scaffold": "O=C1Nc2ccccc2C12C(c1ccccc1)CNC21CCCCC1",
+      "active_count": 1,
+      "hits50": 0,
+      "recall50": 0.0
+    },
+    {
+      "profile": "ppi_benchmark",
+      "arm": "A1",
+      "scaffold": "O=C(Nc1ccccc1)C1NC2(CCCCC2)C2(C(=O)Nc3ccccc32)C1c1ccccc1",
+      "active_count": 1,
+      "hits50": 1,
+      "recall50": 1.0
+    },
+    {
+      "profile": "ppi_benchmark",
+      "arm": "A2",
+      "scaffold": "O=C(NC1CCCCC1)C1NCC2(C(=O)Nc3ccccc32)C1c1ccccc1",
+      "active_count": 4,
+      "hits50": 1,
+      "recall50": 0.25
+    },
+    {
+      "profile": "ppi_benchmark",
+      "arm": "A2",
+      "scaffold": "O=C1Nc2ccccc2C12CNCC2c1ccccc1",
+      "active_count": 1,
+      "hits50": 0,
+      "recall50": 0.0
+    },
+    {
+      "profile": "ppi_benchmark",
+      "arm": "A2",
+      "scaffold": "O=C1Nc2ccccc2C12C(c1ccccc1)C1C(Cc3c4ccccc4nn31)N2CC1CC1",
+      "active_count": 1,
+      "hits50": 0,
+      "recall50": 0.0
+    },
+    {
+      "profile": "ppi_benchmark",
+      "arm": "A2",
+      "scaffold": "O=C(NCCN1CCOCC1)C1NCC2(C(=O)Nc3ccccc32)C1c1ccccc1",
+      "active_count": 1,
+      "hits50": 1,
+      "recall50": 1.0
+    },
+    {
+      "profile": "ppi_benchmark",
+      "arm": "A2",
+      "scaffold": "O=C(NC1CCCCC1)C1NC2(CCCCCC2)C2(C(=O)Nc3ccccc32)C1c1ccccc1",
+      "active_count": 1,
+      "hits50": 0,
+      "recall50": 0.0
+    },
+    {
+      "profile": "ppi_benchmark",
+      "arm": "A2",
+      "scaffold": "O=C(NC1CCCCC1)C1NC2(CCCCC2)C2(C(=O)Nc3ccccc32)C1c1ccccc1",
+      "active_count": 1,
+      "hits50": 1,
+      "recall50": 1.0
+    },
+    {
+      "profile": "ppi_benchmark",
+      "arm": "A2",
+      "scaffold": "O=C(NCCN1CCOCC1)C1NC2(CCC2)C2(C(=O)Nc3ccccc32)C1c1ccccc1",
+      "active_count": 1,
+      "hits50": 0,
+      "recall50": 0.0
+    },
+    {
+      "profile": "ppi_benchmark",
+      "arm": "A2",
+      "scaffold": "O=C1CN(C(=O)N2C(c3ccccc3)=NC(c3ccccc3)C2c2ccccc2)CCN1",
+      "active_count": 1,
+      "hits50": 0,
+      "recall50": 0.0
+    },
+    {
+      "profile": "ppi_benchmark",
+      "arm": "A2",
+      "scaffold": "O=C(NC1CCC1)C1NC2(CCC2)C2(C(=O)Nc3ccccc32)C1c1ccccc1",
+      "active_count": 1,
+      "hits50": 0,
+      "recall50": 0.0
+    },
+    {
+      "profile": "ppi_benchmark",
+      "arm": "A2",
+      "scaffold": "O=C(NC1CCCCC1)C1NC2(CCC2)C2(C(=O)Nc3ccccc32)C1c1ccccc1",
+      "active_count": 1,
+      "hits50": 0,
+      "recall50": 0.0
+    },
+    {
+      "profile": "ppi_benchmark",
+      "arm": "A2",
+      "scaffold": "O=C1Nc2ccccc2C12C(c1ccccc1)CNC21CCC1",
+      "active_count": 1,
+      "hits50": 1,
+      "recall50": 1.0
+    },
+    {
+      "profile": "ppi_benchmark",
+      "arm": "A2",
+      "scaffold": "O=C(NC1CCC1)C1NC2(CCCCC2)C2(C(=O)Nc3ccccc32)C1c1ccccc1",
+      "active_count": 1,
+      "hits50": 1,
+      "recall50": 1.0
+    },
+    {
+      "profile": "ppi_benchmark",
+      "arm": "A2",
+      "scaffold": "O=C(NC1CCC1)C1NCC2(C(=O)Nc3ccccc32)C1c1ccccc1",
+      "active_count": 1,
+      "hits50": 0,
+      "recall50": 0.0
+    },
+    {
+      "profile": "ppi_benchmark",
+      "arm": "A2",
+      "scaffold": "O=C(NC1CCCCC1)C1NC2(CCCC2)C2(C(=O)Nc3ccccc32)C1c1ccccc1",
+      "active_count": 1,
+      "hits50": 0,
+      "recall50": 0.0
+    },
+    {
+      "profile": "ppi_benchmark",
+      "arm": "A2",
+      "scaffold": "O=C(NCCN1CCOCC1)C1NC2(CCCCC2)C2(C(=O)Nc3ccccc32)C1c1ccccc1",
+      "active_count": 1,
+      "hits50": 1,
+      "recall50": 1.0
+    },
+    {
+      "profile": "ppi_benchmark",
+      "arm": "A2",
+      "scaffold": "O=C1Nc2ccccc2C12C(c1ccccc1)CNC21CCCCC1",
+      "active_count": 1,
+      "hits50": 1,
+      "recall50": 1.0
+    },
+    {
+      "profile": "ppi_benchmark",
+      "arm": "A2",
+      "scaffold": "O=C(Nc1ccccc1)C1NC2(CCCCC2)C2(C(=O)Nc3ccccc32)C1c1ccccc1",
+      "active_count": 1,
+      "hits50": 1,
+      "recall50": 1.0
+    }
+  ],
+  "limitations": [
+    "17/20 actives from one medicinal chemistry series",
+    "single docking seed; no independent replication",
+    "residue contacts are not a validated chemical pharmacophore",
+    "retrospective recovery, not new molecule discovery"
+  ],
+  "first_exclusion_counts": {
+    "current_product": {
+      "acquisition_filter": 20
+    },
+    "ppi_benchmark": {
+      "ranked": 20
+    }
+  },
+  "protocol_amendment": {
+    "time": "2026-10-22T19:16:36.869764+00:00",
+    "reason": "uniform selected-pose coordinate stereo QC; failed parent retained in full denominator; no alternate-pose rescue",
+    "ranking_or_reference_recovery_observed": false,
+    "ranking_algorithm_changed": false,
+    "docking_parameters_changed": false,
+    "quality_filter_added_after_raw_docking": true,
+    "study_design_status": "pilot; analysis rule frozen before label unblinding, not fully prospectively preregistered",
+    "original_task_start_and_deadline_preserved": true
+  },
+  "earlier_protocol_amendment": {
+    "time": "2026-10-22T18:31:18.612882+00:00",
+    "reason": "preserve source tautomer and all specified E/Z stereo; exclude source-ambiguous backgrounds",
+    "ranking_or_reference_recovery_observed": false,
+    "ranking_algorithm_changed": false,
+    "docking_parameters_changed": false,
+    "original_task_start_and_deadline_preserved": true
+  },
+  "reused_docking_jobs": 549,
+  "docking_summary": {
+    "phase": "retrospective_benchmark",
+    "started_at": "2026-10-22T19:18:22.566567+00:00",
+    "finished_at": "2026-10-22T19:18:37.503818+00:00",
+    "elapsed_seconds": 14.936957836151123,
+    "input_parents": 550,
+    "prepared": 549,
+    "attempted": 549,
+    "success": 549,
+    "failure_rate_including_preparation": 0.0018181818181818299,
+    "mean_job_seconds": 24.37433670909027,
+    "median_job_seconds": 15.429340124130249,
+    "projected_550_seconds": 14.964165409623165,
+    "cache_hits": 549,
+    "cross_run_reused": 549,
+    "workers": 5,
+    "cpu_per_worker": 4,
+    "resource_samples": "/root/autodl-tmp/yuanhe-mdm2/runs/mdm2_quick_20261023_v4/inputs/resource_samples.json"
+  },
+  "elapsed_minutes": 122.65693841666666,
+  "within_180_minutes": true,
+  "complete_docking": false,
+  "engineering_acceptance": {
+    "full_frozen_library_completed": false,
+    "all_requested_references_top50": false,
+    "at_least_one_active_top50": true,
+    "A1_point_estimate_exceeds_A0": true,
+    "A1_point_estimate_exceeds_A2": false,
+    "generalizable_peptide_gain_proven": false,
+    "current_product_success": false
+  },
+  "resource_evidence_root": "/root/autodl-tmp/yuanhe-mdm2/runs/mdm2_quick_20261023_v3",
+  "resources": {
+    "development": {
+      "scope": "whole cgroup, not just Vina",
+      "samples": 37,
+      "mean_cpu_cores_used": 16.62023120907404,
+      "mean_cpu_quota_utilization_percent": 75.54650549579107,
+      "peak_memory_GiB": 4.576602935791016,
+      "mean_gpu_utilization_percent": 100.0
+    },
+    "inputs": {
+      "scope": "whole cgroup, not just Vina",
+      "samples": 328,
+      "mean_cpu_cores_used": 18.501953394241056,
+      "mean_cpu_quota_utilization_percent": 84.09978815564116,
+      "peak_memory_GiB": 5.709815979003906,
+      "mean_gpu_utilization_percent": 100.0
+    }
+  },
+  "throughput_preflight": {
+    "phase": "throughput_development_only",
+    "started_at": "2026-10-22T17:33:17.667888+00:00",
+    "finished_at": "2026-10-22T17:36:25.841823+00:00",
+    "elapsed_seconds": 188.17389726638794,
+    "input_parents": 50,
+    "prepared": 50,
+    "attempted": 50,
+    "success": 50,
+    "failure_rate_including_preparation": 0.0,
+    "mean_job_seconds": 16.633453812599182,
+    "median_job_seconds": 11.562609076499939,
+    "projected_550_seconds": 2069.9128699302673,
+    "workers": 5,
+    "cpu_per_worker": 4,
+    "resource_samples": "/root/autodl-tmp/yuanhe-mdm2/runs/mdm2_quick_20261023/development/resource_samples.json"
+  }
+}
