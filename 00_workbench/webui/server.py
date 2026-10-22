@@ -360,7 +360,7 @@ def api_predocking_detail(q,rid,key):
     if row is None:raise HttpError('Molecule not found',404)
     svg=d/'risk'/(row['id']+'.svg')
     return _json({'record':row,'svg':svg.read_text() if svg.is_file() else '',
-                  'note':'No match to current rules does not establish non-toxicity; a computed route is not completed synthesis. Final purchasing or commissioned synthesis requires separate review.'})
+                  'note':'No match to current rules does not establish non-toxicity; a computed route is not completed synthesis. Experimental synthesis requires separate review.'})
 
 def api_project_structure(q, rid):
     d=workflow.run_dir(rid);path=d/'input.pdb'

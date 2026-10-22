@@ -181,5 +181,5 @@ We welcome method evaluation and research collaboration around reproducible, tar
 Public visibility does not grant unrestricted commercial use. Commercial deployment requires review of original-code rights, prior grants, dependency code, model weights and data terms. See the unchanged license documents above and the [commercialization boundary](docs/commercialization/public_private_boundary.md).
 
 
-Pre-docking substructure risk and acquisition gates (2026-10-21)
-REINVENT4 → standardization and deduplication → risk → availability → AutoDock Vina. See docs/PREDOCKING_PREFLIGHT.md for configuration, real supplier catalog fields, local AiZynthFinder assets, review, caching and CLI instructions. Missing real evidence never grants automatic passage; the pre-docking integration does not change MD code or parameters.
+Pre-docking toxicity and synthesis gates (2026-10-21)
+REINVENT4 → standardization and deduplication → risk → availability → AutoDock Vina. See docs/PREDOCKING_PREFLIGHT.md for configuration, real toxicity/SA/SCScore models, local AiZynthFinder assets, review, caching and CLI instructions. Missing real evidence never grants automatic passage; the pre-docking integration does not change MD code or parameters.

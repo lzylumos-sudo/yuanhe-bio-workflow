@@ -34,10 +34,9 @@ def defaults(root):
     return cfg
 
 def validate(cfg):
-    required={'rules_path','risk_policies','risk_exceptions','catalogs','stock_catalogs','evidence_max_age_days','retro','cache_dir','workers','batch_size','route_reviews','external_interfaces'}
+    required={'rules_path','risk_policies','risk_exceptions','retro','cache_dir','workers','batch_size','route_reviews'}
     if not isinstance(cfg,dict) or set(cfg)-{'engine'}!=required:raise ValueError('predocking_config_fields_mismatch')
-    if cfg['external_interfaces']:raise ValueError('External interfaces are not implemented; use authorized local catalog imports. No structures are transmitted.')
-    for key,lo,hi in [('workers',1,16),('batch_size',1,1000),('evidence_max_age_days',1,365)]:
+    for key,lo,hi in [('workers',1,16),('batch_size',1,1000)]:
         if type(cfg[key]) is not int or not lo<=cfg[key]<=hi:raise ValueError(key+' out of range')
     for key,lo,hi in [('time_limit_seconds',1,86400),('max_depth',1,30),('iteration_limit',1,1000000),('startup_grace_seconds',0,600)]:
         value=cfg['retro'].get(key)
@@ -45,6 +44,6 @@ def validate(cfg):
     if 'engine' in cfg:
         from .engine_config import validate as validate_engine
         validate_engine(cfg['engine'])
-    for k in ('risk_exceptions','route_reviews','catalogs','stock_catalogs'):
+    for k in ('risk_exceptions','route_reviews'):
         if not isinstance(cfg[k],list):raise ValueError(k+' must be an array')
     return cfg

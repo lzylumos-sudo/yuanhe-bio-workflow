@@ -4,7 +4,7 @@ export function screeningControls(parent, cfg, el) {
   if (!engine) return;
   const section = el('fieldset'); section.className = 'panel';
   section.append(el('legend', 'Pre-Docking Screening'));
-  section.append(el('p', 'Predictions support research decisions. Missing results require review or stop the stage. Supplier catalog matches do not confirm stock.'));
+  section.append(el('p', 'Predictions support research decisions. Missing results require review or stop the stage. Computed synthesis routes still require experimental validation.'));
   const input = (path, title, type, values) => {
     const label = el('label', title);
     const control = el(type === 'select' ? 'select' : 'input');
@@ -41,8 +41,7 @@ export function screeningControls(parent, cfg, el) {
   input('synthesis.scscore_path', 'Official SCScore 1024bool JSON.GZ weights', 'text');
   input('synthesis.scscore_sha256', 'SCScore weight SHA256', 'text');
   input('retro_max_candidates', 'Maximum priority molecules for retrosynthesis', 'number');
-  input('pubchem.enabled', 'Query public PubChem supplier records (sends candidate SMILES)', 'checkbox');
-  section.append(el('p', 'Authorized local supplier catalogs, route models, search time/depth and per-rule overrides remain editable in the pre-docking JSON field. Current procurement needs dated supplier evidence.'));
+  section.append(el('p', 'Route models, search time/depth and per-rule overrides remain editable in the pre-docking JSON field. A complete validated computed route is required.'));
   parent.append(section);
 }
 
@@ -59,7 +58,7 @@ export function readScreening(parent, cfg) {
 }
 
 
-// Values are rendered with textContent; supplier links accept HTTPS only.
+// Values are rendered with textContent.
 export function screeningDetail(panel, detail, el) {
   panel.replaceChildren();
   const r = detail.record;
@@ -79,7 +78,7 @@ export function screeningDetail(panel, detail, el) {
     table.append(tr);
   }
   panel.append(el('h4','AI toxicity predictions'),table);
-  list('Synthesis and acquisition', [['SA score (1–10)',r.synthesis?.sa_score], ['SCScore (1–5)',r.synthesis?.sc_score], ['Synthesis assessment',r.synthesis?.synthesis_difficulty], ['Acquisition',r.availability?.status], ['Evidence labels',(r.status_labels || []).join('; ')]]);
-  const full = el('details'); full.append(el('summary','All alerts, model provenance, routes and supplier evidence'));
+  list('Synthesis assessment', [['SA score (1–10)',r.synthesis?.sa_score], ['SCScore (1–5)',r.synthesis?.sc_score], ['Synthesis assessment',r.synthesis?.synthesis_difficulty], ['Route assessment',r.availability?.status], ['Evidence labels',(r.status_labels || []).join('; ')]]);
+  const full = el('details'); full.append(el('summary','All alerts, model provenance, routes and planning building blocks'));
   const pre = el('pre',JSON.stringify(r,null,2));pre.style.cssText='white-space:pre-wrap;overflow-wrap:anywhere';full.append(pre);panel.append(full);
 }

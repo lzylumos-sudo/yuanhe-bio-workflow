@@ -16,8 +16,6 @@ def main():
  missing=[];assets=[]
  for package in ('rdkit','filelock','aizynthfinder'):
   if importlib.util.find_spec(package) is None:missing.append({'item':package,'effect':'local retrosynthesis unavailable' if package=='aizynthfinder' else 'preflight unavailable','environment':sys.executable})
- if not cfg['catalogs']:missing.append({'item':'supplier_catalogs','effect':'no purchase evidence'})
- if not cfg['stock_catalogs']:missing.append({'item':'trusted_terminal_supplier_catalogs','effect':'routes cannot qualify'})
  for key in ('model_path','templates_path','stock_path'):
   path=Path(cfg['retro'].get(key) or '')
   if not path.is_file():missing.append({'item':key,'effect':'retrosynthesis unavailable'})

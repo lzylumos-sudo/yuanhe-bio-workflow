@@ -1,4 +1,4 @@
-"""v2 engineering tests. Any injected predictions/vendor rows are test fixtures.
+"""v2 engineering tests. Any injected predictions/routes are test fixtures.
 
 Real model and 1000-molecule acceptance is deployment/validate_predocking.py.
 """
@@ -10,7 +10,7 @@ import pytest
 from rdkit import Chem
 
 sys.path.insert(0,str(Path(__file__).resolve().parents[1]))
-from preflight.test_preflight import catalog, sdf
+from preflight.test_preflight import route_evidence, sdf
 from yuanhe_preflight.config import defaults, validate
 from yuanhe_preflight.engine_config import defaults as engine_defaults
 from yuanhe_preflight.common import read, write, hash_obj, seal
@@ -91,7 +91,7 @@ def test_unknown_endpoint_is_unsupported(tmp_path):
 
 def test_multimode_ranking_independent_scales():
     rows=[{'compound_id':str(i),'smiles':s,'synthesis':{'sa_score':sa,'sc_score':sc},'availability':{'status':a}}
-          for i,(s,sa,sc,a) in enumerate([('c1ccccc1',2,3,'purchase_supported'),('Cc1ccccc1',3,2,'purchase_supported'),('C1CCCCC1',4,4,'route_supported')])]
+          for i,(s,sa,sc,a) in enumerate([('c1ccccc1',2,3,'route_supported'),('Cc1ccccc1',3,2,'route_supported'),('C1CCCCC1',4,4,'route_supported')])]
     engine=engine_defaults();engine['mode']='discovery'
     assert [r['compound_id'] for r in rank(copy.deepcopy(rows),engine)]==['0','2','1']
     engine['mode']='delivery'
@@ -99,11 +99,11 @@ def test_multimode_ranking_independent_scales():
 
 
 def test_final_selection_gate_and_actual_docking_input(tmp_path,monkeypatch):
-    """Injected model/supply FIXTURES isolate the orchestration from inference."""
+    """Injected model/route FIXTURES isolate the orchestration from inference."""
     from yuanhe_preflight import engine
     import pipeline_bridge as bridge
     cfg=defaults(tmp_path);cfg['engine']['keep']=1
-    cfg['catalogs']=[catalog(tmp_path,['CCO','CCCO'])]
+    route_evidence(tmp_path,cfg,['CCO','CCCO'])
     weight=tmp_path/'fixture-weights';weight.write_text('TEST ONLY NOT MODEL WEIGHTS')
     from yuanhe_preflight.common import file_hash
     cfg['engine']['synthesis'].update(scscore_path=str(weight),scscore_sha256=file_hash(weight))
@@ -177,9 +177,9 @@ def test_regression_ld50_is_not_a_probability():
 
 
 def test_partial_retrosynthesis_is_not_route_found(tmp_path,monkeypatch):
-    from yuanhe_preflight.availability_synthesis_filter import AvailabilityFilter
+    from yuanhe_preflight.synthesis_routes import SynthesisFilter
     cfg=defaults(tmp_path)
-    f=AvailabilityFilter(cfg,'test')
+    f=SynthesisFilter(cfg,'test')
     monkeypatch.setattr(f,'search',lambda smiles:{'status':'searched','routes':[{'type':'mol','smiles':smiles,'in_stock':False,'route_metadata':{'is_solved':False}}]})
     result=f.screen('CCO')
     assert result['route_status']=='NO_ROUTE_FOUND'

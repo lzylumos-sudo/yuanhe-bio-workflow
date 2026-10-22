@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Real CPU inference / 1000 unique NCI molecules; no simulated supply evidence.
+"""Real CPU inference / 1000 unique NCI molecules; no simulated route evidence.
 
 Run in the ADMET-AI environment. Retro is optional and explicitly recorded.
 This is execution acceptance, not a held-out clinical/experimental validation.
@@ -51,7 +51,7 @@ def main():
             'molecules_per_second':len(rows)/total,'rss_unit':'bytes' if sys.platform=='darwin' else 'KiB',
             'max_rss':resource.getrusage(resource.RUSAGE_SELF).ru_maxrss,
             'child_max_rss':resource.getrusage(resource.RUSAGE_CHILDREN).ru_maxrss,
-            'gpu':False,'docking_run':False,'md_run':False,'external_supplier_queries':False,
+            'gpu':False,'docking_run':False,'md_run':False,'external_structure_queries':False,
             'retro_enabled':args.retro_config is not None,'scientific_validation':'execution_only'}
     write(out/'acceptance.json',report)
     assert b['timings']['model_evaluated']>0 and b['timings']['model_failed']==0

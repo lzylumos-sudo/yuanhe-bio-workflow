@@ -1,4 +1,4 @@
-# Separate from the unchanged MD environment. Models, templates and supplier
+# Separate from the unchanged MD environment. Models, templates and planning building-block
 # datasets are never installed/downloaded automatically by the workflow.
 name: yuanhe-preflight
 channels: [conda-forge, nodefaults]

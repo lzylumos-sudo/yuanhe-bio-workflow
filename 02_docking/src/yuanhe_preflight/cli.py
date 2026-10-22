@@ -1,4 +1,4 @@
-"""Local supplier-library preflight: no docking, generation, network or MD."""
+"""Local candidate-library preflight: no docking, generation, network or MD."""
 import argparse, csv, json
 from pathlib import Path
 from rdkit import Chem

@@ -1,4 +1,4 @@
-"""All vendor/route examples in this file are SIMULATED UNIT FIXTURES, not commercial evidence."""
+"""All route examples here are SIMULATED UNIT FIXTURES, not actual synthesis predictions."""
 import copy,csv,json,sys,subprocess
 from datetime import date,timedelta
 from pathlib import Path
@@ -10,25 +10,32 @@ sys.path[:0]=[str(ROOT/'02_docking/src'),str(ROOT/'00_workbench'),str(ROOT/'03_v
 from yuanhe_preflight.common import file_hash,read,write,canonical,hash_obj,seal,identity
 from yuanhe_preflight.config import defaults
 from yuanhe_preflight.toxicity_substructure_filter import RiskRules
-from yuanhe_preflight.catalog import Catalog
-from yuanhe_preflight.availability_synthesis_filter import AvailabilityFilter,validate_route,assets,BUY_LABELS,ROUTE_LABEL
+from yuanhe_preflight.synthesis_routes import SynthesisFilter,validate_route,assets,ROUTE_LABEL
 from yuanhe_preflight.pipeline import risk_stage,availability_stage
 from yuanhe_preflight.gate import require_ligand,validate_evidence,QualificationError
 
 @pytest.fixture
 def cfg(tmp_path):
     value=defaults(tmp_path)
-    value.pop('engine')  # Exercise archived v1 tasks; v2 has separate real/model-failure tests.
+    value.pop('engine')  # Isolate route/structure gates; full engine has separate inference tests.
     return value
 
-def catalog(tmp_path,smiles=('CCO',),age=0,kind='in_stock',name='catalog'):
-    d=tmp_path/name;d.mkdir(exist_ok=True);doc=d/'supply.txt';doc.write_text('SIMULATED UNIT TEST SUPPLY RECORD. Not a real vendor quote.')
-    day=str(date.today()-timedelta(days=age))
-    rows=[dict(smiles=s,vendor='SIMULATED_VENDOR',sku='TEST_'+str(n),supply_type=kind,checked_at=day,
-               catalog_date=day,evidence_kind='stock_confirmation',evidence_file=doc.name,evidence_sha256=file_hash(doc)) for n,s in enumerate(smiles)]
-    path=d/'catalog.csv'
-    with path.open('w',newline='') as f:w=csv.DictWriter(f,fieldnames=list(rows[0]));w.writeheader();w.writerows(rows)
-    return {'path':str(path),'version':'simulated-v1','source':'unit-test-only','license':'unit-test-fixture','trusted':True}
+def route_evidence(tmp_path,cfg,smiles=('CCO',)):
+    """Deterministic TEST-ONLY route evidence, with real SMARTS replay, no vendor fixture."""
+    from rdkit.Chem import rdChemReactions
+    fake_assets(tmp_path,cfg)
+    manifest,_=assets(cfg['retro'])
+    template='[C:1]-[O,N:2]>>[C:1].[O,N:2]'
+    reaction=rdChemReactions.ReactionFromSmarts(template)
+    for i,smi in enumerate(smiles):
+        precursors=reaction.RunReactants((Chem.MolFromSmiles(smi),))[0]
+        t={'type':'mol','smiles':canonical(smi),'route_metadata':{'is_solved':True},
+           'children':[{'type':'reaction','metadata':{'template':template,'source':'SIMULATED_UNIT_TEST'},
+                        'children':[{'type':'mol','smiles':canonical(x),'in_stock':True} for x in precursors]}]}
+        raw={'status':'searched','target_smiles':canonical(smi),'routes':[t],'backend':'SIMULATED_UNIT_TEST'}
+        artifact=tmp_path/('route'+str(i)+'.fixture.json')
+        write(artifact,{'raw':raw,'raw_sha256':hash_obj(raw),'assets':manifest})
+        cfg['route_reviews'].append({'search_artifact':str(artifact)})
 
 def sdf(tmp_path,smi,name='input'):
     mol=Chem.AddHs(Chem.MolFromSmiles(smi));p=AllChem.ETKDGv3();p.randomSeed=17;assert AllChem.EmbedMolecule(mol,p)==0
@@ -37,7 +44,7 @@ def sdf(tmp_path,smi,name='input'):
     return file
 
 def eligible(tmp_path,cfg,smi='CCO'):
-    cfg['catalogs']=[catalog(tmp_path,[smi])]
+    route_evidence(tmp_path,cfg,[smi])
     source=sdf(tmp_path,smi);row={'id':'original_1','smiles':smi,'sdf':str(source),'core':'C','seed_id':'seed1'}
     risk_stage([row],cfg,tmp_path/'risk',base=tmp_path,batch_id='SIMULATED_BATCH')
     availability_stage(read(tmp_path/'risk/records.json'),cfg,tmp_path/'availability')
@@ -77,45 +84,48 @@ def test_manual_exception_bound_to_structure_rules():
     with pytest.raises(ValueError):rules.screen(s,[dict(ex,structure_smiles='CCO')])
 
 def test_exact_identity_stereo_isotope_salts(tmp_path):
-    c=Catalog([catalog(tmp_path,['C[C@H](O)C(=O)O','[13CH3]CO','C[NH3+].[Cl-]'])])
-    assert c.valid('C[C@H](O)C(=O)O')
-    for s in ['C[C@@H](O)C(=O)O','CC(O)C(=O)O','CCO','CN','C[NH3+]','CCCO']:assert not c.valid(s)
+    for left,right in [('C[C@H](O)C(=O)O','C[C@@H](O)C(=O)O'),('[13CH3]CO','CCO'),('C[NH3+].[Cl-]','CN')]:
+        assert identity(left)['compound_id']!=identity(right)['compound_id']
 
-def test_expired_and_catalog_only(tmp_path,cfg):
-    c=Catalog([catalog(tmp_path,age=40)],30);assert c.match('CCO')[0]['status']=='supply_evidence_expired';assert not c.valid('CCO')
-    c=Catalog([catalog(tmp_path,kind='catalog_only',name='unknown')]);assert not c.valid('CCO')
-    assert c.match('CCO')[0]['status']=='catalog_hit_supply_unconfirmed'
+def test_unsolved_routes_and_unknown_terminal_pool_never_pass(tmp_path):
+    t=tree();t['route_metadata']['is_solved']=False
+    assert validate_route(t,t['smiles'])['status']=='needs_review'
+    t=tree();del t['children'][0]['children'][0]['in_stock']
+    assert validate_route(t,t['smiles'])['status']=='needs_review'
 
-def test_supply_document_tampering(tmp_path,cfg):
+def test_raw_search_tampering(tmp_path,cfg):
     row=eligible(tmp_path,cfg);assert require_ligand(row['source_sdf'],row['qualification_evidence'])
-    (tmp_path/'catalog/supply.txt').write_text('modified')
-    with pytest.raises(QualificationError,match='no_current_supply'):require_ligand(row['source_sdf'],row['qualification_evidence'])
+    artifact=Path(row['availability']['raw_search']['search_artifact'])
+    raw=read(artifact);raw['raw']['routes']=[];write(artifact,raw)
+    with pytest.raises(QualificationError,match='raw_search_changed'):require_ligand(row['source_sdf'],row['qualification_evidence'])
 
 def test_no_sa_fallback_and_missing_model(tmp_path,cfg):
-    f=AvailabilityFilter(cfg,RiskRules().sha256);r=f.screen('CCO')
+    f=SynthesisFilter(cfg,RiskRules().sha256);r=f.screen('CCO')
     assert r['status']=='model_missing' and r['decision']=='pending' and r['labels']==[]
     r['SA_score']=1
     assert r['decision']!='pass'
 
 # A simulated one-step hydrolysis reverse tree, replayed by RDKit. Not a synthesis claim.
 def tree():
-    return {'type':'mol','smiles':'CCOC(C)=O','children':[{'type':'reaction','smiles':'CCOC(C)=O>>CC(=O)O.CCO',
+    return {'type':'mol','smiles':'CCOC(C)=O','route_metadata':{'is_solved':True},'children':[{'type':'reaction','smiles':'CCOC(C)=O>>CC(=O)O.CCO',
       'metadata':{'template':'[C:1](=[O:2])[O:3][C:4]>>[C:1](=[O:2])O.[O:3][C:4]','template_source':'SIMULATED_UNIT_TEST'},
       'children':[{'type':'mol','smiles':'CC(=O)O','in_stock':True},{'type':'mol','smiles':'CCO','in_stock':True}]}]}
 
-def test_complete_route_requires_all_terminal_supply(tmp_path):
-    c=Catalog([catalog(tmp_path,['CC(=O)O','CCO'])]);r=validate_route(tree(),'CCOC(C)=O',c)
+def test_complete_route_requires_all_terminal_planning_blocks(tmp_path):
+    r=validate_route(tree(),'CCOC(C)=O')
     assert r['status']=='complete' and r['step_count']==1 and len(r['terminal_materials'])==2
-    assert validate_route(tree(),'CCOC(C)=O',Catalog())['status']=='needs_review'
-    t=tree();t['children'][0]['children'][0]['smiles']='CCC';assert validate_route(t,'CCOC(C)=O',c)['status']=='needs_review'
-    assert validate_route(tree(),'CCC',c)['status']=='identity_mismatch'
+    t=tree();t['children'][0]['children'][0]['in_stock']=False
+    assert validate_route(t,'CCOC(C)=O')['status']=='needs_review'
+    t=tree();t['children'][0]['children'][0]['smiles']='CCC'
+    assert validate_route(t,'CCOC(C)=O')['status']=='needs_review'
+    assert validate_route(tree(),'CCC')['status']=='identity_mismatch'
 
 def test_stereo_route_unresolved(tmp_path):
-    t={'type':'mol','smiles':'C[C@H](O)CCOC(C)=O','children':[{'type':'reaction','metadata':{'retro_template':'[C:1](=[O:2])[O:3][C:4]>>[C:1](=[O:2])O.[O:3][C:4]'},'children':[{'type':'mol','smiles':'CC(=O)O'},{'type':'mol','smiles':'C[C@H](O)CCO'}]}]}
-    c=Catalog([catalog(tmp_path,['CC(=O)O','C[C@H](O)CCO'])]);r=validate_route(t,t['smiles'],c)
+    t={'type':'mol','smiles':'C[C@H](O)CCOC(C)=O','route_metadata':{'is_solved':True},'children':[{'type':'reaction','metadata':{'retro_template':'[C:1](=[O:2])[O:3][C:4]>>[C:1](=[O:2])O.[O:3][C:4]'},'children':[{'type':'mol','smiles':'CC(=O)O','in_stock':True},{'type':'mol','smiles':'C[C@H](O)CCO','in_stock':True}]}]}
+    r=validate_route(t,t['smiles'])
     assert 'stereochemistry_selectivity_requires_review' in r['problems'] and r['status']=='needs_review'
     review={'route_sha256':hash_obj(t),'target_smiles':canonical(t['smiles']),'reviewer':'SIMULATED','reason':'Unit fixture','reviewed_at':str(date.today()),'identity_stereo_selectivity_confirmed':True}
-    assert validate_route(t,t['smiles'],c,route_review=review)['status']=='complete'
+    assert validate_route(t,t['smiles'],route_review=review)['status']=='complete'
 
 def fake_assets(tmp_path,cfg):
     for key in ('model','templates','stock'):
@@ -123,36 +133,35 @@ def fake_assets(tmp_path,cfg):
         cfg['retro'][key+'_version']='SIMULATED';cfg['retro'][key+'_license']='Unit test fixture only'
 
 def test_computed_route_label_and_gate(tmp_path,cfg,monkeypatch):
-    fake_assets(tmp_path,cfg);cfg['stock_catalogs']=[catalog(tmp_path,['CC(=O)O','CCO'])]
+    fake_assets(tmp_path,cfg)
     raw={'status':'searched','target_smiles':'CCOC(C)=O','routes':[tree()],'backend':'SIMULATED_UNIT_TEST'}
     manifest,_=assets(cfg['retro']);artifact=tmp_path/'raw.fixture.json';write(artifact,{'raw':raw,'raw_sha256':hash_obj(raw),'assets':manifest})
-    monkeypatch.setattr(AvailabilityFilter,'search',lambda self,s:{**raw,'search_artifact':str(artifact)})
+    monkeypatch.setattr(SynthesisFilter,'search',lambda self,s:{**raw,'search_artifact':str(artifact)})
     source=sdf(tmp_path,'CCOC(C)=O');risk_stage([{'id':'route','smiles':'CCOC(C)=O','sdf':str(source)}],cfg,tmp_path/'risk',base=tmp_path,batch_id='UNIT')
     availability_stage(read(tmp_path/'risk/records.json'),cfg,tmp_path/'availability');row=read(tmp_path/'availability/qualified.json')[0]
     assert row['labels']==[ROUTE_LABEL];assert require_ligand(row['source_sdf'],row['qualification_evidence'])
-    # Both acquisition types coexist without a new search.
-    cfg['catalogs']=[catalog(tmp_path,['CCOC(C)=O'],name='product')]
+    # Explicit asset-bound route reuse avoids a second search.
     cfg['route_reviews']=[{'search_artifact':str(artifact)}]
-    monkeypatch.setattr(AvailabilityFilter,'search',lambda *a:pytest.fail('Purchased targets must not trigger search'))
-    both=AvailabilityFilter(cfg,RiskRules().sha256).screen('CCOC(C)=O')
-    assert BUY_LABELS['in_stock'] in both['labels'] and ROUTE_LABEL in both['labels']
+    monkeypatch.setattr(SynthesisFilter,'search',lambda *a:pytest.fail('Valid linked searches must be reused'))
+    both=SynthesisFilter(cfg,RiskRules().sha256).screen('CCOC(C)=O')
+    assert both['labels']==[ROUTE_LABEL] and both['decision']=='pass'
 
 @pytest.mark.parametrize('status',['search_timeout','dependency_missing','no_route_found','stock_missing'])
 def test_failures_never_pass(tmp_path,cfg,monkeypatch,status):
-    monkeypatch.setattr(AvailabilityFilter,'search',lambda *a:{'status':status,'routes':[]})
-    r=AvailabilityFilter(cfg,RiskRules().sha256).screen('CCO');assert r['status']==status and not r['labels'] and r['decision']=='pending'
+    monkeypatch.setattr(SynthesisFilter,'search',lambda *a:{'status':status,'routes':[]})
+    r=SynthesisFilter(cfg,RiskRules().sha256).screen('CCO');assert r['status']==status and not r['labels'] and r['decision']=='pending'
 
 def test_real_worker_missing_dependency(tmp_path,cfg):
     import importlib.util
     if importlib.util.find_spec('aizynthfinder'):pytest.skip('This environment has AiZynthFinder')
     fake_assets(tmp_path,cfg);cfg['retro']['python']=sys.executable
-    r=AvailabilityFilter(cfg,RiskRules().sha256).screen('CCO');assert r['status']=='dependency_missing';assert not r['labels']
+    r=SynthesisFilter(cfg,RiskRules().sha256).screen('CCO');assert r['status']=='dependency_missing';assert not r['labels']
 
 def test_timeout_process(tmp_path,cfg,monkeypatch):
     fake_assets(tmp_path,cfg)
     def timeout(*a,**k):raise subprocess.TimeoutExpired('SIMULATED',1)
     monkeypatch.setattr(subprocess,'run',timeout)
-    r=AvailabilityFilter(cfg,RiskRules().sha256).screen('CCO');assert r['status']=='search_timeout' and not r['labels']
+    r=SynthesisFilter(cfg,RiskRules().sha256).screen('CCO');assert r['status']=='search_timeout' and not r['labels']
 
 def test_gate_rejects_changed_structure_hash_and_missing_evidence(tmp_path,cfg):
     row=eligible(tmp_path,cfg);proof=read(row['qualification_evidence'])
@@ -191,7 +200,7 @@ def test_stage_order_and_settings_roundtrip(tmp_path,cfg,monkeypatch):
     assert list((d/'attempts').glob('risk_evidence_revision_*/stage.json'))
 
 def test_batch_dedup_and_provenance(tmp_path,cfg):
-    cfg['catalogs']=[catalog(tmp_path)];f=sdf(tmp_path,'CCO')
+    route_evidence(tmp_path,cfg);f=sdf(tmp_path,'CCO')
     rows=[{'id':str(i),'smiles':s,'sdf':str(f),'core':str(i)} for i,s in enumerate(['CCO','OCC'])]
     c=risk_stage(rows,cfg,tmp_path/'risk',base=tmp_path,batch_id='UNIT');assert c['passed']==1 and c['duplicates']==1
     availability_stage(read(tmp_path/'risk/records.json'),cfg,tmp_path/'availability')
@@ -237,41 +246,37 @@ def test_cross_task_cache_keys_and_resume(tmp_path,cfg,monkeypatch):
         request=read(argv[argv.index('--request')+1]);target=argv[argv.index('--output')+1]
         write(target,{'status':'searched','target_smiles':request['smiles'],'routes':[], 'fixture':'SIMULATED CACHE UNIT TEST'})
     monkeypatch.setattr(subprocess,'run',simulated_process)
-    first=AvailabilityFilter(cfg,'rules-v1').screen('CCO');assert len(calls)==1
-    second=AvailabilityFilter(copy.deepcopy(cfg),'rules-v1').screen('OCC');assert len(calls)==1
+    first=SynthesisFilter(cfg,'rules-v1').screen('CCO');assert len(calls)==1
+    second=SynthesisFilter(copy.deepcopy(cfg),'rules-v1').screen('OCC');assert len(calls)==1
     assert second['raw_search']['cache_hit'] and first['raw_search']['cache_key']==second['raw_search']['cache_key']
-    AvailabilityFilter(cfg,'rules-v2').screen('CCO');assert len(calls)==2
+    SynthesisFilter(cfg,'rules-v2').screen('CCO');assert len(calls)==2
     Path(cfg['retro']['model_path']).write_text('SIMULATED new model bytes')
-    AvailabilityFilter(cfg,'rules-v2').screen('CCO');assert len(calls)==3
-    cfg['catalogs']=[catalog(tmp_path,['CCC'])]
-    AvailabilityFilter(cfg,'rules-v2').screen('CCO');assert len(calls)==4
+    SynthesisFilter(cfg,'rules-v2').screen('CCO');assert len(calls)==3
+    Path(cfg['retro']['stock_path']).write_text('SIMULATED new building block pool')
+    SynthesisFilter(cfg,'rules-v2').screen('CCO');assert len(calls)==4
 
-def test_sdf_and_smiles_catalog_formats(tmp_path):
-    spec=catalog(tmp_path);rows=list(csv.DictReader(Path(spec['path']).open()))
-    path=tmp_path/'supplier.sdf';mol=Chem.MolFromSmiles('CCO')
-    for k,v in rows[0].items():mol.SetProp(k,v)
-    # SDF evidence reference is relative to this SDF directory.
-    mol.SetProp('evidence_file','catalog/supply.txt')
-    with Chem.SDWriter(str(path)) as w:w.write(mol)
-    assert Catalog([{**spec,'path':str(path)}]).valid('CCO')
-    tsv=tmp_path/'supplier.smi';rows[0]['evidence_file']='catalog/supply.txt'
-    with tsv.open('w',newline='') as f:w=csv.DictWriter(f,fieldnames=rows[0],delimiter='\t');w.writeheader();w.writerows(rows)
-    assert Catalog([{**spec,'path':str(tsv)}]).valid('CCO')
+def test_new_config_has_no_procurement_controls(tmp_path):
+    from yuanhe_preflight.config import validate
+    config=defaults(tmp_path)
+    assert not {'catalogs','stock_catalogs','external_interfaces','evidence_max_age_days'} & config.keys()
+    assert 'pubchem' not in config['engine']
+    config['catalogs']=[]
+    with pytest.raises(ValueError,match='fields_mismatch'):validate(config)
 
-def test_export_includes_raw_vendor_supply_files(tmp_path,cfg):
+def test_export_includes_raw_computed_routes(tmp_path,cfg):
     row=eligible(tmp_path,cfg)
     archive=row['source_evidence_archive']
-    assert any(k.endswith('supply.txt') for k in archive)
+    assert any(k.endswith('fixture.json') for k in archive)
     for value in archive.values():assert file_hash(tmp_path/'availability'/value['artifact'])==value['sha256']
 
 def test_template_regioselectivity_requires_review(tmp_path):
     t={'type':'mol','smiles':'CCOC','children':[{'type':'reaction','metadata':{'template':'[C:1]-[O:2]>>[C:1].[O:2]'},'children':[{'type':'mol','smiles':'CC'},{'type':'mol','smiles':'CO'}]}]}
-    stock=Catalog([catalog(tmp_path,['CC','CO','C','CCO'])]);r=validate_route(t,'CCOC',stock)
+    r=validate_route(t,'CCOC')
     assert 'template_selectivity_requires_review' in r['problems'] and r['status']=='needs_review'
 
 
 def test_research_qualification_uses_status_not_display_labels(tmp_path,cfg,monkeypatch):
-    """Changing presentation text must not reclassify verified purchase evidence."""
+    """Changing presentation text must not reclassify validated route evidence."""
     from research.qualification import qualify
     from webui import workflow
     row=eligible(tmp_path,cfg)
@@ -281,4 +286,23 @@ def test_research_qualification_uses_status_not_display_labels(tmp_path,cfg,monk
     monkeypatch.setattr(workflow,'require',lambda *args:None)
     result,counts=qualify(tmp_path,tmp_path,{},[],tmp_path/'qualification')
     assert counts['screening_qualified']==1
-    assert result[0]['acquisition']['status']=='purchasable_verified'
+    assert result[0]['synthesizability']['status']=='synthesizable_predicted'
+
+
+def test_previous_schema_cannot_be_relabelled_as_synthesis(tmp_path,cfg):
+    row=eligible(tmp_path,cfg);proof=read(row['qualification_evidence'])
+    proof['schema']='yuanhe-predocking/1'
+    with pytest.raises(QualificationError,match='schema'):validate_evidence(seal(proof),'CCO')
+
+
+def test_changed_planning_pool_invalidates_route_gate(tmp_path,cfg):
+    row=eligible(tmp_path,cfg)
+    Path(cfg['retro']['stock_path']).write_text('SIMULATED CHANGED POOL')
+    with pytest.raises(QualificationError,match='assets_missing_or_changed'):
+        require_ligand(row['source_sdf'],row['qualification_evidence'])
+
+
+def test_no_route_search_budget_cannot_pass_low_scores(tmp_path,cfg):
+    result=SynthesisFilter(cfg,'test').screen('CCO',allow_search=False)
+    assert result['decision']=='pending' and result['route_status']=='NOT_EVALUATED'
+    assert result['network']=={'enabled':False,'sent_structures':[]}

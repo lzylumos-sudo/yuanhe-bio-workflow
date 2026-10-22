@@ -1,15 +1,16 @@
-# Pre-docking screening v2
+# Pre-docking screening: synthesis-only policy v3
 
-New research runs use `murj-discovery@1.1.0` and
-`00_workbench/configs/research_predocking_v2.json`. Archived v1 runs retain their
-frozen policy and evidence. No Vina scoring, MD settings, or historical protocol
+New research runs use `murj-discovery@1.2.0` and
+`00_workbench/configs/research_synthesis.json`. Historical records and frozen v1/v2 protocols remain readable and unchanged.
+New docking requires schema-2 synthesis evidence; historical purchase proofs
+cannot be reused as synthesis qualification. Re-screen in a new task. No Vina scoring, MD settings, or historical protocol
 values are replaced.
 
 ## Execution and identity
 
 Peptide2Mol -> REINVENT4 (or imported CSV/SDF) -> exact stereochemical identity,
 parent/salt mapping and duplicate detection -> curated SMARTS plus full RDKit
-PAINS/Brenk -> ADMET-AI -> SA and SCScore -> catalog matching -> bounded
+PAINS/Brenk -> ADMET-AI -> SA and SCScore -> bounded
 AiZynthFinder -> independent threshold gates and lexicographic/scaffold ranking
 -> selected SDF/SMILES -> ligand preparation -> existing Vina/GNINA adapter
 -> existing virtual screening -> existing MD. The production workbench uses
@@ -17,18 +18,18 @@ Vina 1.2.7; GNINA retains its existing evidence gate.
 
 `pipeline_bridge.stage_risk/stage_availability/stage_docking` and the research
 qualification adapter use this implementation. Vina verifies the immutable
-selection manifest, screening policy, model evidence and acquisition proof.
+selection manifest, screening policy, model evidence and synthesis-route proof.
 A molecule omitted by the final cap cannot reuse an otherwise valid proof.
 The compound/molecule ID and state ID survive the handoff; pose IDs remain
 owned by the existing docking contract. Salt parents are recorded separately;
-neutral parent similarity does not establish exact supplier equivalence.
+the route must match the exact target structure.
 
 Full PAINS and Brenk matches default to REVIEW, not proven toxicity. Curated
 severe reactive alerts BLOCK. Invalid structures, duplicates and rejected rows
 remain in `records.json`, CSV, SQLite and readable SDF exports (invalid SMILES
 cannot be encoded as molecules in SDF). Structured endpoint results distinguish
 SUCCESS, ERROR, UNSUPPORTED and NOT_EVALUATED. Missing results require review or
-abort. There is no score-only bypass of the existing acquisition evidence gate.
+abort. There is no score-only bypass of the complete synthesis-route gate.
 
 ## Installation
 
@@ -47,8 +48,7 @@ python3 -m venv .venv-retro
 
 The installer checks official download SHA256 values and writes an asset
 receipt and `predocking-config.json`. Apply this configuration in the new-run
-pre-docking JSON field. Set resource limits and authorized supplier catalogs for
-the deployment. Do not commit credentials, catalogs, local paths or checkpoints.
+pre-docking JSON field. Set resource limits for the deployment. Do not commit local paths or checkpoints.
 Model paths are mandatory readiness requirements, not silently downloaded at
 first inference. Local installation is not remote GPU deployment.
 
@@ -68,42 +68,38 @@ review thresholds for AMES/hERG/DILI are 0.8 and LD50_Zhu is 3.0. These are
 configurable research triage thresholds, not clinical safety guarantees.
 
 AiZynthFinder 4.4.1 uses the pinned USPTO expansion policy, reaction templates
-and public ZINC stock. Isolate NumPy 1.26.4 and PyArrow 19.0.1 from the model
-worker environment. Search only retained priority candidates, default maximum
-10. Results export tree nodes, precursors, scores, step counts, search statistics
-and raw routes. A ZINC stock node does not prove present supplier availability;
-computed routes still require the existing route review and evidence contract.
+and a public ZINC planning building-block pool. Isolate NumPy 1.26.4 and
+PyArrow 19.0.1 from the model worker environment. Search only retained priority
+candidates, default maximum 10. Results export tree nodes, precursors, scores,
+step counts, search statistics and raw routes. The complete tree must have
+`route_metadata.is_solved=true`; every terminal node must be in that versioned
+planning pool. The raw search, model, templates and pool are hash-bound and
+rechecked at docking. RDKit replays every reaction template against the exact
+product and precursors. Stereochemistry and ambiguous template outcomes require
+an explicit route-hash-bound human review. Missing steps or unresolved terminal
+nodes cannot be approved away. A predicted route is not experimental synthesis.
 Route labels: ROUTE_FOUND, NO_ROUTE_FOUND, NOT_EVALUATED, ERROR.
 
-## Acquisition and modes
+## Synthesis policy and modes
 
-Authorized local catalogs retain the existing exact stereochemistry/isotope/
-salt match and dated, hash-verified stock or quotation evidence. Only those
-records can become PURCHASABLE_VERIFIED. Catalog-only hits are
-PURCHASABLE_UNCONFIRMED. A predicted route becomes SYNTHESIZABLE_PREDICTED;
-unknown and unmatched are distinct states.
+Procurement adapters, vendor catalogs, supplier queries, inventory labels and
+purchase-based bypasses have been removed. No candidate structure is transmitted
+to a supplier service. Planning-pool membership is a computational stopping
+criterion, without a claim about current material inventory.
 
-The optional PubChem PUG REST adapter resolves exact isomeric SMILES to CID and
-supplier SIDs, retaining source, SKU, linked CID, HTTPS catalog link, timestamp
-and raw response hashes. It retries transient errors and caches responses.
-Supplier-name filtering is explicit; it does not scrape vendor inventory or
-claim free Enamine/Mcule APIs. Public lookup transmits candidate structures and
-is disabled by default. Enable only for structures authorized for disclosure.
-No price, inventory or delivery time is inferred. Live PubChem hits alone do
-not satisfy procurement verification.
-
-All modes apply the same required evidence and independent risk thresholds.
-Discovery alternates scaffolds across acquisition tiers; balanced alternates
-scaffolds within acquisition tiers; delivery prioritizes acquisition evidence,
-then toxicity threshold tiers and separate SA/SC objectives. Deterministic IDs
-break ties. The cap is applied before qualification proofs are issued.
+All modes apply independent risk, toxicity, SA/SC and complete-route gates.
+Discovery alternates scaffolds across synthesis tiers; balanced alternates
+within tiers; delivery prioritizes validated routes, then toxicity tiers and
+separate SA/SC objectives. Deterministic IDs break ties. The cap is applied before
+qualification proofs are issued. Candidates outside the route budget remain
+NOT_EVALUATED/review; low difficulty scores alone do not prove a route.
 
 ## Workbench and persistence
 
 New research run -> Pre-Docking Screening controls configure mode, endpoint
 selection, thresholds, rule actions, CPU/CUDA, batch size, SC weights, expensive
-search budget and public supplier lookup. Advanced pre-docking JSON configures
-catalogs, per-rule overrides, route models and search depth/time. The production
+search budget. Advanced pre-docking JSON configures per-rule overrides, route
+models and search depth/time. The production
 stage between generation and docking shows counts, pass rate, timing, rejection
 reasons, individual predictions/synthesis and complete evidence. CSV/JSON/SDF
 links refer to actual backend artifacts.
@@ -117,30 +113,30 @@ migration is required; each stage adds a local SQLite result store.
 
 ## Acceptance scope (2026-10-23 local macOS CPU)
 
-1000 unique valid RDKit NCI molecules: 30.610 s total, 32.669 molecules/s;
-342 reached real AI/SA/SC inference, zero model failures; structural stage
-excluded 15 and retained 643 for review. AI 5.515 s, synthesis 0.701 s,
-acquisition/search 17.903 s. Two bounded real searches returned routes. Final
-qualified count was zero because there was no current supplier/route delivery
-evidence. The remaining records were retained. Parent maximum RSS was
-312,705,024 bytes and maximum child RSS was 5,849,382,912 bytes (separate maxima,
-not a simultaneous total). No GPU, docking or MD ran in that benchmark.
+1000 unique valid RDKit NCI molecules: 43.779 s total, 22.842 molecules/s;
+342 reached real AI/SA/SC inference, zero model failures. Structural rules
+blocked 15 and kept 643 for review. AI inference: 15.276 s; synthesis scoring:
+0.717 s; bounded retrosynthesis: 20.052 s. With a search budget of two, both
+priority molecules had complete validated routes and qualified for docking;
+other molecules remained blocked or explicitly pending. Parent maximum RSS:
+310,280,192 bytes; child maximum RSS: 4,956,389,376 bytes (separate maxima).
+These are execution measurements, not held-out toxicology accuracy results.
+Both selected molecules subsequently passed real Vina 1.2.7 against the prepared
+1DRF receptor. The other 998 records were not docked. Screening and docking use
+the same chemistry runtime: mismatched RDKit versions invalidate rule evidence
+and require re-screening, rather than silently reusing changed rules.
 
-Independent aspirin AiZynthFinder search: 1.848 s, 20 iterations, 31 nodes,
-21 solved routes in the search tree, 7 exported routes, top score 0.997629,
-one-step best route. SCScore matched the upstream current NumPy implementation
-on 197 structures with maximum absolute difference 8.89e-16. This is numerical
-conformance, not a new experimental synthesis benchmark. Live PubChem aspirin
-lookup returned Sigma-Aldrich catalog records and preserved raw responses;
-current inventory/quote verification remains unavailable.
+Run `deployment/validate_predocking.py` with installed SCScore weights and
+`--retro-config` / `--retro-python` to reproduce the real batch. Then use
+`deployment/validate_synthesis_docking.py --screening <run>/availability
+--vina <binary> --receptor <prepared.pdb> --box <box.json> --out <new-folder>`
+for real selected-only Vina acceptance. Neither command injects route evidence
+or model predictions. Real-model CI uses the 1000-molecule CPU path without
+large retro assets; missing routes remain pending rather than passing.
 
-The real-model CI runs the 1000-molecule CPU workflow with SC weights, without
-supplier calls or costly retro assets. It is execution validation, not a
-held-out toxicity accuracy study. No test fixture vendor or injected probability
-is used by that acceptance workflow. Unit tests clearly label injected fixtures.
-Full clinical/toxicology validation, target NVIDIA GPU deployment, and a real
-procurement-qualified positive docking/MD campaign remain outside the completed
-acceptance evidence. Do not report the entire requested P0 acceptance COMPLETE.
+The unchanged 127-file protected scientific baseline includes docking and MD
+core settings. NVIDIA GPU and complete MD execution require target-host
+acceptance; this local CPU test does not establish GPU or experimental results.
 
 ## Licenses and sources
 
@@ -154,13 +150,3 @@ acceptance evidence. Do not report the entire requested P0 acceptance COMPLETE.
   and templates are CC-BY-4.0 from Zenodo 7797465 and 7341155. Public stock
   redistribution/commercial rights still depend on upstream supplier terms;
   the installer records this limitation and does not claim certification.
-- PubChem API: https://pubchem.ncbi.nlm.nih.gov/docs/pug-rest ; linked supplier
-  content retains the relevant provider's terms. No supplier keys are stored.
-
-Additional local handoff acceptance executed actual ADMET-AI and SCScore,
-selected ethanol from four mixed valid/invalid/duplicate/reactive input records,
-generated its conformer and ran official Vina 1.2.7 against the repository's
-prepared 1DRF receptor. Three Vina poses were exported. The acquisition proof
-in this isolated test was a clearly marked simulated unit fixture; this proves
-the executable handoff and exclusion behavior, not a real procurement-qualified
-campaign or binding activity. The 1000-molecule run above used no such fixture.

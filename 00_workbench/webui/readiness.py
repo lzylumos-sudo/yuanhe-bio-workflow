@@ -179,17 +179,6 @@ def collect(cfg, root, ui_python=None, publish=None):
         scpath=Path(syn.get('scscore_path') or '')
         add('scscore_weights',{'ok':scpath.is_file() and digest(scpath)==syn.get('scscore_sha256')},
             'Download the official SCScore weights with deployment/install_predocking_assets.py and configure their hash.')
-    def catalog_check(key):
-        descriptors = pc.get(key, [])
-        code = ('import sys;sys.path.insert(0,' + repr(str(root / '02_docking/src')) + ');'
-                'from yuanhe_preflight.catalog import Catalog;c=Catalog(' + repr(descriptors) + ',' +
-                repr(pc.get('evidence_max_age_days', 30)) + ');'
-                'valid=sum(c.evaluate(r) in ("in_stock","made_to_order") for r in c.records);'
-                'print({"rows":len(c.records),"valid_supply_records":valid,"parse_errors":c.errors[:10]});'
-                'assert valid>0,"No current, hash-verified supply evidence"')
-        return probe([chem, '-c', code], root) if descriptors else {'ok': False, 'error': 'No catalogs configured'}
-
-    purchase = catalog_check('catalogs')
     retro = pc.get('retro', {})
     requested_retro = any(retro.get(k) for k in ('model_path', 'templates_path', 'stock_path'))
     retro_ok = False
@@ -201,14 +190,11 @@ def collect(cfg, root, ui_python=None, publish=None):
         dep = probe([retro.get('python', ''), '-c',
                      'import importlib.metadata as m;from aizynthfinder.aizynthfinder import AiZynthFinder;'
                      'assert m.version("aizynthfinder")=="4.4.1";print(m.version("aizynthfinder"))'], root)
-        stock = catalog_check('stock_catalogs')
-        retro_ok = not missing and dep['ok'] and stock['ok']
-        add('retrosynthesis', {'ok': retro_ok, 'missing': missing, 'dependency': dep, 'stock': stock},
-            'Install AiZynthFinder 4.4.1 separately; supply model, templates, stock, licenses/versions and current terminal supply evidence.')
-    add('purchase_catalogs', purchase, 'Supply current exact-structure catalog records and hashed supply documents.', required=not retro_ok)
-    add('acquisition_path', {'ok': purchase['ok'] or retro_ok},
-        'At least one real acquisition route must be configured before generation. '
-        'An empty supplier/model configuration cannot advance to docking. Passing this inventory does not qualify any molecule.')
+        retro_ok = not missing and dep['ok']
+        add('retrosynthesis', {'ok': retro_ok, 'missing': missing, 'dependency': dep},
+            'Install AiZynthFinder 4.4.1 separately; supply model, templates, planning building blocks and licenses/versions.')
+    add('synthesis_path', {'ok': retro_ok},
+        'Configure real route models and a versioned planning building-block pool. Each candidate still requires a validated computed route.')
     rules = pc.get('rules_path', '')
     py('risk_rules', chem,
        'import sys;sys.path.insert(0,' + repr(str(root / '02_docking/src')) + ');'

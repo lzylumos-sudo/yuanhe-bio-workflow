@@ -1,0 +1,110 @@
+{
+  "version": "1.0.0",
+  "profile": "research_dual_blackwell",
+  "peptide_attempts": 5000,
+  "core_limit": 200,
+  "reinvent_attempts": 200000,
+  "generated_unique_limit": 50000,
+  "external_limit": 50000,
+  "initial_limit": 100000,
+  "refine_limit": 2000,
+  "review_limit": 50,
+  "md_limit": 8,
+  "md_production_ns": 500,
+  "md_replicas": 1,
+  "md_concurrency": 2,
+  "wetlab_min": 4,
+  "wetlab_max": 8,
+  "generation_workers": 2,
+  "reinvent_device": "auto",
+  "vina_workers": 24,
+  "vina_cpu": 2,
+  "vina_thread_budget": 48,
+  "initial": {
+    "receptors": 1,
+    "states": 1,
+    "seeds": 1,
+    "exhaustiveness": 8,
+    "num_modes": 5
+  },
+  "refine": {
+    "receptors": 2,
+    "states": 2,
+    "seeds": 2,
+    "exhaustiveness": 32,
+    "num_modes": 10
+  },
+  "selection_mode": "diversity",
+  "risk_rules": [],
+  "risk_rules_review": null,
+  "receptor_ensemble": [],
+  "disk_reserve_gb": 50,
+  "estimated_md_gb_per_candidate": null,
+  "predocking": {
+    "rules_path": "02_docking/src/yuanhe_preflight/configs/risk_rules.v1.json",
+    "risk_policies": {},
+    "risk_exceptions": [],
+    "retro": {
+      "python": "python",
+      "model_path": "",
+      "templates_path": "",
+      "stock_path": "",
+      "model_version": "",
+      "templates_version": "",
+      "stock_version": "",
+      "model_license": "",
+      "templates_license": "",
+      "stock_license": "",
+      "time_limit_seconds": 120,
+      "max_depth": 6,
+      "iteration_limit": 100,
+      "startup_grace_seconds": 60
+    },
+    "cache_dir": "data/predocking_cache",
+    "workers": 1,
+    "batch_size": 32,
+    "route_reviews": [],
+    "engine": {
+      "version": "3.0.0",
+      "mode": "balanced",
+      "keep": 2000,
+      "missing_policy": "review",
+      "structure_enabled": true,
+      "catalog_actions": {
+        "PAINS": "review",
+        "BRENK": "review"
+      },
+      "catalog_rule_actions": {},
+      "toxicity": {
+        "python": "",
+        "device": "cpu",
+        "batch_size": 128,
+        "cpu_threads": 4,
+        "timeout_seconds": 1800,
+        "model_version": "2.0.1",
+        "endpoints": [
+          "AMES",
+          "hERG",
+          "DILI",
+          "LD50_Zhu"
+        ],
+        "thresholds": {
+          "AMES": 0.8,
+          "hERG": 0.8,
+          "DILI": 0.8,
+          "LD50_Zhu": 3.0
+        }
+      },
+      "synthesis": {
+        "sa_max": 6.0,
+        "sc_max": 4.0,
+        "scscore_path": "",
+        "scscore_sha256": ""
+      },
+      "retro_max_candidates": 10
+    }
+  },
+  "ligand_states": {},
+  "md_task_timeout_seconds": 5184000,
+  "external_library": ""
+}

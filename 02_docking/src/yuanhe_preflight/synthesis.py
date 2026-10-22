@@ -70,6 +70,6 @@ def score_batch(rows, config):
             'prediction_status': 'ERROR' if failed else 'SUCCESS',
             'rejection_reason': error or ('independent_synthesis_threshold_exceeded' if hard else ''),
             'thresholds': {'sa_max': config['sa_max'], 'sc_max': config['sc_max']},
-            'interpretation': 'SA 1..10 and SC 1..5: larger is harder; neither proves a route or purchase availability'
+            'interpretation': 'SA 1..10 and SC 1..5: larger is harder; neither proves a complete synthesis route'
         })
     return records

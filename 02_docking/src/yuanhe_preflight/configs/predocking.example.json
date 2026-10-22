@@ -2,9 +2,6 @@
   "rules_path": "02_docking/src/yuanhe_preflight/configs/risk_rules.v1.json",
   "risk_policies": {},
   "risk_exceptions": [],
-  "catalogs": [],
-  "stock_catalogs": [],
-  "evidence_max_age_days": 30,
   "retro": {
     "python": "python",
     "model_path": "",
@@ -25,9 +22,8 @@
   "workers": 1,
   "batch_size": 32,
   "route_reviews": [],
-  "external_interfaces": [],
   "engine": {
-    "version": "2.0.0",
+    "version": "3.0.0",
     "mode": "balanced",
     "keep": 2000,
     "missing_policy": "review",
@@ -63,17 +59,6 @@
       "scscore_path": "",
       "scscore_sha256": ""
     },
-    "retro_max_candidates": 10,
-    "pubchem": {
-      "enabled": false,
-      "timeout_seconds": 20,
-      "max_sids": 50,
-      "vendors": [
-        "Sigma-Aldrich",
-        "Enamine",
-        "Mcule",
-        "MolPort"
-      ]
-    }
+    "retro_max_candidates": 10
   }
 }

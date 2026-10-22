@@ -4,7 +4,7 @@ from pathlib import Path
 def snapshot(root,cfg):
     from webui.workflow import digest
     rc=cfg['research'];paths=set()
-    if rc['supplier_library']:paths.add(rc['supplier_library'])
+    if rc.get('external_library',rc.get('supplier_library','')):paths.add(rc.get('external_library',rc.get('supplier_library','')))
     pc=rc['predocking'];paths.add(pc['rules_path'])
     sc=pc.get('engine',{}).get('synthesis',{}).get('scscore_path')
     if sc:paths.add(sc)
@@ -17,7 +17,7 @@ def snapshot(root,cfg):
                 elif isinstance(val,(list,dict)):collect(val)
         elif isinstance(value,list):
             for item in value:collect(item)
-    collect(pc['catalogs']);collect(pc['stock_catalogs']);collect(rc['ligand_states']);collect(rc['receptor_ensemble'])
+    collect(rc['ligand_states']);collect(rc['receptor_ensemble'])
     result={}
     for value in sorted(paths):
         p=Path(value)

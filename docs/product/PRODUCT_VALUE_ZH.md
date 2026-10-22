@@ -61,7 +61,7 @@ Proposed validation goals, not existing achievements: interview 10–15 target t
 
 ## 6. Three priority value propositions
 
-1. **Candidate-decision evidence packages.** The strongest existing foundation. Clarify report fields and policy boundaries, then improve per-candidate review, human-decision records and purchase/synthesis states. Evaluate independent review time and omissions.
+1. **Candidate-decision evidence packages.** The strongest existing foundation. Clarify report fields and policy boundaries, then improve per-candidate review, human-decision records and synthesis states. Evaluate independent review time and omissions.
 2. **Validated target-specific research solutions.** Start with MurJ, specify membrane context, conformation and peptide-contact constraints, and add external targets and controls. Offer bounded, reusable methods rather than claiming applicability to every protein.
 3. **Budget-aware multi-objective iterative optimization.** Later integrate synthesis, properties, activity feedback and uncertainty, comparing gains under equal budgets. Model calibration, experimental feedback and licensed data accumulation may support deeper differentiation. Currently planned, not trained.
 

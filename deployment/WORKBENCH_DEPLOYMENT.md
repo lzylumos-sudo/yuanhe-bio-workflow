@@ -25,7 +25,7 @@ Record the Git commit, OS, driver, GPU UUID/model/VRAM, service account, project
 | Receptor preparation | PDBFixer, OpenMM and Amber14/TIP3P data | Imports and force-field loading in `prep_python` |
 | Peptide2Mol | Separate Python 3.10, PyTorch 2.7.0/cu128, matching PyG extensions, pinned requirements, patched source and exact checkpoint | CUDA/PyG operations, source patch and weight SHA-256, then real small inference |
 | REINVENT4 | Separate Python 3.11, pinned source/uv.lock, patched LibInvent and exact prior | CLI/import checks, patch and prior SHA-256, then real sampling |
-| Acquisition screening | Current supplier catalogs and hashed evidence **or** AiZynthFinder 4.4.1 + local model/templates/stock and terminal supply evidence | Current valid catalog rows and asset/dependency inventory; per-molecule qualification remains separate |
+| Synthesis screening | AiZynthFinder 4.4.1 + model/templates/planning building-block pool | Asset/dependency inventory; per-molecule complete-route verification remains separate |
 | Membrane build / HF-RESP | OpenMM CUDA, OpenFF, openmmforcefields, ParmEd, AmberTools, Psi4, RESP, RDKit | Imports, CUDA Context, force-field data, `antechamber`, `parmchk2`, `tleap` |
 | Production MD | CUDA-enabled GROMACS with compatible driver/toolkit | `gmx --version` must report CUDA; actual small membrane mdrun and checkpoint recovery |
 | Final trajectory and PB analysis | MDAnalysis, NumPy, matplotlib, ParmEd, AmberTools `MMPBSA.py`, `sander`, `cpptraj` | Tools in the MD environment PATH; real analysis of the acceptance trajectory |
@@ -42,7 +42,7 @@ git rev-parse HEAD
 
 Select the current immutable tag from `deployment/current_release.json` and verify the software version. For the named ZIP, follow `DEPLOY.md` and `verify_release.py`; do not mistake a source commit hash for the product version. Choose a new dedicated installation prefix owned by the service account, for example `/srv/yuanhe/release-20261022`. The commands below use `YUANHE_PREFIX`; replace the example path once, consistently.
 
-GitHub deliberately does not contain model weights, installed environments or supplier data. Obtain the sources/weights in [model_dependencies.json](model_dependencies.json) under their upstream terms. Either restore the administrator's existing licensed bundle:
+GitHub deliberately does not contain model weights, installed environments or private scientific data. Obtain the sources/weights in [model_dependencies.json](model_dependencies.json) under their upstream terms. Either restore the administrator's existing licensed bundle:
 
 ```bash
 python3 deployment/restore_models.py --source-root /absolute/licensed-source-project
@@ -83,23 +83,10 @@ bash deployment/install_workbench.sh configure "$YUANHE_PREFIX"
 
 `configure` writes actual interpreter/executable paths to ignored `deployment/runtime.json`, backing up any old file under the installation evidence directory. The shared runtime serves `chem_python`, `screen_python`, `prep_python` and `md_python`; model paths are separate. Configure is not a readiness pass.
 
-## 6. Configure acquisition evidence before generation
+## 6. Configure synthesis models before generation
 
-Edit `research.predocking` in `deployment/runtime.json`. It becomes the default for **new** tasks. Existing tasks retain their frozen settings. Use [the schema and evidence requirements](../docs/PREDOCKING_PREFLIGHT.md). Absolute paths are recommended; new task creation resolves supported relative asset paths against the project root before launching workers.
+Use [the current screening guide](../02_docking/docs/PREDOCKING_V2.md) to install isolated ADMET-AI and AiZynthFinder environments, official SCScore weights, expansion templates and the planning building-block pool. Import the generated config in Pre-Docking Screening. New defaults have no supplier/catalog fields or purchase bypass. Verify a small real search before releasing a host configuration. Missing models cannot qualify candidates.
 
-- **Purchase route:** populate `catalogs` with real authorized local catalogs, including version, source, license and `trusted:true`. Rows need exact structure identity, vendor/SKU, supply type, recent checked/catalog dates, supply evidence kind and a file with a matching SHA-256. A product URL, CAS number or similarity match alone is insufficient. No real evidence is bundled in GitHub.
-- **Retrosynthesis route:** create a separate environment from `deployment/preflight-environment.yml` with micromamba, export its solved lock and run pip check. This YAML is a specification, not a prevalidated universal solve. Configure `retro.python`, `model_path`, `templates_path`, `stock_path`, each version/license, and trusted terminal `stock_catalogs`. AiZynthFinder must be 4.4.1. Obtain licensed compatible local assets; no model/data download occurs automatically. Test loading and a small local search before release.
-- At least one usable route is required to proceed. Default empty catalogs and empty model paths are intentionally **not ready**. Retrosynthesis inventory is not proof that a model loads or can solve the generated compounds. Only actual per-compound evidence grants passage; qualified count can legitimately be zero.
-
-For a separate retrosynthesis environment:
-
-```bash
-micromamba create -y -p "$YUANHE_PREFIX/envs/preflight" -f deployment/preflight-environment.yml
-"$YUANHE_PREFIX/envs/preflight/bin/python" -m pip check
-micromamba list -p "$YUANHE_PREFIX/envs/preflight" --explicit > "$YUANHE_PREFIX/evidence/preflight-linux-64.lock"
-```
-
-Do not insert example/fabricated supplier records, bypass risk rules, or relax qualification to get a green deployment result. If required evidence is unavailable, deliver a blocked readiness report, not an operational end-to-end claim.
 
 ## 7. Readiness and service startup
 
@@ -121,13 +108,13 @@ The UI now provides **Environment and diagnostics -> Check saved environment bef
 python3 deployment/doctor.py --config deployment/runtime.json --out installation_evidence/readiness.json
 ```
 
-Use `--ui-python /actual/service/python` if the service uses an explicit override. CLI diagnosis can run under standard Python even if scientific dependencies are missing; probes run in the configured environments. Missing tools, imports, weights, patches, current evidence, CUDA support and disk reserve are distinct failures. The first preparation stage repeats the full readiness check before generation, saving `deployment_readiness.json` in the run. The check cannot guarantee future disk availability, numerical convergence, service uptime or supplier validity; those remain execution-time checks.
+Use `--ui-python /actual/service/python` if the service uses an explicit override. CLI diagnosis can run under standard Python even if scientific dependencies are missing; probes run in the configured environments. Missing tools, imports, weights, patches, current evidence, CUDA support and disk reserve are distinct failures. The first preparation stage repeats the full readiness check before generation, saving `deployment_readiness.json` in the run. The check cannot guarantee future disk availability, numerical convergence, service uptime or route completeness; those remain execution-time checks.
 
 ## 8. Required acceptance before the administrator delivers the URL
 
 1. Run the dependency inventory with the same account, paths and GPU allocation as the service. Retain the report and exact package locks/freezes.
 2. Create a new task through the browser; inspect frozen settings and actual input structure. Verify diagnostics also work with no task selected. No unhandled RDKit import error is acceptable.
-3. In a separate explicitly small acceptance task, run real structure preparation, Peptide2Mol inference, reviewed core expansion, risk/acquisition gates, Vina, screening, reviewed membrane build, equilibration, short production and analysis/export. Keep failed/zero-qualified outcomes explicit. The public minimal CLI test is supplementary and does not replace this UI/membrane test.
+3. In a separate explicitly small acceptance task, run real structure preparation, Peptide2Mol inference, reviewed core expansion, risk/synthesis gates, Vina, screening, reviewed membrane build, equilibration, short production and analysis/export. Keep failed/zero-qualified outcomes explicit. The public minimal CLI test is supplementary and does not replace this UI/membrane test.
 4. Validate checkpoint interruption/recovery and actual GPU GROMACS execution. Check final analysis can find AmberTools after the service starts without an activated shell environment. A successful import or `gmx --version` alone does not establish these properties.
 5. Preserve input/configuration/source hashes, logs, manifests, model provenance, environment evidence, candidate counts, trajectories/checkpoints and exports. Only then start the requested research task.
 
@@ -142,7 +129,7 @@ For the requested quarter-size research batch: Peptide2Mol 1,250 attempts; up to
 | UI path is correct but process still uses old environment | Restart the service; saving a JSON path cannot replace the current interpreter |
 | Model file/patch check fails | Restore pinned licensed assets and apply known patch; never change expected hashes to hide mismatch |
 | `torch_scatter`/CUDA kernel fails | Match PyTorch/CUDA/PyG wheels and validate actual operators on the host |
-| Acquisition gate blocks all candidates | Inspect real evidence and route outcomes; installing Python packages cannot manufacture procurement evidence |
+| Synthesis gate blocks all candidates | Inspect model paths, route budget, terminal blocks and chemistry review outcomes |
 | `MMPBSA.py`, `antechamber` or `tleap` not found | Check the complete MD environment; the worker now prepends its bin directory and sets AMBERHOME when applicable |
 | GROMACS is CPU-only | Configure a tested CUDA build and confirm actual GPU mdrun |
 | Installation interrupted | Keep logs/partial environment for diagnosis; recreate into a new prefix rather than upgrading arbitrary packages in place |

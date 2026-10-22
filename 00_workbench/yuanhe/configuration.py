@@ -28,7 +28,7 @@ def merge_layers(layers):
 
 def protocol_for(config):
     rc = config.get('research', {})
-    version = '1.1.0' if rc.get('predocking',{}).get('engine') else '1.0.0'
+    version = '1.2.0' if rc.get('predocking',{}).get('engine',{}).get('version')=='3.0.0' else '1.1.0' if rc.get('predocking',{}).get('engine') else '1.0.0'
     protocol = next(p for p in load('protocol_registry')['protocols'] if p['protocol_id'] == 'murj-discovery' and p['protocol_version']==version)
     def equivalent(key, expected, actual):
         # Freezing a project-relative location does not alter its scientific meaning.

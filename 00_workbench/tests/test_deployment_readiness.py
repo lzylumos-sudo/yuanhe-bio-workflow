@@ -42,13 +42,13 @@ print('created without RDKit')
 
 def test_relative_predocking_paths_are_frozen_against_project(tmp_path):
     from yuanhe_preflight.config import absolute_paths, defaults
-    cfg=defaults(ROOT);cfg['catalogs']=[{'path':'private/catalog.csv'}]
+    cfg=defaults(ROOT);cfg['route_reviews']=[{'search_artifact':'private/route.json'}]
     cfg['retro'].update(python='env/bin/python',model_path='private/model.onnx')
     fixed=absolute_paths(cfg,tmp_path)
-    assert fixed['catalogs'][0]['path']==str(tmp_path/'private/catalog.csv')
+    assert fixed['route_reviews'][0]['search_artifact']==str(tmp_path/'private/route.json')
     assert fixed['retro']['model_path']==str(tmp_path/'private/model.onnx')
     assert fixed['retro']['python']==str(tmp_path/'env/bin/python')
-    assert cfg['catalogs'][0]['path']=='private/catalog.csv'
+    assert cfg['route_reviews'][0]['search_artifact']=='private/route.json'
 
 
 def test_readiness_reports_all_missing_before_generation(tmp_path,monkeypatch):
@@ -56,8 +56,8 @@ def test_readiness_reports_all_missing_before_generation(tmp_path,monkeypatch):
     seen=[]
     result=readiness.collect(workflow.defaults(),tmp_path,publish=lambda r:seen.append(len(r['checks'])))
     assert result['status']=='blocked' and not result['all_runtime_checks_pass']
-    assert {'ui_interpreter','chemistry','membrane_and_analysis','acquisition_path','gromacs_cuda_build','risk_rules','peptide_cuda'}<=result['checks'].keys()
-    assert not result['checks']['acquisition_path']['ok']
+    assert {'ui_interpreter','chemistry','membrane_and_analysis','synthesis_path','gromacs_cuda_build','risk_rules','peptide_cuda'}<=result['checks'].keys()
+    assert not result['checks']['synthesis_path']['ok']
     assert len(seen)>10
 
 

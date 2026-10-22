@@ -1,4 +1,4 @@
-"""Auditable chemical identities and evidence gates. Never infer availability from scores."""
+"""Auditable chemical identities and evidence gates. Require computed routes separately from difficulty scores."""
 import csv, hashlib, json, sqlite3
 from .config import fingerprint
 
@@ -46,42 +46,10 @@ def risk(mol,rules,review):
     status='risk_blocked' if any(x['action']=='block' for x in hits) else 'risk_flagged_review' if hits else 'risk_screen_passed'
     return {'status':status,'hits':hits,'rules_sha256':fingerprint(rules),'interpretation':'Rule screen only; not evidence of non-toxicity'}
 
-def acquisition(root,smiles,records):
-    cid,_,_=identity(smiles);accepted=[]
-    for rec in records:
-        try:
-            from rdkit import Chem
-            exact=lambda s:Chem.MolToSmiles(Chem.MolFromSmiles(s),isomericSmiles=True)
-            if exact(rec.get('smiles',''))!=exact(smiles):continue
-            status=rec.get('status','acquisition_pending')
-            if status not in ('purchasable_verified','synthesizable_predicted','synthesizable_reviewed'):continue
-            if not rec.get('date'):continue
-            verified_file(root,rec['evidence'])
-            if status=='purchasable_verified':
-                if not all(rec.get(k) for k in ('supplier','catalog_id','availability','verified_by')):continue
-                if rec['availability'] not in ('in_stock','made_to_order'):continue
-            else:
-                route=rec.get('route',{})
-                if not route.get('steps') or not route.get('starting_materials') or not route.get('uncertainties'):continue
-                if identity(route.get('product_smiles',''))[0]!=cid:continue
-                if not all(x.get('reaction') and x.get('reactants') and x.get('products') for x in route['steps']):continue
-                for material in route['starting_materials']:
-                    if not material.get('smiles') or not material.get('source'):raise ValueError('Starting material provenance absent')
-                    verified_file(root,material['evidence'])
-                # A qualified route requires an explicit technical check, even when its status remains predicted.
-                if not route.get('technical_reviewer') or not route.get('connectivity_checked'):continue
-                if status=='synthesizable_reviewed' and not rec.get('reviewer'):continue
-            accepted.append(rec)
-        except (ValueError,KeyError,TypeError):continue
-    if not accepted:return {'status':'acquisition_pending','evidence':[]}
-    rank={'synthesizable_predicted':0,'synthesizable_reviewed':1,'purchasable_verified':2}
-    return {'status':max(accepted,key=lambda x:rank[x['status']])['status'],'evidence':accepted,
-            'interpretation':'Predicted route is not experimentally demonstrated synthesis'}
-
-def supplier_rows(root,path,limit):
+def external_rows(root,path,limit):
     if not path:return
     source=(root/path).resolve()
-    if not source.is_relative_to(root.resolve()) or not source.is_file():raise ValueError('Supplier library missing or outside project')
+    if not source.is_relative_to(root.resolve()) or not source.is_file():raise ValueError('External library missing or outside project')
     from rdkit import Chem
     sha=hashlib.sha256(source.read_bytes()).hexdigest()
     if source.suffix.lower()=='.sdf':
@@ -93,7 +61,7 @@ def supplier_rows(root,path,limit):
     try:
         for index,row in enumerate(rows):
             if index>=limit:break
-            yield {**row,'source_stage':'supplier','library_sha256':sha,'library_path':str(source.relative_to(root))}
+            yield {**row,'source_stage':'external','library_sha256':sha,'library_path':str(source.relative_to(root))}
     finally:
         if handle:handle.close()
 
@@ -106,7 +74,7 @@ def qualify(root,d,cfg,generated,out):
     parents={r['compound_id']:r for r in read(d/'risk/parent_index.json',[]) if r.get('compound_id')}
     counts={'valid':len(parents),'unique':len(parents),'chemistry_passed':len(parents),
             'toxicity_structure_passed':sum(r['decision']=='pass' for r in risk_rows),
-            'acquisition_screening_qualified':0,'screening_qualified':0}
+            'synthesis_screening_qualified':0,'screening_qualified':0}
     rows=[]
     db=sqlite3.connect(out/'compounds.sqlite3')
     db.execute('CREATE TABLE compounds (compound_id TEXT PRIMARY KEY, smiles TEXT, record TEXT)')
@@ -116,18 +84,17 @@ def qualify(root,d,cfg,generated,out):
             if not cid or record.get('decision')=='duplicate':continue
             parent=parents.get(cid,{})
             a=record.get('availability',{});passed=record['decision']=='pass'
-            status='acquisition_pending'
+            status='synthesis_pending'
             if passed:
                 require_ligand(record['source_sdf'],record['qualification_evidence'])
-                if a.get('status') == 'purchase_supported':status='purchasable_verified'
-                elif any(x.get('review') for x in a.get('routes',[])):status='synthesizable_reviewed'
+                if any(x.get('review') for x in a.get('routes',[])):status='synthesizable_reviewed'
                 else:status='synthesizable_predicted'
             item={**parent,**record,'sdf':record['source_sdf'],
                   'risk':{'status':'risk_screen_passed' if record.get('risk',{}).get('decision')=='pass' else 'risk_review_or_blocked','evidence':record.get('risk')},
-                  'acquisition':{'status':status,'evidence':a},'screening_qualified':passed}
+                  'synthesizability':{'status':status,'evidence':a},'screening_qualified':passed}
             journal.write(json.dumps(item)+'\n')
             db.execute('INSERT OR REPLACE INTO compounds VALUES (?,?,?)',(cid,item['smiles'],json.dumps(item)))
-            if passed:rows.append(item);counts['acquisition_screening_qualified']+=1;counts['screening_qualified']+=1
+            if passed:rows.append(item);counts['synthesis_screening_qualified']+=1;counts['screening_qualified']+=1
     db.close()
     return rows,counts
 
@@ -143,8 +110,8 @@ def prepare_risk(root,d,cfg,out):
     from yuanhe_preflight.structure import standardize
     rc=cfg['research'];rows=[]
     inputs=out/'standardized';inputs.mkdir(parents=True,exist_ok=True)
-    supplied=cfg.get('imported_candidates') or rc['supplier_library']
-    for index,source in enumerate(chain(read(d/'reinvent4/candidates.json',[]),supplier_rows(root,supplied,rc['external_limit']))):
+    supplied=cfg.get('imported_candidates') or rc.get('external_library',rc.get('supplier_library',''))
+    for index,source in enumerate(chain(read(d/'reinvent4/candidates.json',[]),external_rows(root,supplied,rc['external_limit']))):
         try:
             mapping=standardize(source['smiles']);ident=exact_identity(mapping['exact_smiles'])
             cid=ident['compound_id'];canon=ident['smiles']
