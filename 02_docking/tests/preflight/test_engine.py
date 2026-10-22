@@ -157,3 +157,14 @@ def test_only_selected_2d_structures_receive_conformers(tmp_path):
     assert Chem.SDMolSupplier(prepared[0]['sdf'])[0].GetConformer().Is3D()
     assert not Chem.SDMolSupplier(str(two_d))[0].GetConformer().Is3D()
     assert source.is_file()
+
+
+@pytest.mark.parametrize('bad', [{}, {'AMES':0.1}, {'AMES':float('nan'),'hERG':0.1,'DILI':0.1,'LD50_Zhu':2}, {'AMES':1.1,'hERG':0.1,'DILI':0.1,'LD50_Zhu':2}])
+def test_incomplete_or_invalid_model_values_cannot_enter_success_cache(bad):
+    from yuanhe_preflight.toxicity_worker import validate_raw
+    with pytest.raises(ValueError):validate_raw(bad)
+
+
+def test_regression_ld50_is_not_a_probability():
+    from yuanhe_preflight.toxicity_worker import validate_raw
+    validate_raw({'AMES':0.1,'hERG':0.2,'DILI':0.3,'LD50_Zhu':3.2})

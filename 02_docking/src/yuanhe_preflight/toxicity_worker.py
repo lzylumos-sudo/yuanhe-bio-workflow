@@ -19,6 +19,16 @@ SUPPORTED = {'AMES': 'probability', 'hERG': 'probability', 'DILI': 'probability'
              'LD50_Zhu': 'log10(1/(mol/kg))'}
 
 
+def validate_raw(values):
+    if set(values) != set(SUPPORTED):
+        raise ValueError('Required model endpoints incomplete')
+    for ep, value in values.items():
+        if type(value) not in (int, float) or not math.isfinite(value):
+            raise ValueError('Nonfinite or nonnumeric model prediction')
+        if SUPPORTED[ep] == 'probability' and not 0 <= value <= 1:
+            raise ValueError('Model probability outside 0..1')
+
+
 def run(request, output):
     config = request['config']
     if config['device'] == 'cpu':
@@ -47,7 +57,8 @@ def run(request, output):
                   'worker_sha256': file_hash(__file__),
                   'packages': {k: importlib.metadata.version(k) for k in ('torch', 'chemprop', 'rdkit', 'numpy')},
                   'device': 'cuda' if torch.cuda.is_available() else 'cpu',
-                  'applicability_domain': 'UNSUPPORTED', 'seed': 17}
+                  'applicability_domain': 'UNSUPPORTED', 'seed': 17,
+                  'inference': {k:config[k] for k in ('device','cpu_threads','batch_size')}}
     cache = Path(request['cache_dir']) / 'toxicity-v2'
     cache.mkdir(parents=True, exist_ok=True)
     records = {}
@@ -58,7 +69,8 @@ def run(request, output):
         try:
             rec = read(path)
             verify_seal(rec)
-            if rec['smiles'] != smi or rec['provenance'] != provenance:
+            validate_raw(rec['raw'])
+            if rec.get('status') != 'SUCCESS' or rec['smiles'] != smi or rec['provenance'] != provenance:
                 raise ValueError('Prediction cache identity mismatch')
             records[smi] = {**rec, 'cache_hit': True}
         except (OSError, ValueError, KeyError):
@@ -71,8 +83,7 @@ def run(request, output):
             data = model.predict([x[0] for x in batch])
             for smi, path in batch:
                 values = {ep: float(data.loc[smi, ep]) for ep in SUPPORTED if ep in data.columns}
-                if not all(math.isfinite(x) for x in values.values()):
-                    raise ValueError('Nonfinite model prediction')
+                validate_raw(values)
                 rec = seal({'smiles': smi, 'raw': values, 'provenance': provenance, 'status': 'SUCCESS'})
                 with FileLock(str(path)+'.lock'):
                     write(path, rec)
