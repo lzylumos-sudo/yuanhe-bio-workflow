@@ -44,3 +44,10 @@ def test_verifier_rejects_manifest_path_escape(tmp_path):
     (tmp_path/'VERSION').write_text('0.11.0-dev.2\n')
     (tmp_path/'SOURCE_MANIFEST.json').write_text(json.dumps({'schema':'yuanhe.source-package/1','software_version':'0.11.0-dev.2','git_commit':'a'*40,'files':{'../escape':'0'*64}}))
     with pytest.raises(ValueError,match='unsafe file'):module('verify_release').verify(tmp_path)
+
+def test_archive_cannot_inherit_parent_repository_identity(repository):
+    spec=importlib.util.spec_from_file_location('release_version',ROOT/'00_workbench/yuanhe/version.py')
+    version=importlib.util.module_from_spec(spec);spec.loader.exec_module(version)
+    extracted=repository/'unpacked';extracted.mkdir()
+    assert version.git_identity(extracted)=={'commit':'unknown','branch':'unknown','dirty':None}
+    assert len(version.git_identity(repository)['commit'])==40

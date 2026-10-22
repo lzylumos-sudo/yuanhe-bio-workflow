@@ -24,6 +24,10 @@ def git_identity(root=ROOT):
             return p.stdout.strip() if p.returncode == 0 else None
         except (OSError, subprocess.TimeoutExpired):
             return None
+    toplevel = git('rev-parse', '--show-toplevel')
+    if toplevel is None or Path(toplevel).resolve() != Path(root).resolve():
+        # A source ZIP extracted inside another repository must not inherit its identity.
+        return {'commit': 'unknown', 'branch': 'unknown', 'dirty': None}
     commit = git('rev-parse', 'HEAD')
     status = git('status', '--porcelain', '--untracked-files=normal')
     return {'commit': commit or 'unknown', 'branch': git('branch', '--show-current') or 'unknown',
