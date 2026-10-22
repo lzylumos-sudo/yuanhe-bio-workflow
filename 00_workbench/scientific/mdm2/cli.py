@@ -13,6 +13,7 @@ def main(argv=None):
     p.add_argument('--root',type=Path,required=True)
     p.add_argument('--vina',type=Path)
     p.add_argument('--started-at',help='ISO8601 task start including timezone; existing run start is immutable')
+    p.add_argument('--select-only',action='store_true',help='Review library matching before spending 3D preparation time')
     p.add_argument('--count',type=int,default=550)
     args=p.parse_args(argv)
     try:
@@ -31,7 +32,7 @@ def main(argv=None):
             result=curate(args.root)
         elif args.action=='prepare-library':
             from .library import prepare
-            result=prepare(args.root,args.count)
+            result=prepare(args.root,args.count,args.select_only)
         elif args.action in {'throughput','freeze','run'}:
             from .execution import dispatch
             result=dispatch(args.root,args.action)

@@ -31,6 +31,42 @@ def export_sdf(path,rows):
             writer.write(mol)
 
 
+def resource_summary(path,quota):
+    rows=a.read(path,[])
+    def usage(row):
+        return int(dict(line.split() for line in row['cpu_stat'].splitlines())['usage_usec'])
+    intervals=[]
+    for left,right in zip(rows,rows[1:]):
+        dt=right['monotonic']-left['monotonic']
+        if dt>0 and left['cpu_stat'] and right['cpu_stat']:intervals.append((usage(right)-usage(left))/1e6/dt)
+    gpu=[]
+    for r in rows:
+        try:gpu.append(float(r['gpu']['stdout'].split(',')[0]))
+        except (ValueError,KeyError):pass
+    return {'scope':'whole cgroup, not just Vina','samples':len(rows),
+            'mean_cpu_cores_used':sum(intervals)/len(intervals) if intervals else None,
+            'mean_cpu_quota_utilization_percent':100*sum(intervals)/len(intervals)/quota if intervals else None,
+            'peak_memory_GiB':max([int(r['memory_current'])/2**30 for r in rows if r['memory_current']] or [0]),
+            'mean_gpu_utilization_percent':sum(gpu)/len(gpu) if gpu else None}
+
+
+def figures(root,result,labels):
+    import matplotlib
+    matplotlib.use('Agg')
+    import matplotlib.pyplot as plt
+    fig,axes=plt.subplots(1,2,figsize=(10,4))
+    for arm in ('A0','A1','A2'):
+        values=result['profiles']['ppi_benchmark'][arm]['top_k']
+        for ax,key in zip(axes,('Recall','EF')):ax.plot([10,20,50],[values[str(k)][key] for k in (10,20,50)],marker='o',label=arm);ax.set_ylabel(key);ax.set_xlabel('Top-k');ax.grid(alpha=.2)
+    axes[0].set_ylim(0,1);axes[1].legend();fig.suptitle('Retrospective MDM2 benchmark: ppi_benchmark');fig.tight_layout();fig.savefig(root/'recovery_metrics.png',dpi=160);plt.close(fig)
+    fig,axes=plt.subplots(2,3,figsize=(11,6))
+    for ax,key in zip(axes.flat,['MW','cLogP','TPSA','HBD','HBA','RotB']):
+        for label in ('active','unknown_background'):
+            ax.hist([r['properties'][key] for r in labels if r['label']==label],bins=15,density=True,alpha=.5,label=label)
+        ax.set_title(key)
+    axes.flat[0].legend(fontsize=8);fig.tight_layout();fig.savefig(root/'property_matching.png',dpi=160);plt.close(fig)
+
+
 def evaluate(root):
     root=Path(root);frozen_path=root/'inputs/preregistered_protocol.json';frozen=a.read(frozen_path)
     if a.digest(frozen_path)!=frozen_path.with_suffix('.sha256').read_text().strip():raise ValueError('Protocol changed')
@@ -121,7 +157,11 @@ def evaluate(root):
         'at_least_one_active_top50':a1>0,'A1_point_estimate_exceeds_A0':a1>research['A0']['top_k']['50']['active_hits'],
         'A1_point_estimate_exceeds_A2':a1>research['A2']['top_k']['50']['active_hits'],'generalizable_peptide_gain_proven':False,
         'current_product_success':result['profiles']['current_product']['A1']['top_k']['50']['active_hits']>0}
+    environment=a.read(root/'environment.json')
+    result['resources']={phase:resource_summary(root/phase/'resource_samples.json',environment['effective_cpu_quota']) for phase in ('development','inputs')}
+    result['throughput_preflight']=a.read(root/'throughput.json')
     a.atomic(root/'metrics.json',result)
+    figures(root,result,labels)
     manifest.update(status='completed' if complete else 'incomplete',finished_at=finished.isoformat(),elapsed_minutes=elapsed,
                     frozen_protocol_sha256=a.digest(frozen_path),git_commit=frozen.get('git_commit'),results_alias='root scientific_top50 = ppi_benchmark/A1; deliverable separately qualified')
     a.atomic(root/'run_manifest.json',manifest)
@@ -142,7 +182,9 @@ def evaluate(root):
         '所有分子统一标准化、盐片段处理、pH7.4状态枚举与固定规则选一状态、ETKDG/MMFF94s三维化、Meeko PDBQT。SAR405838的7HC描述缺少环己醇相对立体化学，已与原始Figure1a及CHEMBL2381408交叉核验。',
         '筛选代码只读匿名ID、结构及计算属性；排序后封存anonymous_rankings.json，再打开evaluation/labels.json。冻结文件、源代码与软件哈希见inputs/preregistered_protocol.json。',
         'Vina 1.2.7，exhaustiveness=8，num_modes=5，seed=20261023；5个worker×4 CPU。GPU不参与标准Vina。A0按Vina排序，A1按既有多肽残基接触召回再按Vina排序，A2对接触原子作限定刚体扰动后同样排序；三组复用同一最佳Vina姿势、同一计算预算和Top-k名额。',
-        'A2保持特征数量、元素类型及内部距离，位置在盒内并排除严重重叠；参数由几何条件确定，未按测试排名调参。现有模块是距离接触指纹，并非已验证的完整化学药效团模型。',
+        'A2保持特征数量、元素类型及内部距离，位置在盒内并排除严重重叠；参数由几何条件确定，未按测试排名调参。同时导出RDKit原子化学规则识别的芳香、疏水、供受体等药效团描述及其A2刚体扰动坐标。描述用于界面解释，排名仍为现有距离接触指纹；不能宣称完整化学药效团模型已获性能验证。',
+        '',f'资源实测（整个容器配额）：`{result["resources"]}`。50分子预检耗时{result["throughput_preflight"]["elapsed_seconds"]:.1f}秒，平均单分子{result["throughput_preflight"]["mean_job_seconds"]:.1f}秒；失败率{result["throughput_preflight"]["failure_rate_including_preparation"]:.1%}。',
+        '', '![回收指标](recovery_metrics.png)', '', '![性质匹配](property_matching.png)',
         '', '## 实验依据与边界','',
         '17个稳定D系列分子：原始J Med Chem 2014 Table6，DOI 10.1021/jm501541j，human MDM2(1–118)竞争FP Ki；逐条核对ChEMBL3380268与compound_record，排除不稳定C异构体。',
         'Nutlin-3a Ki=43.6 nM、SAR405838 Ki=0.88 nM：Cancer Res原始Figure1b，DOI 10.1158/0008-5472.CAN-14-0799。Brigimadlin生化IC50=2 nM：原始Supplementary TableS4及Methods p2，DOI 10.1158/1535-7163.MCT-23-0783；GST-MDM2(23–117)，不是细胞实验。',

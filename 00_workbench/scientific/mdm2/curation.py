@@ -5,6 +5,13 @@ from scientific import artifacts as a
 
 def curate(root):
     root=Path(root)
+    reviewed={'PMC4281096.bioc.json':'727707d969d32955b11054829bcddb72251aecfcd22856ba43f4deed7cbd88fa',
+              'SAR405838_primary.pdf':'87ca5ee4961e36917d3e70cb9a699011dc6f81fad0cf52e355d38f548e1d66c8',
+              'Brigimadlin_tableS4.pdf':'29a70f95720d83bdd9a2305fe586e139b1204eca855876f6f34cf004c97e44b0',
+              'Brigimadlin_methods.pdf':'24a586c055822973ffa78c96bc4dcce1e00c36c3a492ada1eea6cdb006356cee'}
+    for filename,digest in reviewed.items():
+        if a.digest(root/'evaluation/literature'/filename)!=digest:
+            raise ValueError('Primary source changed; explicit review required: '+filename)
     act=all_activities(root);refs=reference_smiles(root)
     entries=[(3355410,'12D',19),(3355411,'13D',3.4),(3355412,'14D',105),(3355414,'15D',19),(3355415,'16D',3.7),(3355416,'17D',2.9),(3355417,'18D',2.8),(3355418,'21D',22),(3355420,'22D',80),(3355421,'23D',1.7),(3355422,'24D',23),(3355424,'25D',67),(3355425,'26D',3),(3355426,'27D',15),(3355428,'28D',53),(3355429,'29D',1.7),(3355430,'31 (MI-1061)',.16)]
     rows=[]

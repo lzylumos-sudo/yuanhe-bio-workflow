@@ -56,6 +56,10 @@ def acquire(root):
     for pmc in ('PMC4247201', 'PMC11612618', 'PMC2660734'):
         tasks.append((f'https://www.ebi.ac.uk/europepmc/webservices/rest/{pmc}/fullTextXML',
                       root/f'evaluation/literature/{pmc}.xml'))
+    for offset in range(0,15000,1000):
+        tasks.append((BASE+f'molecule.json?molecule_properties__full_mwt__gte=500&molecule_properties__full_mwt__lte=620&molecule_properties__hbd__gte=2&molecule_properties__hbd__lte=5&molecule_properties__alogp__gte=2.5&molecule_properties__alogp__lte=7&limit=1000&offset={offset}',root/f'evaluation/raw/background_matched_{offset:05d}.json'))
+    for offset in range(0,15000,1000):
+        tasks.append((BASE+f'molecule.json?molecule_properties__full_mwt__gte=500&molecule_properties__full_mwt__lte=620&molecule_properties__hbd__gte=3&molecule_properties__hbd__lte=5&molecule_properties__rtb__lte=6&molecule_properties__psa__lte=120&limit=1000&offset={offset}',root/f'evaluation/raw/background_rigid_{offset:05d}.json'))
     for ccd in ('NUT','7HC','G7I'):
         tasks.append((f'https://files.rcsb.org/ligands/download/{ccd}.cif',root/f'evaluation/ccd/{ccd}.cif'))
     for pmc in ('PMC4247201','PMC4281096'):

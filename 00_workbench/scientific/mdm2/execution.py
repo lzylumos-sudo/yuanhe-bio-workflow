@@ -50,7 +50,7 @@ def freeze(root,development=False):
         'ligands':[{'parent_id':r['parent_id'],'state_id':r['state_id'],'path':str(base/'ligands'/r['sdf']),
                     'sha256':r['sha256']} for r in rows if r['status']=='ok'],
         'input_parent_count':len(rows),'preparation_failures':[r for r in rows if r['status']!='ok'],
-        'files':{str(p.relative_to(root)):a.digest(p) for p in [root/'target/box.json',root/'target/peptide_features.json',root/'target/perturbed_features.json',root/'target/receptor_original.pdb',base/'prepared.json']+([] if development else [base/'library.json',base/'blinded_library.sdf',base/'filters.json',base/'product_filter_config.json',base/'filter_profiles.json'])},
+        'files':{str(p.relative_to(root)):a.digest(p) for p in [root/'target/box.json',root/'target/peptide_features.json',root/'target/perturbed_features.json',root/'target/receptor_original.pdb',base/'prepared.json']+([] if development else [base/'library.json',base/'blinded_library.sdf',base/'filters.json',base/'product_filter_config.json',base/'filter_profiles.json',root/'target/chemical_features.json',root/'target_audit.json',root/'environment.json'])},
         'git_commit':command(['git','-C',str(ROOT),'rev-parse','HEAD'])['stdout'],
         'git_status':command(['git','-C',str(ROOT),'status','--porcelain'])['stdout'],
         'label_seal_sha256':None if development else a.digest(root/'evaluation/labels.json'),

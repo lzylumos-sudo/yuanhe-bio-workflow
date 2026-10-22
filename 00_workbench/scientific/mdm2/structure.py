@@ -45,6 +45,31 @@ def audit_cif(path):
             'audit_status': 'entity_and_sequence_tables_extracted; review sequence differences explicitly'}
 
 
+def peptide_chemical_features(peptide_path,receptor_atoms):
+    """Descriptive RDKit chemical features in the experimental peptide frame.
+
+    These are exported for interface interpretation. The existing benchmark
+    ranking remains the frozen residue-contact method, not a fitted pharma score.
+    """
+    from rdkit import Chem, RDConfig
+    from rdkit.Chem import ChemicalFeatures
+    mol=Chem.MolFromPDBFile(str(peptide_path),removeHs=False,sanitize=True)
+    if mol is None:raise ValueError('Cannot assign peptide chemistry')
+    factory=ChemicalFeatures.BuildFeatureFactory(str(Path(RDConfig.RDDataDir)/'BaseFeatures.fdef'))
+    xyz=np.array([p for _,p in receptor_atoms]);coords=mol.GetConformer().GetPositions();features=[]
+    for feature in factory.GetFeaturesForMol(mol):
+        if feature.GetFamily() not in {'Donor','Acceptor','NegIonizable','PosIonizable','Aromatic','Hydrophobe','LumpedHydrophobe'}:continue
+        ids=feature.GetAtomIds()
+        if np.linalg.norm(coords[list(ids),None,:]-xyz[None,:,:],axis=2).min()>4.5:continue
+        atoms=[]
+        for i in ids:
+            info=mol.GetAtomWithIdx(i).GetPDBResidueInfo()
+            atoms.append({'chain':info.GetChainId().strip(),'residue':info.GetResidueNumber(),'resname':info.GetResidueName().strip(),'atom':info.GetName().strip()})
+        pos=feature.GetPos();features.append({'family':feature.GetFamily(),'type':feature.GetType(),'pos':[pos.x,pos.y,pos.z],'atoms':atoms})
+    if not features:raise ValueError('No peptide chemical interface features')
+    return features
+
+
 def prepare(root):
     root = Path(root); out = root/'target'; out.mkdir(exist_ok=True)
     source = root/'sources/1YCR.cif'; d = MMCIF2Dict(str(source))
@@ -109,6 +134,8 @@ def prepare(root):
                      'fraction_under_2A':float((nearest<2).mean()),'coordinates':moved.tolist(),
                      'same_feature_types_and_count':True,'algorithm':'bounded rigid perturbation, geometric rejection only'};break
     if perturb is None:raise ValueError('Could not construct a valid A2 geometric control')
+    chemical=peptide_chemical_features(out/'peptide.pdb',rec_atoms)
+    a.atomic(out/'chemical_features.json',{'used_for_ranking':False,'true':chemical,'perturbed':[{**f,'pos':((np.array(f['pos'])-pivot)@rotation.T+pivot+shift).tolist()} for f in chemical]})
     a.atomic(out/'perturbed_features.json',perturb)
     from sbvs2.receptor.prepare import prepare_receptor, ReceptorPolicy
     # PDBFixer's unconstrained missing-terminal placement can put OXT close
@@ -135,6 +162,22 @@ def prepare(root):
             'target_type':'soluble_PPI','box':box,'preparation':manifest,
             'membrane_depth':'not_applicable','transmembrane_direction':'not_applicable','legacy_target_residues':'not_applicable',
             'reference_crystal_coordinates_used_for_search':False,
-            'p53_checks':{r:any(key.split(':')[1:]==[num,name] for key in density) for r,num,name in [('Phe19','19','PHE'),('Trp23','23','TRP'),('Leu26','26','LEU')]}}
+            'p53_checks':{r:any(key.split(':')[1:]==[num,name] and value['contact_atom_pairs']>0 for key,value in density.items()) for r,num,name in [('Phe19','19','PHE'),('Trp23','23','TRP'),('Leu26','26','LEU')]}}
+    # Verify the receptor coordinates actually used by Meeko stayed in the
+    # peptide frame; added hydrogens/OXT are excluded from this comparison.
+    original=dict(rec_atoms);prepared_atoms=dict(read_heavy_atoms(out/'prepared/receptor_prepared.pdb'))
+    if not set(original)<=set(prepared_atoms):raise ValueError('Observed receptor atom mapping lost')
+    frame_delta=np.array([np.array(prepared_atoms[k])-v for k,v in original.items()])
+    frame_rms=float(np.sqrt(np.mean(np.sum(frame_delta**2,axis=1))))
+    if frame_rms>.01:raise ValueError('Prepared receptor shifted from peptide frame')
+    result['observed_heavy_atom_frame_rmsd_A']=frame_rms
+    for entry in [result['main']]+result['references']:
+        differences=entry['sequence_differences']
+        entry['review']={'substitutions_recorded':[r for r in differences if 'tag' not in r.get('details','').lower()],
+                         'expression_tag_records':sum('tag' in r.get('details','').lower() for r in differences),
+                         'main_receptor':Path(entry['file']).stem=='1YCR',
+                         'crystal_ligand_pose_used_for_screening':False,
+                         'primary_structure_citation_available':any(r.get('pdbx_database_id_DOI') not in (None,'?','.') for r in entry['citations'])}
+        entry['audit_status']='entity, sequence differences, source identity and citation reviewed; expression tags distinguished from substitutions'
     a.atomic(root/'target_audit.json',result)
     return result

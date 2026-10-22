@@ -57,6 +57,12 @@ def reference_smiles(root):
 
 def background_pool(root):
     from src.chemistry import calculate_properties
+    root=Path(root)
+    sources=sorted(p for p in (root/'evaluation/raw').glob('*.json') if '.source.' not in p.name)
+    cache_key=sha({'schema':'background-pool-v1','sources':{p.name:a.digest(p) for p in sources}})
+    cache=root/'evaluation/background_pool_cache.json'
+    saved=a.read(cache,{})
+    if saved.get('key')==cache_key:return saved['rows']
     activities=all_activities(root)
     known_ids={a['molecule_chembl_id'] for a in activities}
     known_smiles=set();known_scaffolds=set()
@@ -82,7 +88,8 @@ def background_pool(root):
                            'properties':props,'scaffold':scaffold(s),'source_file':str(p.relative_to(root)),
                            'known_mdm2_scaffold':scaffold(s) in known_scaffolds}
             except Exception:continue
-    return list(result.values())
+    values=list(result.values());a.atomic(cache,{'key':cache_key,'rows':values})
+    return values
 
 
 def ppi_pass(p):
@@ -108,14 +115,24 @@ def prepare_one(row,folder):
         return saved
     result={'parent_id':identifier,'input_smiles':row['smiles'],'state_rule':STATE_RULE,'status':'failed'}
     try:
-        molecule=Chem.MolFromSmiles(row['smiles'])
-        enumerated=Scrub(ph_low=7.4,ph_high=7.4,skip_gen3d=True)(molecule)
-        if not enumerated:raise ValueError('no_protonation_state')
-        enumerator=rdMolStandardize.TautomerEnumerator()
-        selected=sorted(enumerated,key=lambda m:(-enumerator.ScoreTautomer(m),abs(Chem.GetFormalCharge(m)),Chem.MolToSmiles(m,isomericSmiles=True)))[0]
-        state_smiles=Chem.MolToSmiles(selected,isomericSmiles=True)
-        gen=Scrub(skip_acidbase=True,skip_tautomers=True,numconfs=1,etkdg_rng_seed=20261023,max_ff_iter=400)
-        prepared=gen(Chem.MolFromSmiles(state_smiles))[0]
+        cache_dir=folder.parents[1]/'preparation_cache'/sha([row['smiles'],STATE_RULE])
+        cache_record=a.read(cache_dir/'record.json',{})
+        if cache_record and a.digest(cache_dir/'structure.sdf')!=cache_record['sha256']:raise ValueError('Preparation cache hash changed')
+        if cache_record:
+            prepared=Chem.SDMolSupplier(str(cache_dir/'structure.sdf'),removeHs=False)[0]
+            if prepared is None:raise ValueError('Invalid preparation cache structure')
+            state_smiles=cache_record['state_smiles'];enumerated_count=cache_record['enumerated_state_count']
+            result['preparation_cache_hit']=True
+        else:
+            molecule=Chem.MolFromSmiles(row['smiles'])
+            enumerated=Scrub(ph_low=7.4,ph_high=7.4,skip_gen3d=True)(molecule)
+            if not enumerated:raise ValueError('no_protonation_state')
+            enumerator=rdMolStandardize.TautomerEnumerator()
+            selected=sorted(enumerated,key=lambda m:(-enumerator.ScoreTautomer(m),abs(Chem.GetFormalCharge(m)),Chem.MolToSmiles(m,isomericSmiles=True)))[0]
+            state_smiles=Chem.MolToSmiles(selected,isomericSmiles=True);enumerated_count=len(enumerated)
+            gen=Scrub(skip_acidbase=True,skip_tautomers=True,numconfs=1,etkdg_rng_seed=20261023,max_ff_iter=400)
+            prepared=gen(Chem.MolFromSmiles(state_smiles))[0]
+            result['preparation_cache_hit']=False
         # Strip all data-source names and molecule properties before compute.
         for name in list(prepared.GetPropNames(includePrivate=True,includeComputed=False)):prepared.ClearProp(name)
         prepared.SetProp('_Name',identifier);prepared.SetProp('parent_id',identifier)
@@ -125,7 +142,11 @@ def prepare_one(row,folder):
         temporary.replace(sdf)
         text,mapping=ligand_to_pdbqt(prepared,0);(folder/(identifier+'.pdbqt')).write_text(text)
         result.update(status='ok',sdf=sdf.name,sha256=a.digest(sdf),state_id=state_id,state_smiles=state_smiles,
-                      enumerated_state_count=len(enumerated),selected_state_count=1,mapping=mapping)
+                      enumerated_state_count=enumerated_count,selected_state_count=1,mapping=mapping)
+        if not cache_record:
+            import shutil
+            cache_dir.mkdir(parents=True,exist_ok=True);shutil.copyfile(sdf,cache_dir/'structure.sdf')
+            a.atomic(cache_dir/'record.json',{'state_smiles':state_smiles,'enumerated_state_count':enumerated_count,'sha256':a.digest(cache_dir/'structure.sdf')})
     except Exception as exc:result['error']=type(exc).__name__+': '+str(exc)
     a.atomic(record_path,result);return result
 
@@ -158,7 +179,7 @@ def prepare_development(root):
     a.atomic(out/'prepared.json',rows);return rows
 
 
-def prepare(root,count=550):
+def prepare(root,count=550,select_only=False):
     root=Path(root);out=root/'inputs';out.mkdir(exist_ok=True)
     if (out/'preregistered_protocol.json').exists():raise ValueError('Formal library already frozen; create a new run to change inputs')
     curated=a.read(root/'evaluation/curated_actives.json')
@@ -176,7 +197,7 @@ def prepare(root,count=550):
     banned={r['smiles'] for r in development};banned_scaffolds={r['scaffold'] for r in development}
     if any(r['smiles'] in banned or r['scaffold'] in banned_scaffolds for r in actives):raise ValueError('Development/test chemical series overlap')
     pool=[r for r in background_pool(root) if r['smiles'] not in seen|banned and r['scaffold'] not in banned_scaffolds]
-    names=['MW','cLogP','TPSA','HBD','HBA','RotB','formal_charge'];scale=np.array([100,1.5,30,1,2,3,1])
+    names=['MW','cLogP','TPSA','HBD','HBA','RotB','formal_charge'];scale=np.array([25,.8,12,.5,.7,.75,1])
     values=np.array([[r['properties'][k] for k in names] for r in pool])/scale
     targets=np.array([[r['properties'][k] for k in names] for r in actives])/scale
     rng=np.random.default_rng(20261023);order=rng.permutation(len(actives));selected=[];used=set();scaffold_counts={}
@@ -185,7 +206,8 @@ def prepare(root,count=550):
         candidate=None
         for idx in np.argsort(dist,kind='stable'):
             idx=int(idx);s=pool[idx]['scaffold']
-            if idx not in used and scaffold_counts.get(s,0)<3:candidate=idx;break
+            if idx not in used and scaffold_counts.get(s,0)<3 and abs(pool[idx]['properties']['MW']-target[0]*scale[0])<=45 and abs(pool[idx]['properties']['RotB']-target[5]*scale[5])<=2:
+                candidate=idx;break
         if candidate is None:break
         used.add(candidate);r=pool[candidate];scaffold_counts[r['scaffold']]=scaffold_counts.get(r['scaffold'],0)+1
         selected.append({**r,'name':r['source_id'],'label':'unknown_background','matching_distance':float(dist[candidate])})
@@ -208,12 +230,13 @@ def prepare(root,count=550):
                 'std':dict(zip(names,matrix.std(0).tolist()))}
     ap,bp=summary(actives),summary(selected)
     diagnostic={'active':ap,'unknown_background':bp,'pool_size':len(pool),'selection_seed':20261023,
-                'algorithm':'round-robin nearest properties, fixed scales, maximum 3 per exact Murcko scaffold',
+                'algorithm':'round-robin nearest properties; MW within 45 Da and RotB within 2 of assigned active; fixed scales; maximum 3 per exact Murcko scaffold',
                 'scales':dict(zip(names,scale.tolist())),
                 'standardized_mean_difference':{k:(ap['mean'][k]-bp['mean'][k])/max(1e-8,((ap['std'][k]**2+bp['std'][k]**2)/2)**.5) for k in names},
                 'unknown_background_is_experimental_negative':False,'development_parent_count':50,
                 'development_exact_scaffolds_excluded':True,'formal_parent_count':len(rows)}
     a.atomic(root/'evaluation/matching_diagnostics.json',diagnostic)
+    if select_only:return diagnostic
     prepared=[]
     for row in anonymous:
         prepared.append(prepare_one(row,out/'ligands'))

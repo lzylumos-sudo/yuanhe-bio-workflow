@@ -54,3 +54,47 @@ def test_benchmark_rejects_manifest_tamper_before_execution(tmp_path,monkeypatch
     with pytest.raises(ValueError,match='manifest changed'):
         v.run_benchmark_job('vina','receptor','ligand',None,None,1,tmp_path/'job',manifest=p,manifest_sha256='incorrect')
     assert called==[]
+
+def test_evaluation_exports_full_denominator_and_separate_product(tmp_path):
+    # Synthetic engineering fixture, not scientific evidence or a docking run.
+    from rdkit import Chem
+    from rdkit.Chem import AllChem
+    from scientific import artifacts as a
+    from scientific.mdm2.evaluation import evaluate
+    from scientific.mdm2.common import now
+    root=tmp_path/'fixture';inputs=root/'inputs';inputs.mkdir(parents=True)
+    target=root/'target';target.mkdir()
+    (target/'receptor_original.pdb').write_text('ATOM      1  CA  ALA A   1       0.000   0.000   0.000  1.00  0.00           C\nEND\n')
+    a.atomic(target/'peptide_features.json',{'residues':['A:1:ALA']});a.atomic(target/'perturbed_features.json',{'residues':['A:2:ALA']})
+    labels=[];library=[];prepared=[];filters=[]
+    properties={'MW':550,'cLogP':4,'TPSA':90,'HBD':3,'HBA':4,'RotB':5,'formal_charge':0}
+    for i in range(21):
+        pid=f'M{i:04d}';library.append({'parent_id':pid,'smiles':'CCO','properties':properties})
+        labels.append({'parent_id':pid,'label':'active' if i<20 else 'unknown_background',
+                       'name':['Nutlin-3a','SAR405838','Brigimadlin'][i] if i<3 else pid,
+                       'source_id':'fixture','scaffold':'fixture','properties':properties})
+        prepared.append({'parent_id':pid,'status':'ok','state_id':pid+'_state'})
+        filters.append({'parent_id':pid,'ppi_pass':True,'deliverable_pass':False,
+                        'risk':{'decision':'pass','alert_ids':[]},'acquisition':{'decision':'pending','status':'model_missing'}})
+    for name,data in [('library',library),('prepared',prepared),('filters',filters)]:a.atomic(inputs/(name+'.json'),data)
+    a.atomic(root/'evaluation/labels.json',labels)
+    mol=Chem.AddHs(Chem.MolFromSmiles('CCO'));AllChem.EmbedMolecule(mol,randomSeed=1)
+    job=inputs/'job';job.mkdir()
+    with Chem.SDWriter(str(job/'poses.sdf')) as w:w.write(mol)
+    a.atomic(inputs/'job_records.json',[{'parent_id':'M0000','status':'ok','job_dir':str(job),
+        'output_sha256':a.digest(job/'poses.sdf'),'poses':[{'vina_affinity':-7.}]}])
+    (inputs/'blinded_library.sdf').write_text('fixture only\n')
+    frozen={'files':{},'source_files':{},'label_seal_sha256':a.digest(root/'evaluation/labels.json'),'git_commit':'fixture','frozen_at':now()}
+    a.atomic(inputs/'preregistered_protocol.json',frozen)
+    (inputs/'preregistered_protocol.sha256').write_text(a.digest(inputs/'preregistered_protocol.json'))
+    a.atomic(root/'environment.json',{'effective_cpu_quota':22})
+    a.atomic(root/'run_manifest.json',{'started_at':now()})
+    a.atomic(root/'throughput.json',{'elapsed_seconds':1,'mean_job_seconds':1,'failure_rate_including_preparation':0})
+    result=evaluate(root)
+    assert result['total_parents']==21 and result['docked']==1
+    assert result['profiles']['ppi_benchmark']['A1']['top_k']['50']['Recall']==.05
+    assert result['profiles']['current_product']['A1']['eligible_ranked_count']==0
+    assert (root/'deliverable_top50.sdf').stat().st_size==0
+    assert (root/'scientific_top50.sdf').stat().st_size>0
+    assert len(a.read(root/'anonymous_rankings.json'))==126
+    assert '回顾性' in (root/'validation_report.md').read_text()
