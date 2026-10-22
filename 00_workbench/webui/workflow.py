@@ -41,7 +41,14 @@ def defaults():
  cfg['research']=research_defaults()
  cfg['predocking']=cfg['research']['predocking']
  cfg['imported_candidates']=''
- cfg.update({k:v for k,v in read(ROOT/'deployment/runtime.json',{}).items() if k in cfg and k!='research'})
+ runtime=read(ROOT/'deployment/runtime.json',{})
+ cfg.update({k:v for k,v in runtime.items() if k in cfg and k!='research'})
+ # Administrators may supply local evidence paths and research defaults once.
+ # New tasks freeze them; existing tasks remain unchanged.
+ if 'research' in runtime:
+  from research.config import resolve
+  cfg['research']=resolve(runtime['research'])
+  cfg['predocking']=cfg['research']['predocking']
  return cfg
 
 def source_snapshot():
@@ -138,8 +145,10 @@ def create(config):
  cfg['predocking']=json.loads(json.dumps(cfg['research']['predocking']))
  for key in ('rules_path','cache_dir'):
   if not Path(cfg['predocking'][key]).is_absolute():cfg['predocking'][key]=str(ROOT/cfg['predocking'][key])
- from yuanhe_preflight.config import validate
+ from yuanhe_preflight.config import validate,absolute_paths
  validate(cfg['predocking'])
+ cfg['predocking']=absolute_paths(cfg['predocking'],ROOT)
+ cfg['research']['predocking']=json.loads(json.dumps(cfg['predocking']))
  from research.assets import snapshot
  assets=snapshot(ROOT,cfg)
  cfg.update(budget=cfg['research']['peptide_attempts'],docking_cpu=cfg['research']['vina_cpu'],docking_workers=cfg['research']['vina_workers'],docking_total_threads=cfg['research']['vina_thread_budget'],exhaustiveness=cfg['research']['initial']['exhaustiveness'],num_modes=cfg['research']['initial']['num_modes'])
@@ -267,6 +276,11 @@ def start(rid,stage):
     raise RuntimeError('This stage has completed or interrupted records and cannot be overwritten')
   previous=[k for k,_,_ in stages_for(cfg)];idx=previous.index(stage)
   if idx and not (stage=='risk' and (read(d/'reviews/risk.json',{}).get('imported_candidates') or cfg.get('imported_candidates'))):require(d,previous[idx-1])
+  if cfg.get('research'):
+   from research.assets import verify
+   verify(d)
+   from research.resources import disk_guard
+   disk_guard(d,cfg['research'])
   lease=acquire_compute()
   if target.exists():
    archive=d/'attempts'/f'{stage}_{time.time_ns()}';archive.parent.mkdir(exist_ok=True)
@@ -274,11 +288,6 @@ def start(rid,stage):
     archive.mkdir();shutil.copyfile(target/'stage.json',archive/'stage.json')
    else:target.rename(archive)
   target.mkdir(exist_ok=True);atomic(target/'review.json',read(d/'reviews'/f'{stage}.json',{}));atomic(target/'stage.json',{'status':'running','started':time.time(),'counts':{},'source_revision':read(d/'active_source_revision.json'),'config_sha256':digest(d/'config.json')})
-  if cfg.get('research'):
-   from research.assets import verify
-   verify(d)
-   from research.resources import disk_guard
-   disk_guard(d,cfg['research'])
   if cfg.get('research'):
    from research.config import fingerprint
    effective=dict(cfg)

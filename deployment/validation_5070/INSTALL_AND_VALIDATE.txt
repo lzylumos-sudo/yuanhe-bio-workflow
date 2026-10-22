@@ -1,3 +1,7 @@
+ARCHIVAL PROTOCOL: Do not use the installation commands below for a new deployment.
+Current full-workbench installation, Vina, HF/RESP and diagnostic instructions: deployment/WORKBENCH_DEPLOYMENT.md.
+The historical GNINA/AM1-BCC text below is retained as provenance only.
+
 CURRENT MIGRATION: use official Vina 1.2.7 and docs/15_VINA_RESP_RESEARCH.md. GNINA/CNN commands and old MD acceptance defaults below are archival and must not be used for new jobs. This source-only revision is untested on the target computer.
 
 MurJ / 9NU4 with RTX 5070: installation and experimental validation

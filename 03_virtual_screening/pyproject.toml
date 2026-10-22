@@ -17,6 +17,7 @@ dependencies = [
   "rdkit>=2023.9",
   "gemmi>=0.6",
   "meeko==0.8.0",
+  "filelock>=3.13",
   "pyyaml>=6.0",
   "requests>=2.31",
   "psutil>=5.9",

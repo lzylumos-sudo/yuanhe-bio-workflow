@@ -70,7 +70,7 @@ peptide)
   "$P" "$HERE/check_gpu.py" ;;
 reinvent)
   # Keep repository lock and CPU inference; its cu126 build is not a 5070 GPU validation.
-  UV_PROJECT_ENVIRONMENT=/opt/yuanhe/envs/reinvent4 "$UV" sync --project "$GEN/vendor/REINVENT4" --python 3.11 --frozen --no-editable
+  UV_PROJECT_ENVIRONMENT=/opt/yuanhe/envs/reinvent4 "$UV" sync --project "$GEN/vendor/REINVENT4" --python 3.11 --frozen
   /opt/yuanhe/envs/reinvent4/bin/reinvent --help
   freeze reinvent4 ;;
 prep)

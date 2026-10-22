@@ -1,13 +1,14 @@
 # -*- coding: utf-8 -*-
-"""webui.server -- dependency-free HTTP server for the WEDGE-Design web console.
+"""webui.server -- standard-library HTTP transport for the research workbench.
 
     python run_webui.py                # http://127.0.0.1:8777
     python run_webui.py --port 9000 --no-browser
 
 Serves the single-page front-end from ``webui/static`` and a small JSON API over
 the files that the pipeline writes (``results/``, ``evidence/``).
-Only the Python standard library is used, so the console runs on the same
-laptop CPU as the pipeline itself.
+The HTTP transport and configuration use the standard library. Scientific
+viewers require RDKit/NumPy in the service interpreter; the checked launcher
+verifies those dependencies before accepting browser traffic.
 """
 from __future__ import annotations
 
@@ -363,6 +364,7 @@ def api_project_structure(q, rid):
 def api_studio(q,body,action):
     if action=='upload':return _json(studio.upload(body),201)
     if action=='environment':return _json(studio.environment_save(body))
+    if action=='diagnostics':return _json(studio.diagnostics_start(body),202)
     raise ValueError('Unknown operation')
 
 def api_studio_run(q,body,rid,action):
@@ -392,7 +394,8 @@ def api_studio_get(q,rid,action):
     raise ValueError('Unknown read operation')
 
 ROUTES = [
-    ('POST', r'^/api/studio/(?P<action>upload|environment)$', api_studio),
+    ('POST', r'^/api/studio/(?P<action>upload|environment|diagnostics)$', api_studio),
+    ('GET', r'^/api/studio/diagnostics$', lambda q: _json(studio.diagnostics_status())),
     ('POST', r'^/api/studio/run/(?P<rid>[A-Za-z0-9_-]+)/(?P<action>[a-z_-]+)$', api_studio_run),
     ('GET', r'^/api/studio/run/(?P<rid>[A-Za-z0-9_-]+)/(?P<action>[a-z_-]+)$', api_studio_get),
     ('GET', r'^/api/project$', api_project),

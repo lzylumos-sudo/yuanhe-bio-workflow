@@ -1,5 +1,7 @@
 # 🧬 Yuanhe Bio
 
+**Administrators deploying the complete browser workflow:** use the [current full workbench deployment guide](deployment/WORKBENCH_DEPLOYMENT.md) for installation, model/data prerequisites, independent diagnostics and acceptance.
+
 **AI-Driven Drug Discovery & Molecular Design Platform**
 
 *From Protein Structures to Small-Molecule Candidates.*

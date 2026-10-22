@@ -3,8 +3,17 @@
 # Requires the NVIDIA WSL CUDA 12.8 TOOLKIT already installed (never Linux drivers).
 set -Eeuo pipefail
 [[ $(uname -s) == Linux && $(uname -m) == x86_64 ]] || exit 2
-[[ -f /opt/sbvs/project_uuid ]] || { echo 'Use the dedicated project WSL distribution.'; exit 2; }
-[[ $(cat /opt/sbvs/project_uuid) == 1e0ea3f4-3fef-4108-ae52-4af02d120ed8 ]] || exit 2
+HERE=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)
+ROOT=$(cd -- "$HERE/../.." && pwd)
+python3 - "$ROOT" <<'PYREG'
+import json,sys
+from pathlib import Path
+expected=json.loads((Path(sys.argv[1])/'02_docking/project.json').read_text(encoding='utf-8-sig'))['uuid']
+markers=[Path('/opt/sbvs/project_uuid'),Path('/opt/yuanhe/project_uuid')]
+values=[p.read_text().strip() for p in markers if p.is_file()]
+if expected not in values or any(v!=expected for v in values):
+    raise SystemExit('Use the registered dedicated project host; run the base installation first.')
+PYREG
 [[ -x /usr/local/cuda-12.8/bin/nvcc ]] || { echo 'Install CUDA Toolkit 12.8 for WSL first; see guide.'; exit 2; }
 [[ -x /opt/yuanhe/tools/bin/python ]] || { echo 'Run install_envs.sh base first.'; exit 2; }
 sudo apt-get update

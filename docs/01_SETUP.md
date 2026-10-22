@@ -1,10 +1,12 @@
 # Installation and configuration
 
+**Administrators deploying the complete browser workflow:** use the [current full workbench deployment guide](../deployment/WORKBENCH_DEPLOYMENT.md) for installation, model/data prerequisites, independent diagnostics and acceptance.
+
 The recorded compute environment is Linux x86-64 with an RTX 5090 D; final release acceptance remains open. Windows/WSL2 with RTX 5070 is a planned deployment target, not a validated platform. See [the support matrix](12_SUPPORT_MATRIX.md) for the exact boundary. Keep environments on the WSL Linux filesystem, not an exFAT external disk. The external disk carries the project, structures, model files and run records. A new host still needs compatible installed dependencies.
 
 ## Preview
 
-With Python 3.11+, run `python3 00_workbench/run_webui.py --no-browser` from the repository root and open `http://127.0.0.1:8777`. Starting the interface does not start calculations. Historical result datasets are not bundled; an empty historical page is expected.
+After configuring the chemistry environment, run `bash start_linux.sh` from the repository root and open `http://127.0.0.1:8777`. Starting the interface does not start calculations. Historical result datasets are not bundled; an empty historical page is expected.
 
 On Windows, use `start_windows.cmd` and select the WSL distribution. The launcher reads the chemistry interpreter from `deployment/runtime.json`. Daily preparation, review, execution, recovery and export are available in the workbench.
 
