@@ -1,5 +1,7 @@
 # Environment specifications and reconstruction
 
+**Administrators deploying the complete browser workflow:** use the [current full workbench deployment guide](../deployment/WORKBENCH_DEPLOYMENT.md) for installation, model/data prerequisites, independent diagnostics and acceptance.
+
 Keep environment definitions in Git; install the environment itself on each compute host. Installed Conda prefixes and Python virtual environments contain platform-specific binaries and often absolute paths. Copying their directories is not a general migration method. The repository excludes installed environments; no `site-packages` or `conda-meta` tree is tracked.
 
 ## What each file guarantees

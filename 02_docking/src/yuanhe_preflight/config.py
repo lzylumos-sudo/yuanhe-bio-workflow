@@ -1,12 +1,32 @@
+import json
+import copy
 import sys
 from pathlib import Path
-from .toxicity_substructure_filter import DEFAULT_RULES
+
+# Configuration must remain usable before the chemistry runtime is installed.
+# Importing the rule evaluator here used to import RDKit in the HTTP process.
+DEFAULT_RULES = Path(__file__).with_name('configs') / 'risk_rules.v1.json'
 
 DEFAULT_PATH=Path(__file__).with_name('configs')/'predocking.example.json'
 
+def absolute_paths(cfg, root):
+    """Resolve deployment paths before workers change their working directory."""
+    cfg=copy.deepcopy(cfg)
+    def resolve(value):
+        if isinstance(value,dict):
+            for key,item in value.items():
+                if key in {'rules_path','cache_dir','model_path','templates_path','stock_path','path','evidence_path','search_artifact'} and isinstance(item,str) and item:
+                    value[key]=str((Path(root)/item).resolve())
+                elif isinstance(item,(dict,list)):resolve(item)
+        elif isinstance(value,list):
+            for item in value:resolve(item)
+    resolve(cfg)
+    if '/' in cfg['retro'].get('python',''):
+        cfg['retro']['python']=str((Path(root)/cfg['retro']['python']).absolute())
+    return cfg
+
 def defaults(root):
-    from .common import read
-    cfg=read(DEFAULT_PATH)
+    cfg=json.loads(DEFAULT_PATH.read_text(encoding='utf-8'))
     cfg['rules_path']=str(DEFAULT_RULES.resolve());cfg['cache_dir']=str(Path(root)/'data/predocking_cache')
     cfg['retro']['python']=sys.executable
     return cfg

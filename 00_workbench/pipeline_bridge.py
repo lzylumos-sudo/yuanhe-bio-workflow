@@ -26,6 +26,8 @@ def csv_write(path,rows,fields):
   w=csv.DictWriter(f,fieldnames=fields,extrasaction='ignore');w.writeheader();w.writerows(rows)
 
 def stage_prepare(d,cfg,out):
+ from webui.readiness import require_ready
+ require_ready(cfg,ROOT,d/'deployment_readiness.json')
  from src.structure import prepare_structure
  if digest(d/'input.pdb')!=cfg['input_sha256']:raise RuntimeError('Input structure hash mismatch')
  result=prepare_structure(d/'input.pdb',out,structure_id=Path(cfg['structure']).stem,
@@ -329,7 +331,8 @@ def stage_gromacs(d,cfg,out):
  if cfg.get('md_system_ids'):
   py=executable(cfg.get('md_python'),'membrane simulation Python')
   timeout=cfg['timeout_seconds'] if not cfg.get('research') else cfg['research']['md_task_timeout_seconds']*max(1,len(cfg['md_system_ids']))
-  command([py,str(UI/'md_stage.py'),'--run-id',d.name,'--output',out],out,timeout)
+  from webui.readiness import runtime_env
+  command([py,str(UI/'md_stage.py'),'--run-id',d.name,'--output',out],out,timeout,env=runtime_env(py))
   systems=read(out/'systems.json',[])
   return {'simulations_completed':len(systems),'remaining':len({s['compound_id'] for s in systems}),'scientifically_validated':0}
  exe=executable(cfg['gmx'],'GROMACS')

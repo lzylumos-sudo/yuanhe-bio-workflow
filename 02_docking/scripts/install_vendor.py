@@ -4,7 +4,7 @@ from pathlib import Path
 ROOT=Path(os.environ['SBVS_PROJECT_ROOT'])
 if platform.system()!='Linux' or platform.machine() not in {'x86_64','amd64'}:raise SystemExit('This official download installer is Linux x86-64 only; use the pinned platform environment otherwise')
 SPECS={
-'vina':('1.2.7','https://github.com/ccsb-scripps/AutoDock-Vina/releases/download/v1.2.7/vina_1.2.7_linux_x86_64',None),
+'vina':('1.2.7','https://github.com/ccsb-scripps/AutoDock-Vina/releases/download/v1.2.7/vina_1.2.7_linux_x86_64','f31f774f723bba7bbe6e9d1c47577020eea9a8da16424284c043d22593570644'),
 }
 
 def sha(p):
@@ -23,7 +23,7 @@ for name in sys.argv[1:]:
  digest=sha(dst)
  if expected and digest!=expected:raise RuntimeError('Installed hash mismatch')
  dst.chmod(0o755)
- info={'version':version,'url':url,'sha256':digest,'publisher_sha256_verified':bool(expected),'path':str(dst),'installed_at':time.time()}
+ info={'version':version,'url':url,'sha256':digest,'repository_sha256_verified':bool(expected),'path':str(dst),'installed_at':time.time()}
  (ROOT/'logs/install').mkdir(parents=True,exist_ok=True)
  for flag in ['--version','--help']:
   env=os.environ.copy()

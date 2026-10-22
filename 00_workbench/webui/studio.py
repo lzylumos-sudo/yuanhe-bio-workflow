@@ -192,6 +192,40 @@ def environment_save(payload):
  cfg=w.read(w.ROOT/'deployment/runtime.json',{});cfg.update(payload);w.atomic(w.ROOT/'deployment/runtime.json',cfg)
  return {'saved':True,'note':'Used for new runs; existing runs retain frozen settings'}
 
+# Environment diagnosis must be available even when no research task exists.
+_diagnostics_lock = threading.Lock()
+_diagnostics_state = {'status':'idle','checks':{}}
+
+def diagnostics_status():
+ import json
+ with _diagnostics_lock:return json.loads(json.dumps(_diagnostics_state))
+
+def diagnostics_start(payload):
+ import json,threading
+ from .readiness import collect
+ global _diagnostics_state
+ if set(payload)-{'run_id'}:raise ValueError('Unknown diagnostics setting')
+ cfg=config(payload['run_id'])[1] if payload.get('run_id') else w.defaults()
+ with w._lock:
+  if w._active:raise ValueError('Finish or stop the active computation before diagnostics')
+  with _diagnostics_lock:
+   if _diagnostics_state['status']=='running':raise ValueError('Diagnostics are already running')
+   lease=w.acquire_compute()
+   ident=str(time.time_ns())
+   report=w.ROOT/'installation_evidence'/('readiness_'+ident+'.json')
+   _diagnostics_state={'id':ident,'status':'running','checks':{},'report':str(report)}
+ def publish(value):
+  global _diagnostics_state
+  snapshot=json.loads(json.dumps({**value,'id':ident,'report':str(report)}))
+  w.atomic(report,snapshot)
+  with _diagnostics_lock:_diagnostics_state=snapshot
+ def worker():
+  try:collect(cfg,w.ROOT,ui_python=sys.executable,publish=publish)
+  except Exception as exc:publish({'status':'failed','checks':diagnostics_status().get('checks',{}),'error':str(exc),'all_runtime_checks_pass':False})
+  finally:lease.close()
+ threading.Thread(target=worker,name='deployment-readiness',daemon=True).start()
+ return {'id':ident,'status':'running','report':str(report)}
+
 def export_run(rid,payload):
  import zipfile
  d,c=config(rid)
