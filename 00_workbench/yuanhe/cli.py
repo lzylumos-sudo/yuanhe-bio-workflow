@@ -9,9 +9,14 @@ from .configuration import protocol_for, fingerprint, merge_layers
 from .errors import envelope
 
 def main(argv=None):
+    argv = sys.argv[1:] if argv is None else argv
+    if argv and argv[0] == 'benchmark':
+        from scientific.mdm2.cli import main as benchmark_main
+        return benchmark_main(argv[1:])
     p = argparse.ArgumentParser(prog='yuanhe')
     sub = p.add_subparsers(dest='command', required=True)
     for command in ('version', 'doctor', 'modules', 'protocols'): sub.add_parser(command)
+    sub.add_parser('benchmark', help='Frozen soluble-PPI benchmark and development throughput')
     for command in ('validate', 'run'):
         q = sub.add_parser(command); q.add_argument('--config', type=Path)
         q.add_argument('--target-config', type=Path)

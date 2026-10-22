@@ -46,10 +46,52 @@ def export_sdf(pdbqt, source_mol, output, rows):
 
 def run_vina_job(exe, receptor, ligand, box, proto, seed, job_dir, *, cpu=4,
                  timeout=3600, cancel=None, cancel_file=None, meta=None, **kwargs):
-    from rdkit import Chem
     from yuanhe_preflight.gate import require_ligand
     evidence_path=kwargs.get('qualification_evidence') or Path(ligand).with_suffix(Path(ligand).suffix+'.qualification.json')
     qualification=require_ligand(ligand,evidence_path)
+    return _execute_vina_job(exe, receptor, ligand, box, proto, seed, job_dir,
+                            cpu=cpu, timeout=timeout, cancel=cancel, cancel_file=cancel_file,
+                            meta=meta, qualification=qualification, **kwargs)
+
+
+def run_benchmark_job(exe, receptor, ligand, box, proto, seed, job_dir, *,
+                      manifest, manifest_sha256, cpu=4, timeout=7200, meta=None):
+    """Explicit frozen research execution, never a product qualification.
+
+    The production entry above still requires real acquisition evidence. This
+    separate entry is for declared retrospective benchmarks and development
+    throughput. Its outputs have no qualification sidecar and cannot pass the
+    production gate. No activity/evaluation file is read by this adapter.
+    """
+    import json
+    if sha256_file(manifest) != manifest_sha256:
+        raise ValueError('Benchmark manifest changed')
+    frozen = json.loads(Path(manifest).read_text())
+    if (frozen.get('schema') != 'yuanhe-frozen-benchmark/1' or
+        frozen.get('purpose') not in {'throughput_development_only', 'retrospective_benchmark'} or
+        frozen.get('target_type') != 'soluble_PPI'):
+        raise ValueError('Explicit soluble_PPI benchmark manifest required')
+    if sha256_file(receptor) != frozen['receptor_sha256'] or sha256_file(exe) != frozen['engine_sha256']:
+        raise ValueError('Frozen receptor or engine changed')
+    if proto.hash() != frozen['protocol_hash'] or box.hash() != frozen['box_hash'] or seed not in frozen['seeds']:
+        raise ValueError('Frozen benchmark parameters changed')
+    if cpu != frozen['cpu_per_worker']:
+        raise ValueError('Frozen CPU budget changed')
+    allowed = {x['sha256'] for x in frozen['ligands']}
+    if sha256_file(ligand) not in allowed:
+        raise ValueError('Ligand is outside the frozen blinded library')
+    provenance = {'benchmark_manifest_sha256': manifest_sha256,
+                  'eligibility': 'research_only_not_product_qualified',
+                  'purpose': frozen['purpose'], 'run_id': frozen['run_id']}
+    return _execute_vina_job(exe, receptor, ligand, box, proto, seed, job_dir,
+                            cpu=cpu, timeout=timeout, meta={**(meta or {}), **provenance},
+                            qualification=None)
+
+
+def _execute_vina_job(exe, receptor, ligand, box, proto, seed, job_dir, *, cpu=4,
+                      timeout=3600, cancel=None, cancel_file=None, meta=None,
+                      qualification=None, **kwargs):
+    from rdkit import Chem
     validate_resources(cpu)
     if kwargs.get('operation','redock') != 'redock':raise ValueError('Only explicit Vina redock jobs supported')
     if proto.engine_version!=VERSION or proto.scoring!='vina':raise ValueError('Pinned Vina version/scoring required')
@@ -81,9 +123,10 @@ def run_vina_job(exe, receptor, ligand, box, proto, seed, job_dir, *, cpu=4,
         rows = parse_vina_pdbqt(out.read_text())
         if not rows or any(not math.isfinite(r['vina_affinity']) for r in rows): raise ValueError('EMPTY_OUTPUT: invalid Vina output')
         export_sdf(out, mol, jd/'poses.sdf', rows)
-        atomic_write_json(jd/'poses.sdf.qualification.json',qualification)
-        rec['predocking_evidence']=qualification
-        rec['qualification_sha256']=qualification['record_sha256']
+        if qualification is not None:
+            atomic_write_json(jd/'poses.sdf.qualification.json',qualification)
+            rec['predocking_evidence']=qualification
+            rec['qualification_sha256']=qualification['record_sha256']
         rec['poses'] = [{**r, 'vina_affinity_kcal_mol':r['vina_affinity'], 'empirical_score_kcal_mol':r['vina_affinity'],
                          'engine':'vina', 'cnn_pose_score':None, 'cnn_affinity_pK':None} for r in rows]
         rec.update(status='ok', output_sha256=sha256_file(jd/'poses.sdf'))

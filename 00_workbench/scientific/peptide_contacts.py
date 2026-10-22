@@ -2,6 +2,31 @@
 from pathlib import Path
 from . import artifacts as a
 
+def read_heavy_atoms(path):
+ """Stable author-chain/residue/atom identifiers in a PDB coordinate frame."""
+ result=[]
+ for line in Path(path).read_text().splitlines():
+  if line.startswith(('ATOM  ','HETATM')) and (line[76:78].strip() or line[12:16].strip()[0]) not in ('H','D'):
+   result.append(((line[21:22].strip(),line[22:27].strip(),line[17:20].strip(),line[12:16].strip()),[float(line[30:38]),float(line[38:46]),float(line[46:54])]))
+ return result
+
+def contact_signature(receptor_atoms, positions, cutoff=4.5):
+ """Reusable version of the existing heavy-atom residue-contact definition."""
+ import numpy as np
+ xyz=np.asarray([x for _,x in receptor_atoms]);positions=np.asarray(positions)
+ if not len(xyz) or not len(positions):return set()
+ close=np.zeros(len(xyz),dtype=bool)
+ for start in range(0,len(positions),64):
+  close|=(np.sum((xyz[:,None,:]-positions[None,start:start+64,:])**2,axis=2).min(1)<=cutoff**2)
+ return {':'.join(key[:3]) for (key,_),hit in zip(receptor_atoms,close) if hit}
+
+def contact_overlap(reference, observed):
+ overlap=reference&observed
+ return {'recall':len(overlap)/len(reference) if reference else 0.,
+         'precision':len(overlap)/len(observed) if observed else 0.,
+         'jaccard':len(overlap)/len(reference|observed) if reference|observed else 0.,
+         'matched_residues':sorted(overlap),'contact_residues':sorted(observed)}
+
 def compare(receptor, reference_receptor, peptide, candidates, selection, out):
  """Distance-contact comparison with controls and a same-pool ranking ablation."""
  import numpy as np
@@ -13,7 +38,7 @@ def compare(receptor, reference_receptor, peptide, candidates, selection, out):
    if line.startswith(('ATOM  ','HETATM')) and (line[76:78].strip() or line[12:16].strip()[0]) not in ('H','D'):
     result.append(((line[21:22].strip(),line[22:27].strip(),line[17:20].strip(),line[12:16].strip()),[float(line[30:38]),float(line[38:46]),float(line[46:54])]))
   return result
- r=atoms(receptor);original=dict(atoms(reference_receptor));common=[(key,xyz) for key,xyz in r if key in original]
+ r=read_heavy_atoms(receptor);original=dict(read_heavy_atoms(reference_receptor));common=[(key,xyz) for key,xyz in r if key in original]
  if not r or not original or len(common)<.95*len(original):raise ValueError('Receptor atom mapping incomplete')
  delta=np.array([xyz for k,xyz in common])-np.array([original[k] for k,xyz in common])
  rms=float(np.sqrt(np.mean(np.sum(delta**2,axis=1))))
@@ -21,15 +46,11 @@ def compare(receptor, reference_receptor, peptide, candidates, selection, out):
  xyz=np.array([x for k,x in r]);keys=[':'.join(k[:3]) for k,x in r];pep=np.array([x for k,x in atoms(peptide)])
  if not len(pep):raise ValueError('Peptide has no heavy atoms')
  def contacts(coords):
-  # Chunking bounds memory for large peptide inputs.
-  close=np.zeros(len(xyz),dtype=bool)
-  for start in range(0,len(coords),64):close|=(np.sum((xyz[:,None,:]-coords[None,start:start+64,:])**2,axis=2).min(1)<=4.5**2)
-  return {key for key,hit in zip(keys,close) if hit}
+  return contact_signature(r,coords)
  reference=contacts(pep)
  if not reference:raise ValueError('Reference peptide has no receptor contacts at 4.5 A')
  def score(q):
-  overlap=reference&q
-  return {'recall':len(overlap)/len(reference),'precision':len(overlap)/len(q) if q else 0.,'jaccard':len(overlap)/len(reference|q),'matched_residues':sorted(overlap),'contact_residues':sorted(q)}
+  return contact_overlap(reference,q)
  translated=pep+np.array([max(xyz[:,0])-min(pep[:,0])+100,0,0]);controls={'self':score(contacts(pep)),'translated_100A_beyond_receptor':score(contacts(translated))}
  if controls['self']['jaccard']!=1 or controls['translated_100A_beyond_receptor']['jaccard']!=0:raise ValueError('Geometric contact controls failed')
  ranks={x['compound_id']:x for key in ('preliminary','primary','exploratory') for x in selection.get(key,[])};rows=[]
