@@ -150,6 +150,7 @@ def evaluate(root):
     manifest=a.read(root/'run_manifest.json');finished=datetime.datetime.now(datetime.timezone.utc)
     elapsed=(finished-datetime.datetime.fromisoformat(manifest['started_at'])).total_seconds()/60
     result['protocol_amendment']=manifest.get('protocol_amendment')
+    result['earlier_protocol_amendment']=manifest.get('earlier_protocol_amendment')
     result['reused_docking_jobs']=a.read(root/'reuse_manifest.json',{}).get('imported_jobs',0)
     result['docking_summary']=a.read(root/'docking_summary.json',{})
     result['elapsed_minutes']=elapsed;result['within_180_minutes']=elapsed<=180
@@ -170,7 +171,7 @@ def evaluate(root):
     a.atomic(root/'run_manifest.json',manifest)
     lines=['# MDM2–p53 肽引导虚拟筛选回收验证报告','',f'实际耗时 **{elapsed:.1f}分钟**。冻结库 **{len(labels)}** 个唯一母体，其中真实活性 **{result["actives"]}** 个，未知背景 **{result["unknown_background"]}** 个；成功对接 **{result["docked"]}** 个。',
         '', '这是回顾性混库回收验证，不是新分子发现。背景没有实验阴性标签；未计算ROC-AUC/PR-AUC。',
-        '',f'协议修订记录：{result.get("protocol_amendment")}。旧版在解盲前因互变异构处理丢失E/Z构型而作废，原始记录保留。正式版本统一保留来源互变异构形式、只作pH7.4处理，并拒绝来源构型不明确者。复用严格满足Vina输入字节和全部对接参数完全相同的{result["reused_docking_jobs"]}个既有结果，其余真实计算；未按参考排名调参。总耗时包含旧版审计与作废计算。',
+        '',f'协议修订记录：{result.get("protocol_amendment")}。前两版在解盲前分别发现互变异构处理丢失E/Z构型和12个三维构象未保留指定构型，原始记录保留。正式版本保留来源互变异构形式、只作pH7.4处理，并从实际三维坐标反推构型核验；不合格构象统一采用ETKDGv3/MMFF94s重新生成，再次失败则保留失败记录。没有按活性标签改变处理。复用严格满足Vina输入字节和全部对接参数完全相同的{result["reused_docking_jobs"]}个既有结果，其余真实计算；未按参考排名调参。总耗时包含旧版审计与作废计算。',
         '', '## 参考分子结果','', '|配置|实验臂|分子|最终排名|首次淘汰阶段|','|---|---|---|---:|---|']
     for r in recovery:lines.append(f'|{r["profile"]}|{r["arm"]}|{r["name"]}|{r["rank"] if r["rank"] is not None else "无排名"}|{r.get("first_exclusion_stage") or "保留"}|')
     lines+=['','## 完整库指标','','|配置|臂|k|命中|Recall@k|EF@k|','|---|---|---:|---:|---:|---:|']

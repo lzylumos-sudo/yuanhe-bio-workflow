@@ -116,3 +116,14 @@ def test_source_ez_is_not_silently_lost_or_flipped():
     assert not retains_source_stereo(e,Chem.MolFromSmiles('CCCC'))
     assert not has_defined_source_stereo(Chem.MolFromSmiles('CC=CC'))
     assert has_defined_source_stereo(e)
+
+
+def test_coordinate_stereo_guard_repairs_inverted_geometry():
+    from rdkit import Chem
+    from rdkit.Chem import AllChem
+    from scientific.mdm2.library import coordinates_retain_state,verified_geometry
+    expected='C[C@H](O)C(=O)O';wrong=Chem.AddHs(Chem.MolFromSmiles('C[C@@H](O)C(=O)O'))
+    assert AllChem.EmbedMolecule(wrong,randomSeed=20261023)==0
+    assert not coordinates_retain_state(wrong,expected)
+    repaired,used=verified_geometry(expected,wrong)
+    assert used and coordinates_retain_state(repaired,expected)

@@ -100,6 +100,7 @@ def ppi_pass(p):
 STATE_RULE={'algorithm':'molscrub 0.2.2 acid/base at pH 7.4; preserve source tautomer (skip_tautomers=True)',
             'selection':'highest RDKit tautomer score; lowest absolute charge; canonical isomeric SMILES',
             'stereo_policy':'source double bonds must be specified; preserve all source tetrahedral and E/Z stereo; reject unresolved non-N state centers; exchangeable protonated N annotated',
+            'geometry_qc':'reassign stereo from 3D; RDKit ETKDGv3/MMFF94s fallback; fail closed',
             'max_states':1,'conformers':1,'etkdg_seed':20261023,'forcefield':'MMFF94s',
             'max_forcefield_iterations':400,'crystal_coordinates_as_input':False}
 
@@ -131,6 +132,25 @@ def state_geometry_key(smiles):
     # Anonymous IDs and source tautomer do not affect identical prepared geometry.
     import importlib.metadata as im
     return sha([smiles,20261023,400,'ETKDG/MMFF94s',im.version('rdkit'),im.version('molscrub')])
+
+
+def coordinates_retain_state(mol,state_smiles):
+    actual=Chem.RemoveHs(Chem.Mol(mol))
+    Chem.RemoveStereochemistry(actual)
+    Chem.AssignStereochemistryFrom3D(actual,replaceExistingTags=True)
+    return retains_source_stereo(Chem.MolFromSmiles(state_smiles),actual)
+
+
+def verified_geometry(state_smiles,candidate=None):
+    from rdkit.Chem import AllChem
+    if candidate is not None and coordinates_retain_state(candidate,state_smiles):return candidate,False
+    mol=Chem.AddHs(Chem.MolFromSmiles(state_smiles))
+    params=AllChem.ETKDGv3();params.randomSeed=20261023;params.enforceChirality=True;params.numThreads=1
+    if AllChem.EmbedMolecule(mol,params)!=0:raise ValueError('verified_geometry_embedding_failed')
+    if not AllChem.MMFFHasAllMoleculeParams(mol):raise ValueError('missing_MMFF_parameters')
+    AllChem.MMFFOptimizeMolecule(mol,mmffVariant='MMFF94s',maxIters=400)
+    if not coordinates_retain_state(mol,state_smiles):raise ValueError('3D_coordinate_stereochemistry_mismatch')
+    return mol,True
 
 
 def prepare_one(row,folder):
@@ -171,8 +191,11 @@ def prepare_one(row,folder):
                 result['preparation_cache_hit']=True
             else:
                 gen=Scrub(skip_acidbase=True,skip_tautomers=True,numconfs=1,etkdg_rng_seed=20261023,max_ff_iter=400)
-                prepared=gen(Chem.MolFromSmiles(state_smiles))[0]
+                try:prepared=gen(Chem.MolFromSmiles(state_smiles))[0]
+                except Exception:prepared=None
                 result['preparation_cache_hit']=False
+        prepared,reembedded=verified_geometry(state_smiles,prepared)
+        result['coordinate_stereo_verified']=True;result['geometry_fallback_used']=reembedded
         # Strip all data-source names and molecule properties before compute.
         for name in list(prepared.GetPropNames(includePrivate=True,includeComputed=False)):prepared.ClearProp(name)
         prepared.SetProp('_Name',identifier);prepared.SetProp('parent_id',identifier)
