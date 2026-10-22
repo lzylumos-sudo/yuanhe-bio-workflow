@@ -21,5 +21,5 @@ function render(d){
  const image=node('img');image.src='/api/benchmark/file?name=recovery_metrics.png';image.alt='三组回收率和富集因子比较';image.style.cssText='max-width:100%;height:auto';panel.append(image);
  const downloads=node('div',undefined,'actions');for(const [name,label]of [['validation_report.md','中文验证报告'],['scientific_top50.csv','研究Top-50（PPI/A1）'],['deliverable_top50.csv','可交付Top-50'],['all_rankings.csv','完整六组排名'],['molecule_stage_ledger.csv','逐阶段记录'],['reference_recovery.csv','参考分子回收']])downloads.append(link(name,label));panel.append(downloads);
 }
-async function update(){try{const r=await fetch('/api/benchmark/status');if(!r.ok)throw Error('任务状态读取失败');latest=await r.json();render(latest)}catch(e){panel.hidden=false;panel.replaceChildren(node('h2','MDM2验证状态暂不可用'),node('p',e.message));}}
+async function update(){try{const r=await fetch('/api/benchmark/status');if(!r.ok)throw Error('任务状态读取失败');const value=await r.json();const alreadyReady=latest?.results_ready&&value.results_ready;latest=value;if(!alreadyReady)render(latest)}catch(e){panel.hidden=false;panel.replaceChildren(node('h2','MDM2验证状态暂不可用'),node('p',e.message));}}
 update();setInterval(update,5000);

@@ -72,7 +72,7 @@ def snapshot(config=None):
             try:
                 check=subprocess.run([binaries['vina'],'--version'],capture_output=True,text=True,timeout=5)
                 import re
-                match=re.search(r'Vina\s+(\d+\.\d+\.\d+)',check.stdout+' '+check.stderr,re.I)
+                match=re.search(r'Vina\s+v?(\d+\.\d+\.\d+)',check.stdout+' '+check.stderr,re.I)
                 runnable=bool(check.returncode==0 and match and match[1]=='1.2.7')
                 row['runtime_version_output']=(check.stdout+' '+check.stderr).strip()
             except (OSError,subprocess.TimeoutExpired):runnable=False
