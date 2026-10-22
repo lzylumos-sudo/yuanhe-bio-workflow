@@ -51,7 +51,9 @@ def settings(args, interactive):
 
 def new_job(source,cfg,decisions,args):
     sha=digest(source)
-    jobid=args.run_id or datetime.now(timezone.utc).strftime('%Y%m%dT%H%M%SZ_')+sha[:8]+'_'+uuid.uuid4().hex[:6]
+    from . import governance
+    records=governance()
+    jobid=args.run_id or (records.new_run_id() if records else datetime.now(timezone.utc).strftime('%Y%m%dT%H%M%SZ_')+sha[:8]+'_'+uuid.uuid4().hex[:6])
     if not re.fullmatch('[A-Za-z0-9_-]+',jobid): raise ValueError('Task ID Use only letters, digits, underscores and hyphens.')
     job=ROOT/'runs'/jobid
     job.mkdir(parents=True,exist_ok=False)
@@ -85,6 +87,7 @@ def new_job(source,cfg,decisions,args):
           'provided_manifest':meta,'frontend_version':__version__,'configuration_version':2})
     write(job/'settings.json',cfg);write(job/'decisions.json',decisions)
     write(job/'raw_hashes.json',files_under(job,['raw']))
+    if records:records.create_soluble(job,cfg,copy)
     update(job,'NEW',job_id=jobid,source_sha256=sha,scope='engineering_smoke' if args.smoke_test else 'user_configured')
     return job
 

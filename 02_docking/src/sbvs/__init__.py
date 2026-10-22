@@ -1,2 +1,2 @@
 """Local, traceable dual-engine screening."""
-__version__ = '0.1.0'
+from ._platform_version import __version__

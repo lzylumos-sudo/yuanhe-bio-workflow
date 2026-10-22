@@ -3,7 +3,7 @@ requires = ["setuptools>=68"]
 build-backend = "setuptools.build_meta"
 [project]
 name = "local-sbvs"
-version = "0.1.0"
+dynamic = ["version"]
 requires-python = ">=3.11"
 dependencies = ["rdkit>=2024.9", "numpy>=1.26", "PyYAML>=6", "psutil>=5.9", "filelock>=3.13", "meeko==0.8.0", "gemmi>=0.6", "scipy>=1.11"]
 [project.optional-dependencies]
@@ -16,3 +16,6 @@ testpaths = ["tests"]
 
 [tool.setuptools.package-data]
 yuanhe_preflight = ["configs/*.json"]
+
+[tool.setuptools.dynamic]
+version = {attr = "sbvs2._platform_version.__version__"}

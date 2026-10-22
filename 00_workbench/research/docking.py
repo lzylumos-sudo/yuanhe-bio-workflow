@@ -30,9 +30,7 @@ def run(root,d,cfg,out,executable):
     from rdkit import Chem
     from rdkit.Chem import AllChem
     sys.path.insert(0,str(root/'02_docking/src'))
-    from sbvs2.docking.vina_official import run_vina_job
-    from sbvs2.docking.protocol import Protocol
-    from sbvs2.docking.box import Box
+    from docking import run_vina_job, Protocol, Box
     rc=cfg['research'];disk_guard(d,rc)
     rows,counts=qualify(root,d,cfg,read(d/'reinvent4/candidates.json',[]),out/'qualification')
     atomic(out/'qualification_counts.json',counts)
@@ -52,6 +50,7 @@ def run(root,d,cfg,out,executable):
     version=subprocess.run([exe,'--version'],capture_output=True,text=True,timeout=20,check=True).stdout.strip()
     if 'vina' not in version.lower():raise ValueError('Executable does not identify as Vina')
     exe_hash=digest(exe)
+    atomic(out/'tool_versions.json',{'vina':{'path':exe,'version_output':version,'binary_sha256':exe_hash}})
     prepared=out/'ligands';prepared.mkdir(exist_ok=True)
     for row in rows:
         # One explicit canonical state. Never duplicate it to pretend multiple states exist.
@@ -110,7 +109,10 @@ def run(root,d,cfg,out,executable):
                     atomic(manifest,{'inputs':inputs,'result':result,'files':files})
             entry={**row,'job_id':key,'seed':seed,'receptor_sha256':receptor['sha256'],'receptor_file':str(receptor['path']),'status':result['status'],
                    'engine':'vina','engine_version':version,'cache_path':str(folder.relative_to(d)),'phase':phase}
-            if result['status']=='ok':entry.update(min(result['poses'],key=lambda p:p['vina_affinity_kcal_mol']))
+            if result['status']=='ok':
+                entry.update(min(result['poses'],key=lambda p:p['vina_affinity_kcal_mol']))
+                from yuanhe.contracts import docking_scores
+                docking_scores(engine='vina',vina_score=entry['vina_affinity_kcal_mol'],cnn_score=entry.get('cnn_pose_score'),cnn_affinity=entry.get('cnn_affinity_pK'))
             return entry,len(result.get('poses',[]))
         tasks=((row,state,receptor,cfg['seed']+i) for row in rows for state in row['states'][:settings['states']] for receptor in targets for i in range(settings['seeds']))
         actual_states=sum(min(len(row['states']),settings['states']) for row in rows)

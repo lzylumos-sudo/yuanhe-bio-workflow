@@ -45,11 +45,14 @@ def defaults():
  return cfg
 
 def source_snapshot():
- roots=['00_workbench/research','00_workbench/scientific','00_workbench/webui','01_molecule_generation/src','02_docking/src','03_virtual_screening/src','05_molecular_dynamics/modules']
+ roots=['00_workbench/yuanhe','00_workbench/research','00_workbench/scientific','00_workbench/webui','01_molecule_generation/src','02_docking/src','03_virtual_screening/src','05_molecular_dynamics/modules']
  files=[ROOT/'00_workbench'/n for n in ['pipeline_bridge.py','studio_worker.py','md_stage.py']]
  for root in roots:files.extend((ROOT/root).rglob('*.py'))
  files.extend((ROOT/'03_virtual_screening'/'configs').rglob('*'))
  files.extend((ROOT/'00_workbench/configs').glob('*.json'))
+ files.extend((ROOT/'configs').glob('*.yaml'));files.extend((ROOT/'configs/schemas').glob('*.json'));files.append(ROOT/'VERSION')
+ files.extend((ROOT/'01_molecule_generation/configs').glob('*.json'))
+ files.extend((ROOT/'05_molecular_dynamics/config').glob('*.yaml'))
  files.extend((ROOT/'02_docking/src/yuanhe_preflight/configs').glob('*.json'))
  return {str(p.relative_to(ROOT)):digest(p) for p in sorted(set(files)) if p.is_file()}
 
@@ -127,7 +130,11 @@ def rescreen(rid):
   return start(rid,'screening')
 
 
-def create(config):
+def validate_config(config):
+ if not isinstance(config,dict):raise ValueError('Task configuration must be an object')
+ from yuanhe.registry import validate as validate_registry
+ from yuanhe.protocols import compatible,validate_sources
+ validate_registry();validate_sources();compatible('vina','murj-discovery@1.0.0')
  allowed=set(defaults());unknown=set(config)-allowed
  if unknown:raise ValueError('Unknown configuration field: '+','.join(sorted(unknown)))
  cfg={**defaults(),**config}
@@ -153,8 +160,13 @@ def create(config):
  rr=cfg['receptor_range']
  if not isinstance(rr,list) or len(rr)!=2 or not all(isinstance(x,int) for x in rr) or rr[0]>rr[1]:raise ValueError('Invalid receptor residue range')
  if cfg['docking_engine']!='vina':raise ValueError('New tasks require official Vina; historical GNINA results remain read-only')
- if cfg['target_profile'] not in ('ecmurj','generic'):raise ValueError('Invalid target configuration')
- rid=time.strftime('%Y%m%d_%H%M%S')+'_'+uuid.uuid4().hex[:8];d=run_dir(rid);d.mkdir(parents=True)
+ if not isinstance(cfg['target_profile'],str) or not re.fullmatch(r'[a-zA-Z0-9_-]+',cfg['target_profile']) or not (ROOT/'03_virtual_screening/configs/targets'/(cfg['target_profile']+'.yaml')).is_file():raise ValueError('Invalid target configuration')
+ return cfg,assets,source
+
+def create(config):
+ cfg,assets,source=validate_config(config)
+ from yuanhe.records import new_run_id
+ rid=new_run_id();d=run_dir(rid);d.mkdir(parents=True)
  shutil.copyfile(source,d/'input.pdb');cfg['input_sha256']=digest(d/'input.pdb')
  # External executables are configured locally, never inferred from old machine paths.
  from research.config import environment,fingerprint,plan
@@ -164,6 +176,8 @@ def create(config):
  atomic(d/'resolved_config.json',{'config':cfg,'version':cfg['research']['version'],'sha256':fingerprint(cfg),'plan':plan(cfg['research'])})
  atomic(d/'source_snapshot.json',source_snapshot())
  atomic(d/'config.json',cfg);atomic(d/'run.json',{'id':rid,'created':time.time(),'config_sha256':digest(d/'config.json'),'status':'created'})
+ from yuanhe.records import create as create_manifest
+ create_manifest(d,cfg,config,defaults())
  return {'id':rid}
 
 def require(d,stage):
@@ -227,16 +241,14 @@ def status(rid):
     break
   stages.append({'key':key,'label':label,'description':desc,**rec,'status':rec.get('status','pending')})
  from research.lifecycle import md_progress
- return {'research_plan':__import__('research.config',fromlist=['plan']).plan(cfg['research']) if cfg.get('research') else None,'md_progress':md_progress(d),'id':rid,'config':cfg,'stages':stages,'reviews':{k:read(d/'reviews'/f'{k}.json',{}) for k,_,_ in STAGES}}
+ return {'manifest':read(d/'run_manifest.json'),'resolved_configuration':read(d/'resolved_config.yaml'),'research_plan':__import__('research.config',fromlist=['plan']).plan(cfg['research']) if cfg.get('research') else None,'md_progress':md_progress(d),'id':rid,'config':cfg,'stages':stages,'reviews':{k:read(d/'reviews'/f'{k}.json',{}) for k,_,_ in STAGES}}
 
 def inventory():
- paths={'Peptide2Mol':'01_molecule_generation/vendor/Peptide2Mol/ckpts/PMT_major.ckpt',
- 'REINVENT4':'01_molecule_generation/vendor/REINVENT4/priors/libinvent.prior',
- 'Vina adapter':'02_docking/src/sbvs2/docking/vina_official.py',
- 'Virtual screening':'03_virtual_screening/src/zvss/stages.py',
- 'Membrane MD':str(UI.relative_to(ROOT)/'scientific/membrane.py')}
- modules=[{'name':n,'present':(ROOT/p).is_file(),'path':p} for n,p in paths.items()]
- return {'modules':modules,'structures':[str(p.relative_to(ROOT)) for p in sorted(list((ROOT/'data/structures').glob('*.pdb'))+list((ROOT/'inputs').glob('*.pdb')))],
+ from yuanhe.registry import snapshot
+ from yuanhe.version import identity
+ registry=snapshot(defaults());modules=registry['modules']
+ legacy=[{**x,'present':(ROOT/x['path']).is_file()} for x in registry['legacy_inventory']]
+ return {'version':identity(),'backends':registry['backends'],'registered_modules':modules,'modules':legacy,'structures':[str(p.relative_to(ROOT)) for p in sorted(list((ROOT/'data/structures').glob('*.pdb'))+list((ROOT/'inputs').glob('*.pdb')))],
  'runs':[p.name for p in sorted(RUNS.glob('*'),reverse=True) if (p/'run.json').is_file()],
  'defaults':defaults(),'research_schema':__import__('research.config',fromlist=['defaults']).defaults(),'platform':sys.platform,'target_platform':'Windows + WSL2 + NVIDIA',
  'notice':'Code and model availability do not establish real computational acceptance. Historical scaffolds are not counted as model outputs.'}
@@ -267,6 +279,11 @@ def start(rid,stage):
     raise RuntimeError('This stage has completed or interrupted records and cannot be overwritten')
   previous=[k for k,_,_ in stages_for(cfg)];idx=previous.index(stage)
   if idx and not (stage=='risk' and (read(d/'reviews/risk.json',{}).get('imported_candidates') or cfg.get('imported_candidates'))):require(d,previous[idx-1])
+  if cfg.get('research'):
+   from research.assets import verify
+   verify(d)
+   from research.resources import disk_guard
+   disk_guard(d,cfg['research'])
   lease=acquire_compute()
   if target.exists():
    archive=d/'attempts'/f'{stage}_{time.time_ns()}';archive.parent.mkdir(exist_ok=True)
@@ -275,20 +292,22 @@ def start(rid,stage):
    else:target.rename(archive)
   target.mkdir(exist_ok=True);atomic(target/'review.json',read(d/'reviews'/f'{stage}.json',{}));atomic(target/'stage.json',{'status':'running','started':time.time(),'counts':{},'source_revision':read(d/'active_source_revision.json'),'config_sha256':digest(d/'config.json')})
   if cfg.get('research'):
-   from research.assets import verify
-   verify(d)
-   from research.resources import disk_guard
-   disk_guard(d,cfg['research'])
-  if cfg.get('research'):
-   from research.config import fingerprint
-   effective=dict(cfg)
-   for key in previous[:idx+1]:effective.update(read(d/'reviews'/f'{key}.json',{}))
-   atomic(target/'resolved_config.json',{'config':effective,'sha256':fingerprint(effective),'version':cfg['research']['version']})
+   from yuanhe.configuration import stage_config
+   resolved=stage_config(cfg,[(key,read(d/key/'review.json',{})) for key in previous[:idx+1]])
+   resolved['version']=cfg['research']['version']
+   atomic(target/'resolved_config.json',resolved)
+   if (d/'run_manifest.json').is_file():
+    atomic(target/'resolved_config.yaml',resolved)
+    from yuanhe.records import sync,event
+    sync(d,previous);event(d,'stage_started','WORKBENCH',stage,'Frozen configuration dispatched')
   py=cfg.get('chem_python') or sys.executable
   logfile=(target/'process.log').open('w',encoding='utf-8')
   try:proc=subprocess.Popen([py,str(UI/'pipeline_bridge.py'),'--run-id',rid,'--stage',stage],stdout=logfile,stderr=subprocess.STDOUT,cwd=UI,start_new_session=True,pass_fds=(lease.fileno(),),env={**os.environ,'YUANHE_COMPUTE_FD':str(lease.fileno())})
   except Exception as e:
-   logfile.close();lease.close();atomic(target/'stage.json',{'status':'failed','error':str(e)});raise
+   logfile.close();lease.close();atomic(target/'stage.json',{'status':'failed','error':str(e)})
+   from yuanhe.records import sync
+   sync(d,previous)
+   raise
   _active[rid]=proc
   atomic(target/'stage.json',{**read(target/'stage.json'),**process_identity(proc.pid)})
   def wait():
@@ -297,6 +316,9 @@ def start(rid,stage):
     _active.pop(rid,None)
     rec=read(target/'stage.json',{})
     if rec.get('status')=='running':atomic(target/'stage.json',{**rec,'status':'failed','error':f'Process exited {code}, without complete results','ended':time.time()})
+    if (d/'run_manifest.json').is_file():
+     from yuanhe.records import sync
+     sync(d,previous)
   threading.Thread(target=wait,daemon=True).start()
  return {'id':rid,'stage':stage,'pid':proc.pid}
 
@@ -326,6 +348,9 @@ def cancel(rid):
   changed=False
   for path,record in records:
    if record.get('status')=='running':atomic(path,{**record,'status':'cancelled','ended':time.time()});changed=True
+  if (d/'run_manifest.json').is_file():
+   from yuanhe.records import sync
+   sync(d,[x[0] for x in stages_for(read(d/'config.json'))])
  return {'cancelled':bool(pid) or changed}
 
 def log(rid,stage):

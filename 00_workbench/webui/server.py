@@ -32,7 +32,8 @@ from webui import data, jobs, stages, workflow, studio                          
 STATIC = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'static')
 ROOT = data.ROOT
 FILE_DIRS = ('results', 'evidence', 'figures', 'docs', 'priors')
-VERSION = '0.4.0-rc1'
+from yuanhe.version import software_version
+VERSION = software_version()
 
 MIME = {
     '.html': 'text/html; charset=utf-8', '.css': 'text/css; charset=utf-8',
@@ -54,7 +55,8 @@ def _json(payload, status=200):
 
 
 def _error(message, status=400, **extra):
-    return _json(dict(error=message, status=status, **extra), status)
+    from yuanhe.errors import envelope
+    return _json(dict(envelope(message, error_code='INPUT_ERROR' if status < 500 else 'RUNTIME_ERROR'), status=status, **extra), status)
 
 
 class HttpError(Exception):
@@ -253,7 +255,8 @@ def api_research_preview(q,body):
     from research.config import resolve,plan
     from research.resources import detect
     rc=resolve(body.get('research',body))
-    return _json({'resolved':rc,'plan':plan(rc),'resources':detect(workflow.ROOT)})
+    from yuanhe.configuration import protocol_for
+    return _json({'resolved':rc,'plan':plan(rc),'resources':detect(workflow.ROOT),'protocol':protocol_for({**body,'research':rc})})
 
 def api_research_derive(q,body,rid):
     from research.lifecycle import derive
@@ -391,7 +394,32 @@ def api_studio_get(q,rid,action):
         return _json({'rows':effective_candidates(workflow.run_dir(rid)), 'orientation':orientation.get('plane') if orientation.get('orientation_verified') else None})
     raise ValueError('Unknown read operation')
 
+def api_versions(q):
+    from yuanhe.version import identity, environment
+    return _json({**identity(), 'environment': environment()})
+
+
+def api_modules(q):
+    from yuanhe.registry import snapshot
+    return _json(snapshot(workflow.defaults()))
+
+
+def api_protocols(q):
+    from yuanhe.registry import load
+    return _json(load('protocol_registry'))
+
+
+def api_validate(q, body):
+    from yuanhe.configuration import protocol_for, fingerprint
+    cfg, _, _ = workflow.validate_config(body)
+    return _json({'valid': True, 'config': cfg, 'config_hash': fingerprint(cfg), 'protocol': protocol_for(cfg)})
+
+
 ROUTES = [
+    ('GET', r'^/api/v1/versions$', api_versions),
+    ('GET', r'^/api/v1/modules$', api_modules),
+    ('GET', r'^/api/v1/protocols$', api_protocols),
+    ('POST', r'^/api/v1/validate$', api_validate),
     ('POST', r'^/api/studio/(?P<action>upload|environment)$', api_studio),
     ('POST', r'^/api/studio/run/(?P<rid>[A-Za-z0-9_-]+)/(?P<action>[a-z_-]+)$', api_studio_run),
     ('GET', r'^/api/studio/run/(?P<rid>[A-Za-z0-9_-]+)/(?P<action>[a-z_-]+)$', api_studio_get),
@@ -458,7 +486,7 @@ def dispatch(method, path, query, body):
         except HttpError:
             raise
         except (ValueError, KeyError) as exc:
-            return _error(f'{type(exc).__name__}: {exc}', 400)
+            return _error(f'{type(exc).__name__}: {exc}', 400, run_id=kwargs.get('rid'), stage=kwargs.get('key'))
         except OSError as exc:
             return _error(f'File read failed: {exc}', 500)
         except Exception as exc:                            # noqa: BLE001
@@ -482,7 +510,7 @@ def _safe_join(base, rel_url):
 
 
 class Handler(BaseHTTPRequestHandler):
-    server_version = f'WEDGE-Design-UI/{VERSION}'
+    server_version = f'Yuanhe-Bio-Platform/{VERSION}'
     protocol_version = 'HTTP/1.1'
 
     def _valid_host(self):
@@ -675,7 +703,7 @@ def serve(host='127.0.0.1', port=8777, open_browser=True, quiet=False):
     url = f'http://{host}:{port}/'
     if not quiet:
         print('=' * 62)
-        print(f'  Yuanhe Bio Research Studio · {VERSION}')
+        print(f'  Yuanhe Bio Platform · {VERSION}')
         print(f'  {url}')
         print(f'  Working directory {ROOT}')
         print(f'  Python {sys.version.split()[0]}   Scientific tasks use separate environments')

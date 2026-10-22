@@ -35,7 +35,8 @@ def stage_prepare(d,cfg,out):
  return {'complexes':1,'receptor_atoms':result['report']['receptor']['range_atom_count'],'pocket_atoms':result['report']['receptor']['prepared_atom_count']}
 
 def stage_peptide2mol(d,cfg,out):
- from src.adapters import peptide2mol
+ from src.adapters.registry import backend
+ peptide2mol=backend("peptide2mol")
  from concurrent.futures import ThreadPoolExecutor
  mc=read(GEN/'configs/project.json')['models']['peptide2mol']
  if cfg.get('generation_recovery_run'):
@@ -103,7 +104,8 @@ def stage_peptide2mol(d,cfg,out):
  return {'requested':cfg['budget'],'sampled':sampled,'rejected':sampled-len(rows),'remaining':len(rows)}
 
 def stage_reinvent4(d,cfg,out):
- from src.adapters import reinvent4
+ from src.adapters.registry import backend
+ reinvent4=backend("reinvent4")
  from src.cores import derive_design_core
  from rdkit import Chem
  from rdkit.Chem import AllChem
@@ -346,22 +348,49 @@ def stage_gromacs(d,cfg,out):
 def main():
  p=argparse.ArgumentParser();p.add_argument('--run-id',required=True);p.add_argument('--stage',choices=[x[0] for x in STAGES],required=True);a=p.parse_args()
  d=run_dir(a.run_id);out=d/a.stage;cfg=read(d/'config.json');rec=read(out/'stage.json',{})
+ from webui.workflow import stages_for
  try:
   if rec.get('status')!='running':raise RuntimeError('Stage must be started by the workflow manager')
   if digest(d/'config.json')!=read(d/'run.json')['config_sha256']:raise RuntimeError('Configuration changed')
-  from webui.workflow import stages_for
   order=[x[0] for x in stages_for(cfg)];i=order.index(a.stage)
   if i and not (a.stage=='risk' and (read(d/'reviews/risk.json',{}).get('imported_candidates') or cfg.get('imported_candidates'))):require(d,order[i-1])
-  for prior in order[:i+1]:
-   cfg.update(read(d/prior/'review.json',{}))
+  if (d/'run_manifest.json').is_file():
+   from yuanhe.configuration import fingerprint
+   from yuanhe.records import atomic as record_atomic
+   from yuanhe.version import environment
+   resolved=read(out/'resolved_config.json')
+   if not resolved or resolved['sha256']!=fingerprint(resolved['config']):raise ValueError('Resolved stage configuration integrity failure')
+   if read(out/'resolved_config.yaml')!=resolved:raise ValueError('Resolved configuration formats differ')
+   from yuanhe.configuration import stage_config
+   expected=stage_config(cfg,[(prior,read(d/prior/'review.json',{})) for prior in order[:i+1]])
+   if expected['sha256']!=resolved['sha256']:raise ValueError('Dispatch configuration does not match frozen run and reviews')
+   cfg=resolved['config']
+   record_atomic(out/'execution_environment.json',environment())
+   from yuanhe.contracts import validate_stage
+   manifest=read(d/'run_manifest.json')
+   contract={'run_id':d.name,'stage_id':a.stage,'config_hash':fingerprint(cfg),'input_artifacts':manifest['input_artifacts']+manifest['output_artifacts']}
+   record_atomic(out/'stage_input.json',validate_stage(contract,'stage-input'))
+  else:
+   for prior in order[:i+1]:
+    cfg.update(read(d/prior/'review.json',{}))
   counts=globals()['stage_'+a.stage](d,cfg,out)
   artifacts={str(x.relative_to(d)):digest(x) for x in out.rglob('*') if x.is_file() and x.name not in {'stage.json','process.log'} and not x.name.endswith(('.sqlite3-wal','.sqlite3-shm'))}
+  if (d/'run_manifest.json').is_file():
+   from yuanhe.records import artifact
+   output={'run_id':d.name,'stage_id':a.stage,'config_hash':fingerprint(cfg),'output_artifacts':[artifact(d/name,d,a.stage,content_hash=sha) for name,sha in artifacts.items()],'scientific_review':'not_reviewed'}
+   record_atomic(out/'stage_output.json',validate_stage(output,'stage-output'))
+   artifacts[str((out/'stage_output.json').relative_to(d))]=digest(out/'stage_output.json')
   current=read(out/'stage.json',{})
   if current.get('status')=='cancelled':return 1
   atomic(out/'stage.json',{**rec,'status':'completed','counts':counts,'artifacts':artifacts,'ended':time.time(),'scientific_validation':'not_evaluated'})
+  from yuanhe.records import sync,event
+  sync(d,order)
+  if (d/'run_manifest.json').is_file():event(d,'stage_completed','WORKBENCH',a.stage,'Artifacts recorded; scientific review remains separate')
   return 0
  except Exception as e:
   import traceback;traceback.print_exc()
   if read(out/'stage.json',{}).get('status')!='cancelled':atomic(out/'stage.json',{**rec,'status':'blocked' if isinstance(e,Blocked) else 'failed','error':str(e),'ended':time.time()})
+  from yuanhe.records import sync
+  sync(d,[x[0] for x in stages_for(cfg)])
   return 1
 if __name__=='__main__':raise SystemExit(main())

@@ -1,0 +1,17 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "yuanhe.artifact/1",
+  "type": "object",
+  "required": [
+    "artifact_id",
+    "artifact_type",
+    "run_id",
+    "stage_id",
+    "source",
+    "content_hash",
+    "schema_version",
+    "validation_status",
+    "storage_path"
+  ],
+  "additionalProperties": true
+}
