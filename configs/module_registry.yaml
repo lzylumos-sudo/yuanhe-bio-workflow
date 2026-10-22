@@ -23,7 +23,8 @@
         "reinvent4"
       ],
       "supported_protocols": [
-        "murj-discovery@1.0.0"
+        "murj-discovery@1.0.0",
+        "murj-discovery@1.1.0"
       ],
       "input_schema": "yuanhe.stage-input/1",
       "output_schema": "yuanhe.stage-output/1",
@@ -52,7 +53,8 @@
         "vina"
       ],
       "supported_protocols": [
-        "murj-discovery@1.0.0"
+        "murj-discovery@1.0.0",
+        "murj-discovery@1.1.0"
       ],
       "input_schema": "yuanhe.stage-input/1",
       "output_schema": "yuanhe.stage-output/1",
@@ -80,7 +82,8 @@
         "zvss"
       ],
       "supported_protocols": [
-        "murj-discovery@1.0.0"
+        "murj-discovery@1.0.0",
+        "murj-discovery@1.1.0"
       ],
       "input_schema": "yuanhe.stage-input/1",
       "output_schema": "yuanhe.stage-output/1",
@@ -106,7 +109,8 @@
         "zlis"
       ],
       "supported_protocols": [
-        "murj-discovery@1.0.0"
+        "murj-discovery@1.0.0",
+        "murj-discovery@1.1.0"
       ],
       "input_schema": "yuanhe.stage-input/1",
       "output_schema": "yuanhe.stage-output/1",
@@ -166,7 +170,8 @@
         "workbench"
       ],
       "supported_protocols": [
-        "murj-discovery@1.0.0"
+        "murj-discovery@1.0.0",
+        "murj-discovery@1.1.0"
       ],
       "input_schema": "yuanhe.stage-input/1",
       "output_schema": "yuanhe.stage-output/1",
@@ -283,7 +288,8 @@
       "required_files": [],
       "executables": [],
       "supported_protocols": [
-        "murj-discovery@1.0.0"
+        "murj-discovery@1.0.0",
+        "murj-discovery@1.1.0"
       ],
       "parent": null,
       "verification": "unknown",

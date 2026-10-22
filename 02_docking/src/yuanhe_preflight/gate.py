@@ -25,8 +25,18 @@ def validate_evidence(evidence, smiles, *, input_file=None):
     cfg=proof['config']; risk=proof['risk']; availability=proof['availability']
     verify_seal(risk);verify_seal(availability)
     rules=RiskRules(cfg['rules_path'],cfg['risk_policies'])
-    if risk!=rules.screen(current['smiles'],risk.get('exceptions',[])) or risk['decision']!='pass':
+    from .structure import screen
+    if risk!=screen(current['smiles'],rules,risk.get('exceptions',[]),cfg.get('engine')) or risk['decision']!='pass':
         raise QualificationError('risk_incomplete_blocked_or_changed')
+    if cfg.get('engine'):
+        from .engine import validate_screening
+        validate_screening(proof.get('screening',{}),cfg['engine'],current['smiles'])
+        selection=Path(proof.get('selection_path',''))
+        if not selection.is_file() or file_hash(selection)!=proof.get('selection_sha256'):
+            raise QualificationError('Selection evidence missing or changed')
+        selected=read(selection)
+        if selected.get('policy_sha256')!=hash_obj(cfg) or current['compound_id'] not in selected.get('qualified_ids',[]):
+            raise QualificationError('Molecule excluded by final selection')
     if availability.get('smiles')!=current['smiles']:raise QualificationError('availability_identity_mismatch')
     catalog=Catalog(cfg['catalogs'],cfg['evidence_max_age_days'])
     stock=Catalog(cfg['stock_catalogs'],cfg['evidence_max_age_days'])

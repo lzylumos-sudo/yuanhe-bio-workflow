@@ -1,0 +1,37 @@
+{
+  "schema": "predocking-assets/2",
+  "assets": [
+    {
+      "name": "scscore",
+      "filename": "model.ckpt-10654.as_numpy.json.gz",
+      "url": "https://raw.githubusercontent.com/connorcoley/scscore/37090a6aa8220408f572de20224c33c221312d16/models/full_reaxys_model_1024bool/model.ckpt-10654.as_numpy.json.gz",
+      "sha256": "fa90bd552307b2efd05eb1e53033bc9eadadfd5bdca682e541040982af99536b",
+      "bytes": 6178760,
+      "license": "MIT; Reaxys training data not redistributed"
+    },
+    {
+      "name": "retro_model",
+      "filename": "uspto_model.onnx",
+      "url": "https://zenodo.org/records/7797465/files/uspto_model.onnx",
+      "sha256": "bd0a3cb74cd7068de474c8fb789a00a66bc42c75636d66510ccac585ebe928f8",
+      "bytes": 91518243,
+      "license": "CC-BY-4.0"
+    },
+    {
+      "name": "retro_templates",
+      "filename": "uspto_templates.csv.gz",
+      "url": "https://zenodo.org/records/7341155/files/uspto_unique_templates.csv.gz",
+      "sha256": "a4f1945e90cfa195538320833d68aed38f14e2fcc2f8afb5d958bc920edcafbe",
+      "bytes": 3313598,
+      "license": "CC-BY-4.0"
+    },
+    {
+      "name": "retro_stock",
+      "filename": "zinc_stock.hdf5",
+      "url": "https://ndownloader.figshare.com/files/23086469",
+      "sha256": "99d39a6f807c3e815487500bafc2b4a9dc66a31af189e3b1776874fb0d4a188d",
+      "bytes": 663232280,
+      "license": "Public ZINC stock distributed by AiZynthFinder; underlying supplier terms apply; commercial redistribution not certified"
+    }
+  ]
+}

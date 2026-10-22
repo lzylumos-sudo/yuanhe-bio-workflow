@@ -1,0 +1,6 @@
+# Isolated ADMET-AI inference environment. Weights are bundled with the wheel.
+admet-ai==2.0.1
+chemprop==2.3.1
+filelock==4.2.4
+PyYAML==6.0.3
+pytest==9.1.1

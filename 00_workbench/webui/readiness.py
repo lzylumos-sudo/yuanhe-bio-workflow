@@ -168,6 +168,17 @@ def collect(cfg, root, ui_python=None, publish=None):
     except (ValueError, KeyError, TypeError) as exc:
         add('predocking_config', {'ok': False, 'error': str(exc)}, 'Correct the predocking configuration before creating the research task.')
 
+    engine=pc.get('engine')
+    if engine:
+        tox=engine['toxicity']
+        py('toxicity_model',tox.get('python') or chem,
+           'import importlib.metadata as m;from admet_ai.constants import DEFAULT_MODELS_DIR;from pathlib import Path;'
+           'assert m.version("admet-ai")=="2.0.1";assert list(Path(DEFAULT_MODELS_DIR).rglob("*.pt"));print("ADMET-AI weights present")',
+           'Install deployment/predocking-model-requirements.txt in the configured isolated toxicity Python.')
+        syn=engine['synthesis']
+        scpath=Path(syn.get('scscore_path') or '')
+        add('scscore_weights',{'ok':scpath.is_file() and digest(scpath)==syn.get('scscore_sha256')},
+            'Download the official SCScore weights with deployment/install_predocking_assets.py and configure their hash.')
     def catalog_check(key):
         descriptors = pc.get(key, [])
         code = ('import sys;sys.path.insert(0,' + repr(str(root / '02_docking/src')) + ');'

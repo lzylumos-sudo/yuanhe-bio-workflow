@@ -219,6 +219,8 @@ def stage_docking(d,cfg,out):
  if box.validate():raise ValueError('Invalid or oversized docking box: '+','.join(box.validate()))
  receptor=out/'receptor.pdb';shutil.copyfile(rec,receptor);atomic(out/'box.json',b)
  proto=Protocol.preset('standard',seeds=(cfg['seed'],),exhaustiveness=cfg['exhaustiveness'],num_modes=cfg['num_modes'],energy_range=cfg['energy_range']);results=[];successful=[]
+ from yuanhe_preflight.ligand import prepare_selected
+ rows=prepare_selected(rows,d,out/'ligands',cfg['seed'])
  atomic(out/'input_molecules.json',rows)
  from concurrent.futures import ThreadPoolExecutor, as_completed
  seeds=cfg.get('docking_seeds') or [cfg['seed']]

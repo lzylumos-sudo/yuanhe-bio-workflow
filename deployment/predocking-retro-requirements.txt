@@ -1,0 +1,4 @@
+# Separate from ADMET-AI and all existing MD environments.
+aizynthfinder==4.4.1
+numpy==1.26.4
+pyarrow==19.0.1

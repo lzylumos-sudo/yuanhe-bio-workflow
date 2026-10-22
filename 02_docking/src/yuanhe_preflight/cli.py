@@ -2,7 +2,6 @@
 import argparse, csv, json
 from pathlib import Path
 from rdkit import Chem
-from rdkit.Chem import AllChem
 from .common import canonical, write, read
 from .pipeline import risk_stage, availability_stage
 from .config import validate
@@ -20,12 +19,8 @@ def import_candidates(path,out):
     rows=[]
     for n,(row,mol) in enumerate(entries):
         if mol is not None:
-            # Imported 2D structures need a real conformer, not invented coordinates.
+            # Retain a structure record; only selected docking inputs receive 3D conformers.
             mol=Chem.AddHs(mol)
-            if not mol.GetNumConformers() or not mol.GetConformer().Is3D():
-                mol.RemoveAllConformers();params=AllChem.ETKDGv3();params.randomSeed=17
-                if AllChem.EmbedMolecule(mol,params)!=0:
-                    rows.append({**row,'import_error':'conformer_generation_failed'});continue
             sdf=out/f'{n:08d}.sdf'
             with Chem.SDWriter(str(sdf)) as w:w.write(mol)
             row['sdf']=str(sdf.resolve())

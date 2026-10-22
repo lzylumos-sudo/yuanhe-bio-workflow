@@ -16,6 +16,7 @@ def search(request):
     finder.target_smiles = request['smiles']; finder.prepare_tree(); finder.tree_search(); finder.build_routes()
     return {'backend':'aizynthfinder', 'backend_version':importlib.metadata.version('aizynthfinder'),
             'target_smiles':request['smiles'], 'status':'searched', 'statistics':finder.extract_statistics(),
+            'route_scores':finder.routes.scores,'all_route_scores':finder.routes.all_scores,
             'routes':[tree.to_dict(include_metadata=True) for tree in finder.routes.reaction_trees], 'stock_info':finder.stock_info(),
             'settings':settings, 'stereochemistry_capability':'not_certified; stereogenic routes require human review',
             'network':{'enabled':False,'sent_structures':[]}}

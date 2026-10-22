@@ -17,7 +17,9 @@ from yuanhe_preflight.gate import require_ligand,validate_evidence,Qualification
 
 @pytest.fixture
 def cfg(tmp_path):
-    return defaults(tmp_path)
+    value=defaults(tmp_path)
+    value.pop('engine')  # Exercise archived v1 tasks; v2 has separate real/model-failure tests.
+    return value
 
 def catalog(tmp_path,smiles=('CCO',),age=0,kind='in_stock',name='catalog'):
     d=tmp_path/name;d.mkdir(exist_ok=True);doc=d/'supply.txt';doc.write_text('SIMULATED UNIT TEST SUPPLY RECORD. Not a real vendor quote.')

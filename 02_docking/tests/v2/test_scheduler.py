@@ -50,6 +50,7 @@ def env(tmp_path, monkeypatch):
     with catalog.open('w',newline='') as handle:
         writer=csv.DictWriter(handle,fieldnames=list(rows[0]));writer.writeheader();writer.writerows(rows)
     cfg=defaults(tmp_path)
+    cfg.pop('engine')  # Preserve explicit legacy scheduler evidence fixture; v2 tested in test_engine.py.
     cfg['catalogs']=[{'path':str(catalog),'version':'unit-v1','source':'unit-test-only','license':'unit-fixture','trusted':True}]
     inputs=[{'id':'L'+str(i),'smiles':s,'sdf':str(stage/'ligands'/f'L{i}_c0.sdf')} for i,s in enumerate(['CCO','CCN'])]
     risk_stage(inputs,cfg,tmp_path/'risk',base=tmp_path,batch_id='SIMULATED')

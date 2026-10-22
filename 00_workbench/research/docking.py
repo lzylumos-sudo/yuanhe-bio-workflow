@@ -59,7 +59,7 @@ def run(root,d,cfg,out,executable):
         if AllChem.EmbedMolecule(mol,p)!=0:raise ValueError('Conformer generation failed for '+row['compound_id'])
         with Chem.SDWriter(str(path)) as writer:writer.write(mol)
         shutil.copyfile(row['qualification_evidence'],str(path)+'.qualification.json')
-        row['sdf']=str(path.relative_to(d));row['state_id']=fingerprint(row['smiles'])[:20]
+        row['sdf']=str(path.relative_to(d))
         row['states']=[{'sdf':row['sdf'],'state_id':row['state_id'],'smiles':row['smiles']}]
         for state in rc['ligand_states'].get(row['compound_id'],[]):
             if not state.get('reviewed') or not state.get('rationale'):raise ValueError('Chemical state requires explicit review')

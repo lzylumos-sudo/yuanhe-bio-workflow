@@ -1,0 +1,38 @@
+name: Real pre-docking models
+on: [push, pull_request, workflow_dispatch]
+permissions:
+  contents: read
+concurrency:
+  group: predocking-models-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  predocking-real-models:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: '3.12'
+          cache: pip
+          cache-dependency-path: deployment/predocking-model-requirements.txt
+      - name: Isolated CPU model environment
+        run: |
+          python -m pip install 'torch>=2.8.0' --index-url https://download.pytorch.org/whl/cpu
+          python -m pip install -r deployment/predocking-model-requirements.txt
+          python -m pip check
+      - name: Official hash-pinned SCScore weights
+        run: python deployment/install_predocking_assets.py --output "$RUNNER_TEMP/predocking-assets"
+      - name: Failure handling, gate and API contracts
+        run: PYTHONPATH=02_docking/src:00_workbench python -m pytest 02_docking/tests/preflight -q --junitxml=predocking-tests.xml
+      - name: Real 1000-molecule inference and screening
+        run: python deployment/validate_predocking.py --scscore "$RUNNER_TEMP/predocking-assets/model.ckpt-10654.as_numpy.json.gz" --out "$RUNNER_TEMP/predocking-acceptance"
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: real-predocking-acceptance
+          path: |
+            predocking-tests.xml
+            ${{ runner.temp }}/predocking-acceptance/acceptance.json
+            ${{ runner.temp }}/predocking-acceptance/availability/summary.json
+            ${{ runner.temp }}/predocking-acceptance/availability/toxicity.log
