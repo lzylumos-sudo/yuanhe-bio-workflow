@@ -35,3 +35,9 @@ Chemical state selection preserves the standardized source tautomer and specifie
 A chemistry-integrity failure invalidated the first batch before unblinding before any recovery metrics were opened. The amended run keeps the original start and deadline. `yuanhe benchmark reuse --root NEW_ROOT --from-root OLD_ROOT` reuses a successful job only when the actual regenerated ligand PDBQT bytes, receptor, engine, search box, protocol, seed and CPU match. Original raw job records remain unchanged; an explicit binding records changed anonymous IDs and input-file hashes. Initial development throughput is an estimate from the earlier preparation policy, not a second validation population.
 
 The final preparation guard also removes stored stereochemical tags, reassigns them from the actual 3D coordinates, and checks against the selected state. Invalid cached/generated geometry uses one deterministic RDKit ETKDGv3/MMFF94s fallback, with the same seed and 400 minimization iterations. A mismatch after fallback fails closed. This amendment followed an independent 3D audit before unblinding; library membership, labels, scoring and docking parameters remain unchanged.
+
+## Existing workbench UI
+
+Set `YUANHE_BENCHMARK_ROOT` to the explicit run directory when starting the existing `00_workbench/run_webui.py`. Its MDM2 panel reads actual progress and, after sealed evaluation, the six profile/arm metrics, reference ranks and downloadable artifacts. The panel does not launch calculations or read labels before evaluation. Unconfigured installations keep the panel hidden. The benchmark's scientific commit remains recorded independently of later UI/report commits.
+
+Keep the remote workbench on `127.0.0.1:8777` and access it through the authorized SSH tunnel, e.g. local `8877` forwarded to remote `127.0.0.1:8777`. This deployment is the bounded validation environment; uninstalled generation/MD models are not represented as fully deployed or scientifically validated.

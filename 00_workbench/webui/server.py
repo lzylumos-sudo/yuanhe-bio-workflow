@@ -69,6 +69,17 @@ class HttpError(Exception):
 # ---------------------------------------------------------------------------
 # API
 # ---------------------------------------------------------------------------
+def api_benchmark_status(q):
+    from webui.benchmark import snapshot
+    return _json(snapshot())
+
+def api_benchmark_file(q):
+    from webui.benchmark import artifact
+    try:path=artifact(q.get('name',[''])[0])
+    except ValueError as exc:return _error(str(exc),404)
+    return 200,MIME.get(path.suffix,'application/octet-stream'),path.read_bytes()
+
+
 def api_health(q):
     return _json(dict(ok=True, version=VERSION, time=time.time(), jobs=len(jobs.list_jobs(999))))
 
@@ -418,6 +429,8 @@ def api_validate(q, body):
 
 
 ROUTES = [
+    ('GET', r'^/api/benchmark/status$', api_benchmark_status),
+    ('GET', r'^/api/benchmark/file$', api_benchmark_file),
     ('GET', r'^/api/v1/versions$', api_versions),
     ('GET', r'^/api/v1/modules$', api_modules),
     ('GET', r'^/api/v1/protocols$', api_protocols),
