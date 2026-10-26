@@ -1,0 +1,64 @@
+name: Verified administrator release
+on:
+  workflow_dispatch:
+    inputs:
+      source_sha:
+        description: Full main-branch commit SHA with both push CI workflows passed
+        required: true
+        type: string
+permissions:
+  contents: read
+concurrency:
+  group: administrator-release
+  cancel-in-progress: false
+jobs:
+  package-and-publish:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    permissions:
+      contents: write
+      actions: read
+    env:
+      SOURCE_SHA: ${{ inputs.source_sha }}
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - name: Require an immutable source identity
+        run: '[[ "$SOURCE_SHA" =~ ^[0-9a-f]{40}$ ]]'
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ inputs.source_sha }}
+          fetch-depth: 0
+      - name: Require main ancestry and successful push checks
+        run: |
+          git merge-base --is-ancestor "$SOURCE_SHA" origin/main
+          for workflow in engineering.yml predocking-models.yml; do
+            count=$(gh api "repos/$GITHUB_REPOSITORY/actions/workflows/$workflow/runs?head_sha=$SOURCE_SHA&event=push&status=success&per_page=100" --jq '.total_count')
+            [[ "$count" -gt 0 ]] || { echo "Missing successful push CI: $workflow"; exit 1; }
+          done
+          python deployment/sync_platform_version.py --check
+          python deployment/check_scientific_baseline.py
+      - name: Build and verify the committed source archive
+        run: |
+          VERSION=$(cat VERSION)
+          [[ "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.-]+)?$ ]]
+          mkdir -p "$RUNNER_TEMP/release"
+          ARCHIVE="$RUNNER_TEMP/release/yuanhe-bio-platform-$VERSION.zip"
+          python deployment/package_release.py --ref "$SOURCE_SHA" --output "$ARCHIVE"
+          python -m zipfile -e "$ARCHIVE" "$RUNNER_TEMP/verify"
+          python "$RUNNER_TEMP/verify/yuanhe-bio-platform-$VERSION/deployment/verify_release.py"
+          (cd "$RUNNER_TEMP/release" && sha256sum "yuanhe-bio-platform-$VERSION.zip" > SHA256SUMS.txt)
+          echo "RELEASE_VERSION=$VERSION" >> "$GITHUB_ENV"
+      - name: Publish a new immutable tag and complete administrator package
+        run: |
+          TAG="v$RELEASE_VERSION"
+          if git show-ref --verify --quiet "refs/tags/$TAG"; then
+            echo 'Tag already exists; use a new version. Historical releases are never replaced.'
+            exit 1
+          fi
+          printf 'Committed source: %s\n\nFollow DEPLOY.md. Package integrity and CI passed; target GPU/model/MD acceptance remains required. This workflow does not deploy or restart an internal workstation.\n' "$SOURCE_SHA" > "$RUNNER_TEMP/release-notes.txt"
+          flags=()
+          if [[ "$RELEASE_VERSION" == *-* ]]; then flags+=(--prerelease); fi
+          gh release create "$TAG" --target "$SOURCE_SHA" --title "Yuanhe Bio Platform $RELEASE_VERSION" --draft "${flags[@]}" \
+            --notes-file "$RUNNER_TEMP/release-notes.txt" \
+            "$RUNNER_TEMP/release/yuanhe-bio-platform-$RELEASE_VERSION.zip" "$RUNNER_TEMP/release/SHA256SUMS.txt"
+          gh release edit "$TAG" --draft=false

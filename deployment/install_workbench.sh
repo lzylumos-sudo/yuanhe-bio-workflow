@@ -2,7 +2,7 @@
 # Administrator-only installation into a dedicated prefix. No driver/system changes.
 set -Eeuo pipefail
 if [[ $# -ne 2 ]]; then
-  echo 'Usage: bash deployment/install_workbench.sh runtime|peptide|reinvent|vina|configure|check /absolute/prefix' >&2
+  echo 'Usage: bash deployment/install_workbench.sh runtime|peptide|reinvent|synthesis|vina|configure|check /absolute/prefix' >&2
   exit 2
 fi
 STEP=$1
@@ -64,30 +64,31 @@ reinvent)
   "$PREFIX/envs/reinvent4/bin/reinvent" --help
   freeze "$PREFIX/envs/reinvent4" reinvent4
   ;;
+synthesis)
+  [[ -x "$UV" ]] || { echo 'Install runtime first.' >&2; exit 2; }
+  for P in "$PREFIX/envs/admet" "$PREFIX/envs/retro"; do
+    [[ ! -e "$P" ]] || { echo "Environment exists; refusing an implicit upgrade: $P" >&2; exit 2; }
+  done
+  "$UV" venv --seed --python 3.12 "$PREFIX/envs/admet"
+  "$PREFIX/envs/admet/bin/python" -m pip install 'torch>=2.8.0' --index-url https://download.pytorch.org/whl/cpu
+  "$PREFIX/envs/admet/bin/python" -m pip install -r "$HERE/predocking-model-requirements.txt"
+  freeze "$PREFIX/envs/admet" admet
+  "$UV" venv --seed --python 3.12 "$PREFIX/envs/retro"
+  "$PREFIX/envs/retro/bin/python" -m pip install -r "$HERE/predocking-retro-requirements.txt"
+  freeze "$PREFIX/envs/retro" retro
+  "$PREFIX/envs/admet/bin/python" "$HERE/install_predocking_assets.py" \
+    --output "$PREFIX/predocking-assets" --with-retro \
+    --tox-python "$PREFIX/envs/admet/bin/python" --retro-python "$PREFIX/envs/retro/bin/python"
+  ;;
 vina)
-  SBVS_PROJECT_ROOT="$ROOT/02_docking" YUANHE_VENDOR_DIR="$PREFIX/bin" "$RUNTIME/bin/python" "$ROOT/02_docking/scripts/install_vendor.py" vina
+  SBVS_PROJECT_ROOT="$ROOT/02_docking" YUANHE_VENDOR_DIR="$PREFIX/bin" \
+    YUANHE_VENDOR_RECEIPT="$PREFIX/evidence/vendor.lock.json" \
+    "$RUNTIME/bin/python" "$ROOT/02_docking/scripts/install_vendor.py" vina
   ;;
 configure)
   [[ -x "$RUNTIME/bin/python" ]] || { echo 'Install runtime first.' >&2; exit 2; }
   [[ -n ${YUANHE_GMX:-} && -x "$YUANHE_GMX" ]] || { echo 'Set YUANHE_GMX to the absolute CUDA-enabled GROMACS executable.' >&2; exit 2; }
-  "$YUANHE_GMX" --version
-  "$RUNTIME/bin/python" - "$ROOT" "$PREFIX" "$YUANHE_GMX" <<'PY'
-import json,shutil,sys,time
-from pathlib import Path
-root,prefix=map(Path,sys.argv[1:3]);dest=root/'deployment/runtime.json'
-cfg=json.loads(dest.read_text()) if dest.is_file() else {}
-if dest.exists():shutil.copy2(dest,prefix/'evidence'/('runtime.before-'+str(time.time_ns())+'.json'))
-p=str(prefix/'envs/runtime/bin/python')
-cfg.update(chem_python=p,screen_python=p,prep_python=p,md_python=p,
-           peptide_python=str(prefix/'envs/peptide2mol/bin/python'),
-           reinvent_executable=str(prefix/'envs/reinvent4/bin/reinvent'),
-           vina=str(prefix/'bin/vina'),gmx=sys.argv[3])
-# Explicit research defaults let administrators configure evidence before users create runs.
-if 'research' not in cfg:
-    cfg['research']=json.loads((root/'00_workbench/configs/research_dual_blackwell.json').read_text())
-dest.write_text(json.dumps(cfg,indent=2)+'\n')
-print('Runtime paths saved. Configure research.predocking evidence, then run check. No task started.')
-PY
+  "$RUNTIME/bin/python" "$HERE/configure_workbench.py" --prefix "$PREFIX" --gmx "$YUANHE_GMX"
   ;;
 check)
   "$RUNTIME/bin/python" "$HERE/doctor.py" --config "$HERE/runtime.json" --out "$PREFIX/evidence/readiness.json"

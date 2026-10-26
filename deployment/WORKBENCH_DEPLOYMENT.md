@@ -1,6 +1,6 @@
 # Administrator deployment: complete research workbench
 
-Start with the [current administrator download and verification entrypoint](../DEPLOY.md). This guide configures the complete browser workflow. Use a complete Git checkout or the verified named administrator ZIP. The public minimal CLI test, historical 5070 notes, and `Dockerfile.research` alone do **not** install or validate the full workbench.
+Start with the [current administrator download and verification entrypoint](../DEPLOY.md). This guide configures the complete browser workflow. For an ordered plan and installation with per-step logs use deployment/deploy_workbench.py as described in DEPLOY.md. Use a complete Git checkout or the verified named administrator ZIP. The public minimal CLI test, historical 5070 notes, and `Dockerfile.research` alone do **not** install or validate the full workbench.
 
 The administrator performs installation and service management. Researchers operate only the supplied UI URL; they do not need SSH or a local compute installation. A code update requires the administrator to deploy the updated revision and restart the service. Merely refreshing the browser cannot change server dependencies or its running Python.
 
@@ -60,6 +60,7 @@ export YUANHE_PREFIX=/srv/yuanhe/release-20261022
 bash deployment/install_workbench.sh runtime "$YUANHE_PREFIX"
 bash deployment/install_workbench.sh peptide "$YUANHE_PREFIX"
 bash deployment/install_workbench.sh reinvent "$YUANHE_PREFIX"
+bash deployment/install_workbench.sh synthesis "$YUANHE_PREFIX"
 bash deployment/install_workbench.sh vina "$YUANHE_PREFIX"
 ```
 
@@ -73,6 +74,8 @@ The REINVENT4 environment is installed from the patched source with its frozen l
 
 Set an actual absolute path to a CUDA-enabled GROMACS binary supplied by the administrator. A distribution CPU package is not sufficient for this GPU workflow. Follow the [official GROMACS build guide](https://manual.gromacs.org/current/install-guide/index.html); validate compiler, CUDA toolkit and GPU architecture together.
 
+For a portable source build use `bash deployment/build_gromacs.sh /absolute/new-prefix /absolute/cuda 4`. It verifies the official archive, builds CUDA support and runs upstream checks. It requires CMake >= 3.28, make, curl and compatible C/C++ compilers. No drivers or site services are changed.
+
 For the repository's recorded `/opt/yuanhe` layout, the optional helper is `deployment/validation_5070/build_gromacs_gpu.sh`. It requires the registered project host, CUDA Toolkit 12.8, GCC/G++ 12 and the base tools installation. It installs GROMACS 2026.4 into a separate prefix and runs its regression target. This helper is not required when the administrator already provides a compatible build, and it must not be run unmodified against an unrelated cluster installation.
 
 ```bash
@@ -81,11 +84,11 @@ export YUANHE_GMX=/absolute/path/to/gromacs/bin/gmx
 bash deployment/install_workbench.sh configure "$YUANHE_PREFIX"
 ```
 
-`configure` writes actual interpreter/executable paths to ignored `deployment/runtime.json`, backing up any old file under the installation evidence directory. The shared runtime serves `chem_python`, `screen_python`, `prep_python` and `md_python`; model paths are separate. Configure is not a readiness pass.
+`configure` writes actual interpreter/executable paths to ignored `deployment/runtime.json`, backing up any old file under the installation evidence directory. The shared runtime serves `chem_python`, `screen_python`, `prep_python` and `md_python`; model paths are separate. Configuration uses current synthesis-only defaults and the asset receipt from the synthesis step. Incompatible old research configuration is rejected without overwriting it. Configure is not a readiness pass.
 
 ## 6. Configure synthesis models before generation
 
-Use [the current screening guide](../02_docking/docs/PREDOCKING_V2.md) to install isolated ADMET-AI and AiZynthFinder environments, official SCScore weights, expansion templates and the planning building-block pool. Import the generated config in Pre-Docking Screening. New defaults have no supplier/catalog fields or purchase bypass. Verify a small real search before releasing a host configuration. Missing models cannot qualify candidates.
+The `synthesis` installer step installs both isolated environments and pinned screening assets before `configure`. For custom or existing environments use [the current screening guide](../02_docking/docs/PREDOCKING_V2.md) to install isolated ADMET-AI and AiZynthFinder environments, official SCScore weights, expansion templates and the planning building-block pool. Import the generated config in Pre-Docking Screening. New defaults have no supplier/catalog fields or purchase bypass. Verify a small real search before releasing a host configuration. Missing models cannot qualify candidates.
 
 
 ## 7. Readiness and service startup

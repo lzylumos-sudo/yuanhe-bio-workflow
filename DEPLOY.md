@@ -1,17 +1,95 @@
-# Administrator download and deployment
+# Administrator deployment entrypoint
 
-Always open [the current administrator entrypoint](https://github.com/lzylumos-sudo/yuanhe-bio-workflow/blob/main/DEPLOY.md) when preparing a new deployment. Its [README download button](https://github.com/lzylumos-sudo/yuanhe-bio-workflow#yuanhe-bio-platform) and [machine-readable release record](deployment/current_release.json) are generated from the single root [VERSION](VERSION).
+Send this page to the administrator: [current deployment instructions](https://github.com/lzylumos-sudo/yuanhe-bio-workflow/blob/main/DEPLOY.md).
+It covers generation, toxicity and synthesis screening, docking, ZVSS and membrane MD. A source download alone does not install these dependencies.
 
-1. Download the named `yuanhe-bio-platform-<version>.zip` release asset and `SHA256SUMS.txt` from that current entrypoint. Keep the versioned filename. A previously saved ZIP or bookmark to an older release does not update itself.
-2. Verify the downloaded checksum with `sha256sum -c SHA256SUMS.txt` (Linux) or `shasum -a 256 -c SHA256SUMS.txt` (macOS). Extract into a new directory. The named package includes `SOURCE_MANIFEST.json`; GitHub's automatic source ZIP does not include this delivery manifest.
-3. Inside the extracted directory run `python3 deployment/verify_release.py`. It checks every packaged file against the source manifest and confirms the software version. Preserve its full source commit with the installation record. `python3 yuanhe version` reports the software version separately from Git identity; without a Git checkout, use the verified delivery manifest for the packaged source commit.
-4. Compare the extracted `VERSION` with the **current** entrypoint before installation. Stop if it names a newer version. Historical packages remain available only for reproducibility and controlled recovery.
-5. Follow the [complete workbench deployment guide](deployment/WORKBENCH_DEPLOYMENT.md): install environments, restore licensed models and evidence, configure paths, run diagnostics, and complete small real-machine acceptance before starting production research.
+## 1. Select the current source and preserve the old installation
 
-For a Git deployment, use the current release's immutable tag from `deployment/current_release.json`, then record `git rev-parse HEAD`. `main` is the integration branch; tags identify exact deployment builds. Never replace an active computation's checkout or frozen run records.
+Use the **current administrator build** download in the [README](README.md). Download its named ZIP and `SHA256SUMS.txt`, verify and extract into a **new** directory:
 
-## Current software, historical evidence
+```bash
+sha256sum -c SHA256SUMS.txt
+# Enter the extracted yuanhe-bio-platform-<version> directory.
+python3 deployment/verify_release.py
+```
 
-The current build integrates version governance and deployment-readiness fixes. Its development label is intentional: engineering CI does not certify a complete GPU installation or a 500 ns trajectory on a new host. The formal research setting remains one 500 ns trajectory per candidate; the requested quarter-size batch selects two candidates.
+Verification reports the exact source commit and checks every packaged file. Compare the extracted `VERSION` with the current README. Do not reuse an old ZIP because it was previously called current. GitHub's automatic source ZIP lacks `SOURCE_MANIFEST.json`; use the named administrator asset or a clean Git checkout.
 
-Older product/package labels, archived scientific results and development branches are indexed in [version history](docs/releases/HISTORY.md). The repeated text beside files in GitHub's code browser is each file's last commit message, not a product-version list. Use the current download button for installation and the history index for old records.
+For Git deployment, clone into a new destination and check out the immutable release tag listed in [current_release.json](deployment/current_release.json). Record `git rev-parse HEAD`. Preserve the old installation, `runtime.json`, licensed models, task directories and checkpoints. Do not copy old frozen research configuration over the new defaults: the old purchase/catalog schema is incompatible with the current synthesis-only schema. Historical tasks remain in their original deployment.
+
+## 2. Confirm four site-specific inputs
+
+The administrator supplies these actual values:
+
+1. A **new** writable installation prefix on Linux x86_64/WSL2.
+2. The old project or licensed bundle containing both `01_molecule_generation/vendor/Peptide2Mol` and `vendor/REINVENT4`, with their exact checkpoints, prior, source and LICENSE files. Restoration verifies pinned weight hashes and refuses overwrites. If no bundle is available, obtain the pinned upstream sources/weights listed in [model_dependencies.json](deployment/model_dependencies.json) first.
+3. A CUDA-enabled GROMACS executable. If missing, use the portable build below.
+4. The already-approved private bind address and port. Retain existing access controls; this research service is not an authenticated public endpoint.
+
+Install Git, Bash, Python 3.11+, curl, patch, build tools, CA certificates and [micromamba](https://mamba.readthedocs.io/en/latest/installation/micromamba-installation.html). Set `MICROMAMBA` if absent from PATH. Verify `nvidia-smi` in the service account's Linux/WSL environment. The shared runtime uses CUDA 13.4 user libraries; Peptide2Mol uses cu128. Supply a driver supporting the selected runtimes. Scripts never change drivers, firewall rules or system Python. Allocate space for environments, model assets and trajectories in addition to the configured 50 GiB reserve.
+
+### If CUDA GROMACS is missing
+
+Follow [GROMACS prerequisites](https://manual.gromacs.org/2026.4/install-guide/index.html): CMake >= 3.28, CUDA toolkit >= 12.1 and a compatible host compiler. For the recorded Blackwell setup use CUDA 12.8 and GCC/G++ 12. Do not install a Linux display driver inside WSL. Then:
+
+```bash
+YUANHE_CC=gcc-12 YUANHE_CXX=g++-12 bash deployment/build_gromacs.sh \
+  /srv/yuanhe/gromacs-NEW /usr/local/cuda-12.8 4
+```
+
+This downloads official GROMACS 2026.4 with a fixed SHA-256, builds CUDA support and FFTW into the new prefix, runs upstream checks and retains logs. Use `/srv/yuanhe/gromacs-NEW/install/bin/gmx` below. Unlike the historical helper, it has no machine-specific project registration or fixed `/opt` prefix.
+
+## 3. Plan, then install the complete stack
+
+Run from the **new clean source directory**. Replace all example paths and the bind address:
+
+```bash
+python3 deployment/deploy_workbench.py \
+  --prefix /srv/yuanhe/runtime-NEW \
+  --model-source /absolute/old-project \
+  --gmx /absolute/gromacs/bin/gmx \
+  --host APPROVED_PRIVATE_BIND_ADDRESS --port 8777
+```
+
+The default is a read-only plan. Inspect the source SHA, paths and storage allocation, then repeat the command with `--execute`. It performs:
+
+1. Copy and hash-check licensed model assets without changing the source installation.
+2. Install the locked chemistry/preparation/MD runtime and ZVSS.
+3. Install pinned Peptide2Mol with matching CUDA/PyG and patched REINVENT4 from its frozen lock.
+4. Install isolated ADMET-AI/AiZynthFinder; download and verify SCScore, expansion model, templates and planning building-block pool.
+5. Install official Vina 1.2.7, retaining its receipt outside tracked source.
+6. Atomically bind current synthesis-only defaults to actual environments and model paths.
+7. Run full deployment readiness with the service configuration.
+
+No scientific stage, service restart or 500 ns trajectory starts here. Progress/failures are in `PREFIX/evidence/deployment.json` and named step logs. A failed step stops the sequence and does not create a service handoff script. Preserve failures; resolve the cause and use a new prefix and clean source. Experienced administrators may use [individual installation steps](deployment/WORKBENCH_DEPLOYMENT.md); configure preserves valid existing policies and rejects incompatible old schemas without overwriting them.
+
+## 4. Switch the service and prove which code is serving
+
+Only after readiness passes, the installer writes `PREFIX/evidence/start-workbench.sh`. Check jobs at OS level as well as in the UI: an empty run list does not prove the GPU is idle. During an approved idle window, point the existing service manager at:
+
+```bash
+bash /srv/yuanhe/runtime-NEW/evidence/start-workbench.sh
+```
+
+Run as the installation owner with existing private network controls. The launcher checks RDKit/NumPy/drawing in the configured service Python. Saving a different interpreter path in a running UI does not replace that process.
+
+From the new source directory, supply the SHA from package verification or `git rev-parse HEAD`:
+
+```bash
+python3 deployment/verify_service.py --url http://APPROVED_PRIVATE_ADDRESS:8777 \
+  --expected-commit FULL_SOURCE_COMMIT --out installation_evidence/service.json
+```
+
+The read-only check rejects a wrong version, same-version/wrong-commit deployment, dirty Git source, unverified ZIP source or missing independent diagnostics. System & Versions reports verified package identity even without `.git`. Service identity is separate from readiness and scientific execution.
+
+## 5. Deliver the URL with real acceptance evidence
+
+Open **Environment and diagnostics -> Check saved environment before creating a run** and save the report. Create a separate small run and record its ID. Execute preparation, Peptide2Mol, core review, REINVENT4, structure/toxicity/complete-route screening, receptor/box review, Vina and ZVSS. Keep zero-qualified outcomes explicit; never relax gates to force downstream execution.
+
+MD requires reviewed candidate and membrane inputs. A short engineering trajectory, explicitly configured as a separate custom test, is not the formal 500 ns protocol. Verify actual CUDA mdrun, checkpoint recovery and analysis. Do not label skipped stages passed. Preserve force fields, gates, default protocols, historical records and requested research durations.
+
+Return: source SHA, actual service Python/start command, `deployment.json`, readiness/service reports, run ID, stage logs, model hashes and artifact/checkpoint records. [Detailed troubleshooting](deployment/WORKBENCH_DEPLOYMENT.md) covers missing imports, GPU builds, model assets and interrupted runs.
+
+## Release and deployment are separate
+
+[Verified administrator release](.github/workflows/release.yml) packages an explicit main-branch SHA after both push CI workflows pass, verifies the extracted archive and publishes a new tag/ZIP/checksum. Existing tags are never replaced. It does not deploy or restart the internal workstation. A merge or green CI does not establish a server update.

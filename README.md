@@ -7,9 +7,9 @@
 Generative AI · Structure-Based Drug Design · Virtual Screening · Molecular Dynamics
 
 <!-- current-release:start -->
-**Current administrator build: 0.11.0-dev.2 (development)**
+**Current administrator build: 0.11.0-dev.3 (development)**
 
-[Download current package](https://github.com/lzylumos-sudo/yuanhe-bio-workflow/releases/download/v0.11.0-dev.2/yuanhe-bio-platform-0.11.0-dev.2.zip) · [Install and verify](DEPLOY.md) · [Release notes](https://github.com/lzylumos-sudo/yuanhe-bio-workflow/releases/tag/v0.11.0-dev.2) · [Historical versions](docs/releases/HISTORY.md)
+[Download current package](https://github.com/lzylumos-sudo/yuanhe-bio-workflow/releases/download/v0.11.0-dev.3/yuanhe-bio-platform-0.11.0-dev.3.zip) · [Install and verify](DEPLOY.md) · [Release notes](https://github.com/lzylumos-sudo/yuanhe-bio-workflow/releases/tag/v0.11.0-dev.3) · [Historical versions](docs/releases/HISTORY.md)
 
 The package includes version and source-hash records. Target-machine acceptance remains required.
 <!-- current-release:end -->
