@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.11.0-dev.3 — 2026-10-26
+
+- Integrate synthesis environment/asset installation and current configuration defaults. Preserve old installations and fail before service handoff on dependency errors.
+- Add a portable SHA-256-pinned CUDA GROMACS build, ordered administrator installer, service verifier and package identity in the UI/API.
+- Keep Vina receipts outside tracked source; publish verified packages only after successful push CI.
+- Preserve scientific protocols and historical runs. Target-host model/GPU/MD acceptance remains required.
+
 ## 0.11.0-dev.2 - integrated administrator build
 
 - Integrated the existing architecture/version-governance branch with the deployment-readiness fixes from main.

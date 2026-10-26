@@ -31,5 +31,7 @@ for name in sys.argv[1:]:
   if r.returncode or (flag=='--version' and 'AutoDock Vina v1.2.7' not in r.stdout+r.stderr):raise RuntimeError('Official Vina version verification failed')
   (ROOT/'logs/install'/f'{name}_{flag[2:]}.txt').write_text(r.stdout+r.stderr)
   info[flag[2:]+'_returncode']=r.returncode
- lock=ROOT/'env/vendor.lock.json'; data=json.loads(lock.read_text()) if lock.exists() else {};data[name]=info
+ lock=Path(os.environ.get('YUANHE_VENDOR_RECEIPT',str(ROOT/'env/vendor.lock.json')))
+ lock.parent.mkdir(parents=True,exist_ok=True)
+ data=json.loads(lock.read_text()) if lock.exists() else {};data[name]=info
  lock.write_text(json.dumps(data,indent=2));print(json.dumps(info),flush=True)
