@@ -61,6 +61,9 @@ reinvent)
   "$RUNTIME/bin/python" "$HERE/apply_vendor_patches.py"
   [[ ! -e "$PREFIX/envs/reinvent4" ]] || { echo 'Environment exists; refusing an implicit upgrade.' >&2; exit 2; }
   UV_PROJECT_ENVIRONMENT="$PREFIX/envs/reinvent4" "$UV" sync --project "$GEN/vendor/REINVENT4" --python 3.11 --frozen
+  # The pinned upstream lock omits SciPy, imported by the CLI's plotting module.
+  # Add the explicit runtime supplement without re-resolving locked packages.
+  "$UV" pip install --python "$PREFIX/envs/reinvent4/bin/python" --no-deps -r "$HERE/reinvent-runtime-requirements.txt"
   "$PREFIX/envs/reinvent4/bin/reinvent" --help
   freeze "$PREFIX/envs/reinvent4" reinvent4
   ;;
