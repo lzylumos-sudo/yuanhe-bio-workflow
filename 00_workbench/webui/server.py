@@ -294,14 +294,19 @@ def api_project_rows(q, rid, key):
     import csv
     if key not in [x[0] for x in workflow.STAGES]:
         raise HttpError('Unknown stage',404)
-    path=workflow.run_dir(rid)/key/'molecules.csv'
-    if not path.exists():return _json({'rows':[],'total':0})
-    with path.open(encoding='utf-8-sig',newline='') as f:rows=list(csv.DictReader(f))
-    if key=='screening':
-        from scientific.validation import effective_candidates
-        rows=effective_candidates(workflow.run_dir(rid))
+    run=workflow.run_dir(rid)
     if key in ('risk','availability'):
-        rows=workflow.read(workflow.run_dir(rid)/key/'records.json',[])
+        # Route evidence is nested and can exceed CSV's default field limit.
+        # Read the authoritative JSON directly instead of parsing an export
+        # that would immediately be discarded below.
+        rows=workflow.read(run/key/'records.json',[])
+    else:
+        path=run/key/'molecules.csv'
+        if not path.exists():return _json({'rows':[],'total':0})
+        with path.open(encoding='utf-8-sig',newline='') as f:rows=list(csv.DictReader(f))
+        if key=='screening':
+            from scientific.validation import effective_candidates
+            rows=effective_candidates(run)
     query=q.get('search',[''])[0].lower()
     if query:rows=[r for r in rows if query in str(r).lower()]
     offset=max(0,int(q.get('offset',['0'])[0]))
@@ -352,7 +357,11 @@ def api_predocking_summary(q,rid):
                   'exports':{name:'/artifacts/'+rid+'/availability/'+name for name in ('records.json','molecules.csv','passed.sdf','excluded.sdf','review.sdf','passed.smi','screening.sqlite3') if (d/'availability'/name).is_file()}})
 
 def api_predocking_revise(q,body,rid,key):
-    return _json(workflow.revise_preflight(rid,key))
+    return _json(workflow.revise_preflight(rid,key,body))
+
+def api_predocking_revision(q,rid,key):
+    from .preflight_revision import context
+    return _json(context(rid,key))
 
 def api_predocking_detail(q,rid,key):
     if key not in ('risk','availability'):raise HttpError('Unknown evidence stage',404)
@@ -444,6 +453,7 @@ ROUTES = [
     ('GET', r'^/api/project/run/(?P<rid>[A-Za-z0-9_-]+)/predocking/summary$', api_predocking_summary),
     ('POST', r'^/api/project/run/(?P<rid>[A-Za-z0-9_-]+)/predocking/(?P<key>risk|availability)/revise$', api_predocking_revise),
     ('GET', r'^/api/project/run/(?P<rid>[A-Za-z0-9_-]+)/predocking/(?P<key>risk|availability)$', api_predocking_detail),
+    ('GET', r'^/api/project/run/(?P<rid>[A-Za-z0-9_-]+)/predocking/(?P<key>risk|availability)/revision$', api_predocking_revision),
     ('GET', r'^/api/project/run/(?P<rid>[A-Za-z0-9_-]+)/structure$', api_project_structure),
     ('GET', r'^/api/project/run/(?P<rid>[A-Za-z0-9_-]+)/pose/(?P<key>[a-z0-9]+)$', api_project_pose),
     ('GET', r'^/api/project/run/(?P<rid>[A-Za-z0-9_-]+)/rows/(?P<key>[a-z0-9]+)$', api_project_rows),

@@ -1,11 +1,18 @@
 # Administrator deployment entrypoint
 
-Send this page to the administrator: [current deployment instructions](https://github.com/lzylumos-sudo/yuanhe-bio-workflow/blob/main/DEPLOY.md).
-It covers generation, toxicity and synthesis screening, docking, ZVSS and membrane MD. A source download alone does not install these dependencies.
+This page is sufficient for a new administrator with access to a suitable machine. No old project directory, private model transfer, separate patch or conversation history is required. It covers generation, toxicity and synthesis screening, docking, ZVSS and membrane MD. Commands run inside Linux as the installation owner. A source download alone does not install the dependencies. After startup, researchers follow the [UI workflow guide](docs/18_UI_RESEARCH_WORKFLOW.md).
 
 ## 1. Select the current source and preserve the old installation
 
-Use the **current administrator build** download in the [README](README.md). Download its named ZIP and `SHA256SUMS.txt`, verify and extract into a **new** directory:
+For the latest merged fixes, clone **main** into a new directory and record its exact commit:
+
+```bash
+git clone --branch main https://github.com/lzylumos-sudo/yuanhe-bio-workflow.git
+cd yuanhe-bio-workflow
+git rev-parse HEAD
+```
+
+Alternatively, reproduce a published snapshot using the **current administrator build** in [README](README.md). That immutable release can predate fixes on main. Download its named ZIP and `SHA256SUMS.txt`, verify and extract into a **new** directory:
 
 ```bash
 sha256sum -c SHA256SUMS.txt
@@ -15,18 +22,34 @@ python3 deployment/verify_release.py
 
 Verification reports the exact source commit and checks every packaged file. Compare the extracted `VERSION` with the current README. Do not reuse an old ZIP because it was previously called current. GitHub's automatic source ZIP lacks `SOURCE_MANIFEST.json`; use the named administrator asset or a clean Git checkout.
 
-For Git deployment, clone into a new destination and check out the immutable release tag listed in [current_release.json](deployment/current_release.json). Record `git rev-parse HEAD`. Preserve the old installation, `runtime.json`, licensed models, task directories and checkpoints. Do not copy old frozen research configuration over the new defaults: the old purchase/catalog schema is incompatible with the current synthesis-only schema. Historical tasks remain in their original deployment.
+For a reproducible tagged checkout instead of latest main, select the immutable tag in [current_release.json](deployment/current_release.json). Never run `git pull` or edit tracked settings inside an active deployment. For upgrades, preserve the old installation, `runtime.json`, model bundle, tasks and checkpoints. Do not copy old frozen research configuration over new defaults: the old purchase/catalog schema is incompatible with the current synthesis-only schema. Historical tasks remain in their original deployment.
 
 ## 2. Confirm four site-specific inputs
 
 The administrator supplies these actual values:
 
 1. A **new** writable installation prefix on Linux x86_64/WSL2.
-2. The old project or licensed bundle containing both `01_molecule_generation/vendor/Peptide2Mol` and `vendor/REINVENT4`, with their exact checkpoints, prior, source and LICENSE files. Restoration verifies pinned weight hashes and refuses overwrites. If no bundle is available, obtain the pinned upstream sources/weights listed in [model_dependencies.json](deployment/model_dependencies.json) first.
+2. A model bundle containing both `vendor/Peptide2Mol` and `vendor/REINVENT4`. First installations obtain it using the public download helper below. An old project is optional. Restoration verifies pinned weight hashes and refuses overwrites.
 3. A CUDA-enabled GROMACS executable. If missing, use the portable build below.
-4. The already-approved private bind address and port. Retain existing access controls; this research service is not an authenticated public endpoint.
+4. A private bind address and unused port. The example defaults to `127.0.0.1:8777` for access on the machine. For remote users choose the site's approved private address and access controls; this service has no public authentication gateway.
 
 Install Git, Bash, Python 3.11+, curl, patch, build tools, CA certificates and [micromamba](https://mamba.readthedocs.io/en/latest/installation/micromamba-installation.html). Set `MICROMAMBA` if absent from PATH. Verify `nvidia-smi` in the service account's Linux/WSL environment. The shared runtime uses CUDA 13.4 user libraries; Peptide2Mol uses cu128. Supply a driver supporting the selected runtimes. Scripts never change drivers, firewall rules or system Python. Allocate space for environments, model assets and trajectories in addition to the configured 50 GiB reserve.
+
+On Ubuntu 24.04, install base tools with `sudo apt-get update` followed by `sudo apt-get install -y git python3 python3-venv curl patch build-essential ca-certificates tar bzip2`. Ubuntu 22.04's default Python 3.10 is insufficient: use an administrator-provided 3.11+ interpreter without replacing system Python. Place micromamba on PATH or set `export MICROMAMBA=/absolute/path/to/micromamba`; shell activation is unnecessary. Allow network access to GitHub/release assets, Zenodo, conda-forge, PyPI, PyTorch, PyG and the repository's model URLs. RCSB is used for online structure retrieval. No paid model account or API key is required for this installation path.
+
+The `/srv/yuanhe` examples assume a parent directory already owned by the service account. If unavailable, use a writable parent such as `$HOME/yuanhe` and replace all example paths consistently. Native Windows PowerShell is not the deployment environment; run inside Linux/WSL2.
+
+### First installation: fetch the public models
+
+Review the upstream [Peptide2Mol terms](https://github.com/BLUE-Flowing/Peptide2Mol), [REINVENT4 terms](https://github.com/MolecularAI/REINVENT4), [pinned prior record](https://doi.org/10.5281/zenodo.20701824) and [dependency licenses](docs/16_RESEARCH_DEPENDENCY_LICENSES.md). Run from this checkout:
+
+```bash
+python3 deployment/fetch_generation_models.py --destination /srv/yuanhe/models-NEW
+# Inspect the plan, then download:
+python3 deployment/fetch_generation_models.py --destination /srv/yuanhe/models-NEW --execute
+```
+
+The helper fetches exact upstream source commits and two official weights (about 162 MB of weights), retains LICENSE files and verifies size/SHA-256 against [model_dependencies.json](deployment/model_dependencies.json). Success is recorded as `status: verified` in `models-NEW/model-bundle.json`. Set `model_source` to that bundle directory. It can be reused without re-downloading. No inference or dependency installation runs here. Failures preserve the receipt and partial files: fix the cause and use a new destination; never change pinned hashes. The later synthesis step downloads its own pinned assets. A generation bundle alone is not a complete air-gapped installer.
 
 ### If CUDA GROMACS is missing
 
@@ -41,14 +64,42 @@ This downloads official GROMACS 2026.4 with a fixed SHA-256, builds CUDA support
 
 ## 3. Plan, then install the complete stack
 
-Run from the **new clean source directory**. Replace all example paths and the bind address:
+All research defaults, model pins and runtime locks are already in GitHub. Only five machine settings are needed. Copy [site.example.json](deployment/site.example.json) outside the clean source tree:
+
+```bash
+cp deployment/site.example.json /srv/yuanhe/site.json
+```
+
+Edit that copy, preserving its five fields:
+
+```json
+{
+  "prefix": "/srv/yuanhe/runtime-NEW",
+  "model_source": "/srv/yuanhe/models-NEW",
+  "gmx": "/srv/yuanhe/gromacs-NEW/install/bin/gmx",
+  "host": "127.0.0.1",
+  "port": 8777
+}
+```
+
+`prefix` must be new/nonexistent with a writable parent. `model_source` is the verified bundle above; `gmx` is the CUDA executable. Keep loopback access or select a private bind address and unused port. Run:
+
+```bash
+python3 deployment/setup_workbench.py --config /srv/yuanhe/site.json
+# When every preflight check passes:
+python3 deployment/setup_workbench.py --config /srv/yuanhe/site.json --execute
+```
+
+Preflight collects platform/Python/tool/driver/GROMACS/model/clean-source/destination checks and prints the plan. Without `--execute` it writes nothing. Any failed check blocks installation. It does not guarantee enough GPU memory for every scientific job or probe every remote package server.
+
+For automation without a configuration file, the equivalent lower-level command is:
 
 ```bash
 python3 deployment/deploy_workbench.py \
   --prefix /srv/yuanhe/runtime-NEW \
-  --model-source /absolute/old-project \
+  --model-source /srv/yuanhe/models-NEW \
   --gmx /absolute/gromacs/bin/gmx \
-  --host APPROVED_PRIVATE_BIND_ADDRESS --port 8777
+  --host 127.0.0.1 --port 8777
 ```
 
 The default is a read-only plan. Inspect the source SHA, paths and storage allocation, then repeat the command with `--execute`. It performs:
@@ -65,13 +116,15 @@ No scientific stage, service restart or 500 ns trajectory starts here. Progress/
 
 ## 4. Switch the service and prove which code is serving
 
-Only after readiness passes, the installer writes `PREFIX/evidence/start-workbench.sh`. Check jobs at OS level as well as in the UI: an empty run list does not prove the GPU is idle. During an approved idle window, point the existing service manager at:
+Only after readiness passes (`all_runtime_checks_pass: true` in `readiness.json`, `ready_for_service_switch` in `deployment.json`), the installer writes `PREFIX/evidence/start-workbench.sh`. On a first installation, run it in a Linux terminal as the installation owner and keep the terminal open for initial verification. For unattended use, configure the site's service manager to execute the same absolute command as that owner. No existing service-unit name is assumed. For upgrades, check jobs at OS level and in the UI, then switch the existing service command during an idle window:
 
 ```bash
 bash /srv/yuanhe/runtime-NEW/evidence/start-workbench.sh
 ```
 
 Run as the installation owner with existing private network controls. The launcher checks RDKit/NumPy/drawing in the configured service Python. Saving a different interpreter path in a running UI does not replace that process.
+
+Open `http://127.0.0.1:8777/` on the machine, or the configured private address from an allowed client. Do not launch a second service on the same port. For rollback, stop new jobs first and restore the original service command with its original checkout/runtime. Never run two versions against the same task directory.
 
 From the new source directory, supply the SHA from package verification or `git rev-parse HEAD`:
 
@@ -86,10 +139,23 @@ The read-only check rejects a wrong version, same-version/wrong-commit deploymen
 
 Open **Environment and diagnostics -> Check saved environment before creating a run** and save the report. Create a separate small run and record its ID. Execute preparation, Peptide2Mol, core review, REINVENT4, structure/toxicity/complete-route screening, receptor/box review, Vina and ZVSS. Keep zero-qualified outcomes explicit; never relax gates to force downstream execution.
 
-MD requires reviewed candidate and membrane inputs. A short engineering trajectory, explicitly configured as a separate custom test, is not the formal 500 ns protocol. Verify actual CUDA mdrun, checkpoint recovery and analysis. Do not label skipped stages passed. Preserve force fields, gates, default protocols, historical records and requested research durations.
+MD requires reviewed candidate and membrane inputs. A short engineering trajectory, explicitly configured as a separate custom test, is not the formal 500 ns protocol. Verify actual CUDA mdrun, checkpoint recovery and analysis. Completion requires `Finished mdrun`, final step/time, valid final checkpoint, required outputs/analysis and the workflow completion record. A process or trajectory file alone is insufficient. Do not label skipped stages passed. Preserve force fields, gates, default protocols, historical records and requested research durations.
 
 Return: source SHA, actual service Python/start command, `deployment.json`, readiness/service reports, run ID, stage logs, model hashes and artifact/checkpoint records. [Detailed troubleshooting](deployment/WORKBENCH_DEPLOYMENT.md) covers missing imports, GPU builds, model assets and interrupted runs.
 
+## Troubleshooting without a separate handoff
+
+| Symptom | Action |
+| --- | --- |
+| Download/hash mismatch | Inspect `model-bundle.json`, official URL and proxy connectivity. Keep failed files and retry in a new directory; never change hashes. |
+| Preflight failure | Resolve every `ok: false` item, then repeat. Machine paths/tools belong in site configuration or PATH, not research defaults. |
+| Install failure | Inspect `PREFIX/evidence/deployment.json` and its named step log. Keep evidence, fix the cause, retry with a new clean checkout and prefix. Reuse the verified bundle. |
+| CUDA/GROMACS error | Verify the driver as the service owner and `gmx --version`; use the portable build instructions above. |
+| Old code still serving | Compare full source commit, actual startup command/process and port. A GitHub merge does not restart the server. |
+| Large result/editor failure | Confirm the evidence UI repair is deployed; follow [its behavior and recovery reference](deployment/UI_EVIDENCE_FIX.txt). |
+| No qualifying candidate | Inspect gate evidence. Missing routes remain blocked; use another authorized small generation batch without lowering thresholds. |
+| Interrupted task/revision | Preserve checkpoints/archives and follow the recovery reference. Do not delete pending markers to bypass checks. |
+
 ## Release and deployment are separate
 
-[Verified administrator release](.github/workflows/release.yml) packages an explicit main-branch SHA after both push CI workflows pass, verifies the extracted archive and publishes a new tag/ZIP/checksum. Existing tags are never replaced. It does not deploy or restart the internal workstation. A merge or green CI does not establish a server update.
+[Verified administrator release](.github/workflows/release.yml) requires engineering, predocking-model and evidence-UI push checks for an explicit main-branch SHA, verifies the extracted archive and publishes a new tag/ZIP/checksum. Existing tags are never replaced. It does not deploy or restart the internal workstation. A merge or green CI does not establish a server update.

@@ -1,6 +1,6 @@
 # Administrator deployment: complete research workbench
 
-Start with the [current administrator download and verification entrypoint](../DEPLOY.md). This guide configures the complete browser workflow. For an ordered plan and installation with per-step logs use deployment/deploy_workbench.py as described in DEPLOY.md. Use a complete Git checkout or the verified named administrator ZIP. The public minimal CLI test, historical 5070 notes, and `Dockerfile.research` alone do **not** install or validate the full workbench.
+Start with the [self-contained installation entrypoint](../DEPLOY.md). It covers first installation without an old project, configuration, preflight, startup and upgrades. This reference expands individual installation steps. Use a complete clean Git checkout or the verified named administrator ZIP. The public minimal CLI test, historical 5070 notes, and `Dockerfile.research` alone do **not** install or validate the full workbench.
 
 The administrator performs installation and service management. Researchers operate only the supplied UI URL; they do not need SSH or a local compute installation. A code update requires the administrator to deploy the updated revision and restart the service. Merely refreshing the browser cannot change server dependencies or its running Python.
 
@@ -40,12 +40,12 @@ cd yuanhe-bio-workflow
 git rev-parse HEAD
 ```
 
-Select the current immutable tag from `deployment/current_release.json` and verify the software version. For the named ZIP, follow `DEPLOY.md` and `verify_release.py`; do not mistake a source commit hash for the product version. Choose a new dedicated installation prefix owned by the service account, for example `/srv/yuanhe/release-20261022`. The commands below use `YUANHE_PREFIX`; replace the example path once, consistently.
+Use clean `main` for the latest merged fixes, recording the exact commit before installation. To reproduce a published release instead, select its immutable tag from `deployment/current_release.json`; it can predate main. For the named ZIP, follow `DEPLOY.md` and `verify_release.py`; do not mistake a source commit hash for the product version. Choose a new dedicated installation prefix owned by the service account, for example `/srv/yuanhe/release-20261022`. The commands below use `YUANHE_PREFIX`; replace the example path once, consistently.
 
-GitHub deliberately does not contain model weights, installed environments or private scientific data. Obtain the sources/weights in [model_dependencies.json](model_dependencies.json) under their upstream terms. Either restore the administrator's existing licensed bundle:
+GitHub deliberately does not contain model weights, installed environments or private scientific data. For first installation, `python3 deployment/fetch_generation_models.py --destination /absolute/NEW-model-bundle --execute` obtains the exact public sources and weights, retains their licenses and verifies hashes. Review upstream terms linked in `DEPLOY.md`. Use that bundle with `setup_workbench.py`, which restores it automatically. For the manual steps below, restore the downloaded bundle or an existing compatible bundle:
 
 ```bash
-python3 deployment/restore_models.py --source-root /absolute/licensed-source-project
+python3 deployment/restore_models.py --source-root /absolute/model-bundle
 ```
 
 or check out the exact upstream revisions into `01_molecule_generation/vendor/Peptide2Mol` and `01_molecule_generation/vendor/REINVENT4`, and place the two weights at the manifest paths. Retain the upstream LICENSE files and REINVENT4 `uv.lock`. The manifest records source URLs, commits, weight paths and SHA-256. Do not substitute a similarly named model or edit expected hashes to accept a different weight.

@@ -1,0 +1,52 @@
+First-install and UI repair validation - 2026-10-28
+
+Implementation tested: a7e5c2b701aab38f37cb5eee9df1de656b5426d0
+Base main: 6fdf74b4bab0a956f9663c2eab2ead014d47fa8b
+Platform: Linux x86_64 under WSL2, isolated CPython 3.12.16.
+
+Results
+- Full deployment/tests: 35 passed, no skipped tests. Includes first-install
+  bootstrap, invalid downloads, overwrite refusal, failed preflight blocking,
+  configuration preservation, standalone packaging and release identity.
+- Repository links/source integrity: 930 files checked, zero errors.
+- English/source syntax checks: zero errors.
+- Module/protocol governance: valid; all 127 protected scientific baseline
+  files remained byte-identical to the recorded baseline.
+- Real public downloads: both exact Git commits and official weights fetched
+  into a new isolated bundle. Both LICENSE files retained. Both pinned sizes
+  and SHA-256 values verified; receipt status verified. No model inference run.
+  Peptide2Mol: 67462479 bytes,
+  SHA-256 7dc82c4f895efea83764ce25c2fae5787f9f25b7935590e5119bde7199540129
+  REINVENT4: 94756131 bytes,
+  SHA-256 03e6cbe8a53e59a4ac3aa6728d041f1957bdd07b5eefdf2cfc5c8591036075af
+- The full deployment test environment initially lacked Meeko, required by
+  the existing standalone docking package. After installing the repository's
+  declared dependencies in that isolated environment, all 35 tests passed.
+
+Related UI repair, tested before this deployment-only change
+- 117 focused Linux tests passed, no skips, plus 2 subtests.
+- Real Chrome regression passed using synthetic local fixtures: large evidence
+  loading, read-only/cancel behavior, malformed review refusal, transactional
+  save, unchanged policies and incomplete-route refusal.
+- JavaScript syntax: 21 files passed.
+- No actual candidate approval was created by these tests.
+
+Reproduce
+  PYTHONPATH=00_workbench:02_docking/src:03_virtual_screening/src python -m pytest deployment/tests -q
+  python deployment/check_english.py
+  python deployment/check_repository.py
+  python deployment/check_governance.py
+  python deployment/check_scientific_baseline.py
+
+Use the recorded CI dependency setup in .github/workflows/engineering.yml for
+the full deployment tests; a bare Python environment is insufficient. The new
+bootstrap-only tests require pytest and no GPU/model inference. Browser commands
+and dependencies are in deployment/UI_EVIDENCE_FIX.txt and evidence-ui.yml.
+
+Limits
+This evidence does not certify a complete fresh GPU environment installation,
+real generator inference, qualified synthesis routes, target-server deployment
+or MD completion. Follow DEPLOY.md for target readiness and actual UI acceptance.
+No screening threshold, scientific model pin, force field or MD default changed.
+Published release archives may predate these commits. Check the served full SHA;
+a merge, same software version or passing CI does not prove a server update.

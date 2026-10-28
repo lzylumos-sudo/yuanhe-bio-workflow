@@ -3,7 +3,7 @@ on:
   workflow_dispatch:
     inputs:
       source_sha:
-        description: Full main-branch commit SHA with both push CI workflows passed
+        description: Full main-branch commit SHA with all required push CI workflows passed
         required: true
         type: string
 permissions:
@@ -31,7 +31,7 @@ jobs:
       - name: Require main ancestry and successful push checks
         run: |
           git merge-base --is-ancestor "$SOURCE_SHA" origin/main
-          for workflow in engineering.yml predocking-models.yml; do
+          for workflow in engineering.yml predocking-models.yml evidence-ui.yml; do
             count=$(gh api "repos/$GITHUB_REPOSITORY/actions/workflows/$workflow/runs?head_sha=$SOURCE_SHA&event=push&status=success&per_page=100" --jq '.total_count')
             [[ "$count" -gt 0 ]] || { echo "Missing successful push CI: $workflow"; exit 1; }
           done

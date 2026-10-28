@@ -196,8 +196,10 @@ def test_stage_order_and_settings_roundtrip(tmp_path,cfg,monkeypatch):
     monkeypatch.setattr(w,'RUNS',tmp_path);d=tmp_path/'case';write(d/'run.json',{'id':'case'});write(d/'config.json',{})
     w.review('case','risk',{'predocking':cfg});assert read(d/'reviews/risk.json')['predocking']==cfg
     write(d/'risk/stage.json',{'status':'completed'});write(d/'reinvent4/candidates.json',[{'id':'unchanged'}]);before=file_hash(d/'reinvent4/candidates.json')
-    w.revise_preflight('case','risk');assert not (d/'risk').exists();assert file_hash(d/'reinvent4/candidates.json')==before
-    assert list((d/'attempts').glob('risk_evidence_revision_*/stage.json'))
+    # An old/empty client request must no longer destroy results before editing.
+    with pytest.raises(ValueError,match='Only evidence reviews'):w.revise_preflight('case','risk')
+    assert (d/'risk/stage.json').exists() and file_hash(d/'reinvent4/candidates.json')==before
+    assert not (d/'attempts').exists()
 
 def test_batch_dedup_and_provenance(tmp_path,cfg):
     route_evidence(tmp_path,cfg);f=sdf(tmp_path,'CCO')
