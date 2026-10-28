@@ -68,7 +68,7 @@ Run one step at a time and stop on any nonzero exit. Runtime/model installation 
 
 The shared runtime contains CPU PyTorch for unrelated dependency resolution; **do not point `peptide_python` to it**. Peptide2Mol uses its dedicated GPU environment. Match PyTorch/CUDA/PyG builds as described in the [official PyG installation guide](https://pytorch-geometric.readthedocs.io/en/latest/install/installation.html). The repository pins an older supported combination for the recorded model; do not replace it with latest packages without testing the model.
 
-The REINVENT4 environment is installed from the patched source with its frozen lock. If its locked Torch build cannot execute on the target GPU, explicitly choose `research.reinvent_device="cpu"` before creating tasks, or validate a separately rebuilt compatible model environment. Do not silently advertise a CPU run as GPU inference.
+The REINVENT4 environment is installed from the patched source with its frozen lock, followed by [pinned runtime supplements](reinvent-runtime-requirements.txt). The pinned upstream lock omits SciPy even though the CLI imports it. The installer adds this supplement with `--no-deps`, retains the locked package versions, then checks the CLI and dependency consistency. If its locked Torch build cannot execute on the target GPU, explicitly choose `research.reinvent_device="cpu"` before creating tasks, or validate a separately rebuilt compatible model environment. Do not silently advertise a CPU run as GPU inference.
 
 ## 5. Install or select GPU GROMACS
 
