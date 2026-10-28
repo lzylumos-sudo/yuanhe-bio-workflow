@@ -22,6 +22,7 @@ cd yuanhe-bio-workflow
 ```
 
 Deployment settings: [site.example.json](deployment/site.example.json).
+Verified checks and remaining target acceptance: [first-install validation](deployment/FIRST_INSTALL_VALIDATION.txt).
 Researcher instructions after startup: [UI workflow](docs/18_UI_RESEARCH_WORKFLOW.md).
 Installation success does not imply that a candidate passes the scientific gates
 or that a molecular dynamics run has completed.
