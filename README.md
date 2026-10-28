@@ -6,6 +6,26 @@
 
 Generative AI · Structure-Based Drug Design · Virtual Screening · Molecular Dynamics
 
+## Deploy from this repository
+
+**New administrator? Start with [DEPLOY.md](DEPLOY.md).** It contains the complete
+first-install and upgrade procedure: machine requirements, public model downloads,
+site configuration, preflight, installation, service startup, verification and
+failure recovery. No old project directory or conversation history is required.
+Use a clean checkout of `main` for the latest merged fixes; the published package
+below is an immutable release snapshot and may predate those fixes.
+
+```bash
+git clone --branch main https://github.com/lzylumos-sudo/yuanhe-bio-workflow.git
+cd yuanhe-bio-workflow
+# Follow DEPLOY.md before running setup; all prerequisites are listed there.
+```
+
+Deployment settings: [site.example.json](deployment/site.example.json).
+Researcher instructions after startup: [UI workflow](docs/18_UI_RESEARCH_WORKFLOW.md).
+Installation success does not imply that a candidate passes the scientific gates
+or that a molecular dynamics run has completed.
+
 <!-- current-release:start -->
 **Current administrator build: 0.11.0-dev.3 (development)**
 

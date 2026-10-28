@@ -47,14 +47,13 @@ revision record. Remove the pending marker only after that recovery is verified.
 Do not use marker removal alone to bypass an incomplete revision.
 
 Administrator deployment
-1. Use a clean checkout of current main. Import the supplied Git bundle or apply
-   the mail patch on a dedicated branch. Review the diff and open a normal PR.
-   This repair was prepared on top of 6fdf74b4bab0a956f9663c2eab2ead014d47fa8b
-   (the concurrent-receptor preparation change is retained).
+1. Follow DEPLOY.md from a clean checkout containing this repair. No separate
+   patch, private handoff file or prior conversation is required. Use the exact
+   reviewed main commit; the older release ZIP may not contain these fixes.
 2. Require the normal Engineering checks and new Preflight evidence UI
    regressions workflow. The latter uses synthetic local fixtures only; its
    success is not a claim of real inference, synthesis or MD completion.
-3. Merge through the normal repository review process. On the server, wait for
+3. On the server, wait for
    jobs to finish and back up runtime.json, workflow_runs, model paths and the
    current source/version. Deploy the reviewed commit using DEPLOY.md and
    deployment/WORKBENCH_DEPLOYMENT.md. Preserve environments and existing data.

@@ -1,0 +1,7 @@
+{
+  "prefix": "/srv/yuanhe/runtime-NEW",
+  "model_source": "/srv/yuanhe/models-NEW",
+  "gmx": "/srv/yuanhe/gromacs-NEW/install/bin/gmx",
+  "host": "127.0.0.1",
+  "port": 8777
+}
