@@ -75,7 +75,7 @@ def operations(rid):
  d,c=config(rid);out=[]
  for p in sorted((d/'operations').glob('*/operation.json'),reverse=True):
   x=w.read(p);x['id']=p.parent.name
-  if x['status']=='running' and rid not in w._active and not w.live_record(x,rid):x={**x,'status':'interrupted','error':'Service restarted; confirm the old process has stopped before resuming'}
+  if x['status']=='running' and (rid,'operation',p.parent.name) not in w._active and not w.live_record(x,rid):x={**x,'status':'interrupted','error':'Service restarted; confirm the old process has stopped before resuming'}
   log=p.parent/'process.log'
   if log.exists():
    with log.open('rb') as f:f.seek(max(0,log.stat().st_size-20000));x['log']=f.read().decode('utf-8','replace')
@@ -93,28 +93,29 @@ def launch(rid,kind,payload):
   if any(x.get('compound_id')==payload.get('compound_id') for x in existing):raise ValueError('Existing system for this compound; resume it instead of creating a repeat')
   if len(existing)>=c['research']['md_limit']:raise ValueError('MD candidate budget exhausted')
  with w._lock:
-  if w._active:raise ValueError('A task is running; finish or stop it first')
   if kind=='receptor':w.require(d,'prepare')
   if kind=='md_build':w.require(d,'screening')
   if kind.startswith('md_') and not c.get('md_python'):raise ValueError('Select the membrane simulation environment in settings Python')
-  lease=w.acquire_compute()
-  ident=str(time.time_ns())+'_'+uuid.uuid4().hex[:8];out=d/'operations'/ident;out.mkdir(parents=True)
-  w.atomic(out/'request.json',{'kind':kind,'payload':payload,'config':c,'run_id':rid,'source_revision':w.read(d/'active_source_revision.json')})
-  w.atomic(out/'operation.json',{'kind':kind,'status':'running','started':time.time()})
-  py=(c.get('md_python') if kind.startswith('md_') else c.get('prep_python') if kind=='receptor' else c['chem_python']) or sys.executable
-  log=(out/'process.log').open('w')
-  try:proc=subprocess.Popen([py,str(w.UI/'studio_worker.py'),'--run-id',rid,'--operation',ident],stdout=log,stderr=subprocess.STDOUT,cwd=w.UI,start_new_session=True,pass_fds=(lease.fileno(),),env={**os.environ,'PATH':str(Path(py).parent)+os.pathsep+os.environ.get('PATH',''),'OPENMM_CPU_THREADS':'12','OMP_NUM_THREADS':'12','YUANHE_COMPUTE_FD':str(lease.fileno())})
-  except Exception as e:
-   log.close();lease.close();w.atomic(out/'operation.json',{'kind':kind,'status':'failed','error':str(e)});raise
-  w._active[rid]=proc
-  w.atomic(out/'operation.json',{**w.read(out/'operation.json'),**w.process_identity(proc.pid)})
-  def wait():
-   code=proc.wait();log.close();lease.close()
-   with w._lock:
-    w._active.pop(rid,None);r=w.read(out/'operation.json')
-    if r['status']=='running':w.atomic(out/'operation.json',{**r,'status':'failed','error':f'Process exited {code}, without complete results','ended':time.time()})
-  threading.Thread(target=wait,daemon=True).start()
+  lease=w.acquire_compute(rid,lane='receptor') if kind=='receptor' else w.acquire_compute()
+  out=None
+  try:
+   ident=str(time.time_ns())+'_'+uuid.uuid4().hex[:8];out=d/'operations'/ident;out.mkdir(parents=True)
+   w.atomic(out/'request.json',{'kind':kind,'payload':payload,'config':c,'run_id':rid,'source_revision':w.read(d/'active_source_revision.json')})
+   from .scheduling import receptor_environment
+   resources=receptor_environment() if kind=='receptor' else {'OPENMM_CPU_THREADS':'12','OMP_NUM_THREADS':'12'}
+   w.atomic(out/'operation.json',{'kind':kind,'status':'running','started':time.time(),
+     'resource_lane':'receptor' if kind=='receptor' else 'exclusive','resources':resources})
+   py=(c.get('md_python') if kind.startswith('md_') else c.get('prep_python') if kind=='receptor' else c['chem_python']) or sys.executable
+   log=(out/'process.log').open('w',encoding='utf-8')
+   w.spawn_job(rid,'operation',ident,out/'operation.json',
+     [py,str(w.UI/'studio_worker.py'),'--run-id',rid,'--operation',ident],lease,log,
+     {**os.environ,'PATH':str(Path(py).parent)+os.pathsep+os.environ.get('PATH',''),**resources})
+  except BaseException as e:
+   lease.close()
+   if out is not None:w.atomic(out/'operation.json',{**w.read(out/'operation.json',{}),'kind':kind,'status':'failed','error':str(e),'ended':time.time()})
+   raise
  return {'id':ident,'kind':kind}
+
 
 def apply_receptor(rid,payload):
  d,c=config(rid);op=payload.get('operation','')

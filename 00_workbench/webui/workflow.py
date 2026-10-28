@@ -223,7 +223,7 @@ def status(rid):
  stages=[]
  for key,label,desc in stages_for(cfg):
   rec=read(d/key/'stage.json',{})
-  if rec.get('status')=='running' and rid not in _active and not live_record(rec,rid):
+  if rec.get('status')=='running' and (rid,'stage',key) not in _active and not live_record(rec,rid):
    rec={**rec,'status':'interrupted','error':'Original process not found after restart. Stop the task to archive its interrupted state, then retry; membrane simulations retain separate checkpoints.'}
   if rec.get('status')=='running' and key in ('risk','availability'):
    rec={**rec,'counts':read(d/key/'progress.json',{})}
@@ -262,44 +262,76 @@ def inventory():
  'defaults':defaults(),'research_schema':__import__('research.config',fromlist=['defaults']).defaults(),'platform':sys.platform,'target_platform':'Windows + WSL2 + NVIDIA',
  'notice':'Code and model availability do not establish real computational acceptance. Historical scaffolds are not counted as model outputs.'}
 
-def acquire_compute():
- import tempfile,fcntl
- key=hashlib.sha256(str(ROOT.resolve()).encode()).hexdigest()[:24]
- fh=open(Path(tempfile.gettempdir())/('yuanhe-compute-'+key+'.lock'),'a+')
- try:fcntl.flock(fh,fcntl.LOCK_EX|fcntl.LOCK_NB)
- except BlockingIOError:
-  fh.close();raise RuntimeError('A background process is active, possibly from another interface. Stop it first')
- return fh
+def acquire_compute(rid=None,lane=None,stage=None,review=None):
+ from .scheduling import acquire
+ return acquire(ROOT,run_dir(rid) if rid else None,lane,stage,review)
+
+
+def spawn_job(rid,kind,ident,record,argv,lease,logfile,env,finished=None):
+ """Track each worker separately; cleanup cannot unregister a sibling job."""
+ key=(rid,kind,ident)
+ try:
+  proc=subprocess.Popen(argv,stdout=logfile,stderr=subprocess.STDOUT,cwd=UI,
+    start_new_session=True,pass_fds=lease.fds(),env={**env,**lease.environment()})
+ except BaseException:
+  logfile.close();raise
+ try:
+  atomic(record,{**read(record),**process_identity(proc.pid)})
+ except BaseException:
+  import signal
+  try:os.killpg(proc.pid,signal.SIGKILL)
+  except ProcessLookupError:pass
+  proc.wait();logfile.close();raise
+ _active[key]=proc
+ def wait():
+  try:
+   code=proc.wait()
+   with _lock:
+    rec=read(record,{})
+    if rec.get('status')=='running':atomic(record,{**rec,'status':'failed','error':f'Process exited {code}, without complete results','ended':time.time()})
+    if finished:finished()
+  finally:
+   with _lock:
+    if _active.get(key) is proc:_active.pop(key,None)
+    logfile.close();lease.close()
+ threading.Thread(target=wait,daemon=True).start()
+ return proc
 
 
 def start(rid,stage):
- if stage not in dict((k,l) for k,l,_ in STAGES):raise ValueError('Unknown stage')
+ if stage not in {k for k,_,_ in STAGES}:raise ValueError('Unknown stage')
  d=run_dir(rid)
  with _lock:
-  if _active:raise RuntimeError('A computation is active; to avoid GPU/output conflicts, jobs execute serially')
-  verify_source(d)
-  cfg=read(d/'config.json');meta=read(d/'run.json')
-  if cfg is None or meta is None:raise ValueError('Run not found')
-  if digest(d/'config.json')!=meta['config_sha256']:raise ValueError('Configuration changed; copy settings into a new run')
-  target=d/stage
-  if target.exists():
-   previous_record=read(target/'stage.json',{})
-   if previous_record.get('status') not in {'failed','blocked','cancelled'}:
-    raise RuntimeError('This stage has completed or interrupted records and cannot be overwritten')
-  previous=[k for k,_,_ in stages_for(cfg)];idx=previous.index(stage)
-  if idx and not (stage=='risk' and (read(d/'reviews/risk.json',{}).get('imported_candidates') or cfg.get('imported_candidates'))):require(d,previous[idx-1])
-  if cfg.get('research'):
-   from research.assets import verify
-   verify(d)
-   from research.resources import disk_guard
-   disk_guard(d,cfg['research'])
-  lease=acquire_compute()
+  lease=acquire_compute(rid,lane='compute',stage=stage)
+  try:
+   verify_source(d)
+   cfg=read(d/'config.json');meta=read(d/'run.json')
+   if cfg is None or meta is None:raise ValueError('Run not found')
+   if digest(d/'config.json')!=meta['config_sha256']:raise ValueError('Configuration changed; copy settings into a new run')
+   target=d/stage
+   if target.exists():
+    previous_record=read(target/'stage.json',{})
+    if previous_record.get('status') not in {'failed','blocked','cancelled'}:
+     raise RuntimeError('This stage has completed or interrupted records and cannot be overwritten')
+   previous=[k for k,_,_ in stages_for(cfg)];idx=previous.index(stage)
+   if idx and not (stage=='risk' and (read(d/'reviews/risk.json',{}).get('imported_candidates') or cfg.get('imported_candidates'))):require(d,previous[idx-1])
+   if cfg.get('research'):
+    from research.assets import verify
+    verify(d)
+    from research.resources import disk_guard
+    disk_guard(d,cfg['research'])
+   return _start_leased(rid,stage,d,cfg,target,previous,idx,lease)
+  except BaseException:
+   lease.close();raise
+
+
+def _start_leased(rid,stage,d,cfg,target,previous,idx,lease):
   if target.exists():
    archive=d/'attempts'/f'{stage}_{time.time_ns()}';archive.parent.mkdir(exist_ok=True)
    if cfg.get('research') and stage in {'peptide2mol','reinvent4'}:
     archive.mkdir();shutil.copyfile(target/'stage.json',archive/'stage.json')
    else:target.rename(archive)
-  target.mkdir(exist_ok=True);atomic(target/'review.json',read(d/'reviews'/f'{stage}.json',{}));atomic(target/'stage.json',{'status':'running','started':time.time(),'counts':{},'source_revision':read(d/'active_source_revision.json'),'config_sha256':digest(d/'config.json')})
+  target.mkdir(exist_ok=True);atomic(target/'review.json',read(d/'reviews'/f'{stage}.json',{}));atomic(target/'stage.json',{'status':'running','started':time.time(),'counts':{},'resource_lane':'compute','source_revision':read(d/'active_source_revision.json'),'config_sha256':digest(d/'config.json')})
   if cfg.get('research'):
    from yuanhe.configuration import stage_config
    resolved=stage_config(cfg,[(key,read(d/key/'review.json',{})) for key in previous[:idx+1]])
@@ -311,56 +343,57 @@ def start(rid,stage):
     sync(d,previous);event(d,'stage_started','WORKBENCH',stage,'Frozen configuration dispatched')
   py=cfg.get('chem_python') or sys.executable
   logfile=(target/'process.log').open('w',encoding='utf-8')
-  try:proc=subprocess.Popen([py,str(UI/'pipeline_bridge.py'),'--run-id',rid,'--stage',stage],stdout=logfile,stderr=subprocess.STDOUT,cwd=UI,start_new_session=True,pass_fds=(lease.fileno(),),env={**os.environ,'YUANHE_COMPUTE_FD':str(lease.fileno())})
+  def finished():
+   if (d/'run_manifest.json').is_file():
+    from yuanhe.records import sync
+    sync(d,previous)
+  try:
+   proc=spawn_job(rid,'stage',stage,target/'stage.json',
+     [py,str(UI/'pipeline_bridge.py'),'--run-id',rid,'--stage',stage],lease,logfile,dict(os.environ),finished)
   except Exception as e:
-   logfile.close();lease.close();atomic(target/'stage.json',{'status':'failed','error':str(e)})
-   from yuanhe.records import sync
-   sync(d,previous)
-   raise
-  _active[rid]=proc
-  atomic(target/'stage.json',{**read(target/'stage.json'),**process_identity(proc.pid)})
-  def wait():
-   code=proc.wait();logfile.close();lease.close()
-   with _lock:
-    _active.pop(rid,None)
-    rec=read(target/'stage.json',{})
-    if rec.get('status')=='running':atomic(target/'stage.json',{**rec,'status':'failed','error':f'Process exited {code}, without complete results','ended':time.time()})
-    if (d/'run_manifest.json').is_file():
-     from yuanhe.records import sync
-     sync(d,previous)
-  threading.Thread(target=wait,daemon=True).start()
- return {'id':rid,'stage':stage,'pid':proc.pid}
+   atomic(target/'stage.json',{**read(target/'stage.json',{}),'status':'failed','error':str(e),'ended':time.time()})
+   finished();raise
+  return {'id':rid,'stage':stage,'pid':proc.pid}
 
-def cancel(rid):
+
+def cancel(rid,stage=None,operation=None):
+ """Cancel selected process groups only; no selector retains stop-all semantics."""
  import signal
+ if stage is not None and operation is not None:raise ValueError('Select one job')
+ if stage is not None and stage not in {x[0] for x in STAGES}:raise ValueError('Unknown stage')
+ if operation is not None and not re.fullmatch(r'[A-Za-z0-9_-]{1,100}',operation):raise ValueError('Invalid operation identifier')
  with _lock:
-  d=run_dir(rid);paths=[d/key/'stage.json' for key,_,_ in STAGES]+list((d/'operations').glob('*/operation.json'))
-  proc=_active.get(rid);records=[(p,read(p,{})) for p in paths]
-  pid=proc.pid if proc else next((r['pid'] for _,r in records if r.get('status')=='running' and live_record(r,rid)),None)
-  if pid:
-   try:os.killpg(pid,signal.SIGTERM)
-   except ProcessLookupError:pass
-   identity=process_identity(pid)
-   def kill_later():
-    if proc:
-     try:proc.wait(timeout=30);return
-     except subprocess.TimeoutExpired:pass
-    else:
-     # Preserve checkpoint flush time after SIGTERM; identity is rechecked.
+  d=run_dir(rid)
+  jobs=[('stage',key,d/key/'stage.json') for key,_,_ in STAGES]
+  jobs += [('operation',p.parent.name,p) for p in (d/'operations').glob('*/operation.json')]
+  if stage is not None:jobs=[j for j in jobs if j[:2]==('stage',stage)]
+  if operation is not None:jobs=[j for j in jobs if j[:2]==('operation',operation)]
+  changed=False
+  for kind,ident,path in jobs:
+   record=read(path,{})
+   proc=_active.get((rid,kind,ident))
+   if record.get('status')!='running' and proc is None:continue
+   pid=proc.pid if proc is not None and proc.poll() is None else record.get('pid') if live_record(record,rid) else None
+   if pid:
+    identity=process_identity(pid)
+    try:os.killpg(pid,signal.SIGTERM)
+    except ProcessLookupError:pass
+    def kill_later(pid=pid,identity=identity):
+     # Wait for checkpoint flushing, then check the original process identity.
+     # Never signal a PID recycled into an unrelated process.
      time.sleep(30)
      if not live_record(identity,rid):return
-    try:os.killpg(pid,signal.SIGKILL)
-    except ProcessLookupError:pass
-   threading.Thread(target=kill_later,daemon=True).start()
-  else:
-   lease=acquire_compute();lease.close()
-  changed=False
-  for path,record in records:
-   if record.get('status')=='running':atomic(path,{**record,'status':'cancelled','ended':time.time()});changed=True
+     try:os.killpg(pid,signal.SIGKILL)
+     except ProcessLookupError:pass
+    threading.Thread(target=kill_later,daemon=True).start()
+   if record.get('status')=='running':
+    atomic(path,{**record,'status':'cancelled','ended':time.time()});changed=True
+   changed=changed or bool(pid)
   if (d/'run_manifest.json').is_file():
    from yuanhe.records import sync
    sync(d,[x[0] for x in stages_for(read(d/'config.json'))])
- return {'cancelled':bool(pid) or changed}
+ return {'cancelled':changed}
+
 
 def log(rid,stage):
  if stage not in [x[0] for x in STAGES]:raise ValueError('Unknown stage')
@@ -411,9 +444,9 @@ def review(rid,stage,payload):
   if forbidden:raise ValueError('Frozen execution parameters: create a derived run to change '+','.join(sorted(forbidden)))
  if stage=='docking':validate_docking_settings({**read(d/'config.json'),**read(d/'reviews/docking.json',{}),**payload})
  with _lock:
-  if rid in _active:raise RuntimeError('Process has not exited')
-  if (d/stage).exists() and read(d/stage/'stage.json',{}).get('status') not in {'failed','blocked','cancelled'}:raise RuntimeError('Stage started or completed; settings are immutable')
-  atomic(d/'reviews'/f'{stage}.json',{**read(d/'reviews'/f'{stage}.json',{}),**payload})
+  with acquire_compute(rid,review=stage):
+   if (d/stage).exists() and read(d/stage/'stage.json',{}).get('status') not in {'failed','blocked','cancelled'}:raise RuntimeError('Stage started or completed; settings are immutable')
+   atomic(d/'reviews'/f'{stage}.json',{**read(d/'reviews'/f'{stage}.json',{}),**payload})
  return {'saved':True}
 
 
@@ -437,9 +470,8 @@ def revise_preflight(rid,stage):
 
 
 def lease_fds():
- try:
-  fd=int(os.environ.get('YUANHE_COMPUTE_FD','-1'));os.fstat(fd);return (fd,)
- except (ValueError,OSError):return ()
+ from scientific.artifacts import lease_fds as inherited
+ return inherited()
 
 
 def gnina_environment():

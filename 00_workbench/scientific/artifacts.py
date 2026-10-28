@@ -23,6 +23,12 @@ def within(root,rel):
  return p
 
 def lease_fds():
- try:
-  fd=int(os.environ.get('YUANHE_COMPUTE_FD','-1'));os.fstat(fd);return (fd,)
- except (ValueError,OSError):return ()
+ # Preserve all resource and output locks through nested engine processes.
+ values=os.environ.get('YUANHE_COMPUTE_FDS',os.environ.get('YUANHE_COMPUTE_FD',''))
+ fds=[]
+ for value in values.split(','):
+  try:
+   fd=int(value);os.fstat(fd)
+   if fd not in fds:fds.append(fd)
+  except (ValueError,OSError):continue
+ return tuple(fds)

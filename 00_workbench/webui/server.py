@@ -283,7 +283,9 @@ def api_project_rescreen(q, body, rid):
     return _json(workflow.rescreen(rid),202)
 
 def api_project_cancel(q, body, rid):
-    return _json(workflow.cancel(rid))
+    if body and set(body)-{'stage'}:raise ValueError('Unknown cancellation setting')
+    if body and 'stage' in body and not isinstance(body['stage'],str):raise ValueError('Select a stage by name')
+    return _json(workflow.cancel(rid,stage=body['stage']) if body and 'stage' in body else workflow.cancel(rid))
 
 def api_project_log(q, rid, key):
     return _json(workflow.log(rid,key))
@@ -384,6 +386,7 @@ def api_studio_run(q,body,rid,action):
     if action=='core':return _json(studio.save_core(rid,body))
     if action=='box':return _json(studio.box(rid,body))
     if action=='membrane-preview':return _json(studio.membrane_preview(rid,body))
+    if action=='cancel-operation':return _json(workflow.cancel(rid,operation=body.get('operation','')))
     if action=='receptor-apply':return _json(studio.apply_receptor(rid,body))
     return _json(studio.launch(rid,action,body),202)
 
