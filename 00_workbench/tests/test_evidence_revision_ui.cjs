@@ -8,13 +8,17 @@ const url = process.env.UI_FIXTURE_URL || 'http://127.0.0.1:8879/';
 assert(root && new URL(url).hostname === '127.0.0.1', 'Use isolated local fixtures only');
 (async () => {
   const browser = await chromium.launch({channel: process.env.CHROME_CHANNEL || 'chrome', headless: true});
+  let page;
   try {
-    const page = await browser.newPage({viewport: {width: 1400, height: 1000}});
+    page = await browser.newPage({viewport: {width: 1400, height: 1000}});
     const errors = [], posts = [];
     page.on('pageerror', error => errors.push(error.message));
     page.on('request', request => {if(request.method() === 'POST') posts.push(request.url());});
     await page.goto(url); await page.getByText('Service connected', {exact:true}).waitFor();
-    await page.locator('#runs').selectOption('UI_RISK_FIXTURE');
+    // Selection starts an asynchronous run load. Wait until its final request
+    // completes so the click cannot hit the empty-state "create run" button.
+    const loaded = page.waitForResponse(r => r.url().endsWith('/api/project/run/UI_RISK_FIXTURE/structure'));
+    await page.locator('#runs').selectOption('UI_RISK_FIXTURE'); await loaded;
     await page.getByRole('button', {name:/Substructure risk screening/}).click();
     await page.getByText('· 1 records', {exact:true}).waitFor();
     assert.equal(await page.locator('#error').innerText(), '');
@@ -79,5 +83,11 @@ assert(root && new URL(url).hostname === '127.0.0.1', 'Use isolated local fixtur
     if (process.env.UI_SCREENSHOT) await page.screenshot({path:process.env.UI_SCREENSHOT});
     await routeDialog.getByRole('button', {name:'Cancel', exact:true}).click();
     console.log('PASS: large-field table, read-only open/cancel, invalid JSON, evidence-only save, preserved archives/policies, incomplete route rejected; no scientific jobs started.');
+  } catch (error) {
+    if (page && process.env.UI_SCREENSHOT) {
+      await page.screenshot({path:process.env.UI_SCREENSHOT}).catch(()=>{});
+      console.error('UI failure details:', await page.locator('#error').innerText().catch(()=>''));
+    }
+    throw error;
   } finally {await browser.close();}
 })().catch(error=>{console.error(error);process.exitCode=1;});
