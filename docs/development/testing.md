@@ -17,4 +17,11 @@ node --experimental-vm-modules 00_workbench/webui/check_js.mjs
 
 Unit/contract tests include simulated dependency/error inputs. They do not constitute real inference/docking/MD validation. The lightweight end-to-end acceptance creates a real run and executes structure preparation only. Browser checks examine the actual service. GPU/native checks remain separately opted in and must identify hardware, environment, inputs and actual duration. Every skipped test has an explicit reason in `-ra` output/JUnit.
 
+Concurrent job tests use real Linux subprocesses for scheduling and cancellation.
+For the separately opted-in public receptor check, install `pdbfixer==1.12.0`
+and `openmm==8.6.1` in an isolated environment and run
+`python deployment/validate_concurrent_receptor.py --public-pdb /path/to/public/1CRN.pdb --output /path/to/acceptance.json`.
+The generation slot is held by a controlled worker, not real model inference.
+See [resource limits and acceptance boundaries](../architecture/concurrent_jobs.md).
+
 Historical `webui/test_api.py` expects undistributed generated artifacts; it is not a fresh-checkout acceptance suite. `webui/test_pages.mjs` uses recorded payload fixtures and a DOM shim, not a live browser. Both boundaries are retained in the validation report rather than hidden behind aggregate passes.
