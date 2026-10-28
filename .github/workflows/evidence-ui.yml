@@ -1,0 +1,47 @@
+name: Preflight evidence UI regressions
+on: [push, pull_request, workflow_dispatch]
+permissions:
+  contents: read
+jobs:
+  evidence-ui:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: '3.12'
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '22'
+          package-manager-cache: false
+      - name: Install isolated regression dependencies
+        run: |
+          python -m pip install pytest==9.1.1 rdkit==2024.9.6 numpy==1.26.4 filelock==3.18.0 PyYAML==6.0.2
+          npm install --prefix "$RUNNER_TEMP/yuanhe-ui" --no-save playwright@1.62.1
+          node "$RUNNER_TEMP/yuanhe-ui/node_modules/playwright/cli.js" install --with-deps chromium
+      - name: Strict evidence gates and Linux orchestration
+        env:
+          PYTHONPATH: 00_workbench:02_docking/src:03_virtual_screening/src
+          PYTEST_DISABLE_PLUGIN_AUTOLOAD: '1'
+        run: >-
+          python -m pytest 00_workbench/tests/test_ui_large_evidence.py
+          00_workbench/tests/test_preflight_revision.py
+          00_workbench/tests/test_concurrent_jobs.py
+          00_workbench/tests/test_screening_revision.py
+          02_docking/tests/preflight -q --junitxml=evidence-tests.xml
+      - name: Actual browser and local fixture API
+        env:
+          PLAYWRIGHT_MODULE: ${{ runner.temp }}/yuanhe-ui/node_modules/playwright
+          CHROME_CHANNEL: chromium
+          PYTHON_EXECUTABLE: python
+          UI_TEST_TEMP: ${{ runner.temp }}
+          UI_SCREENSHOT: evidence-ui.png
+        run: node 00_workbench/tests/run_evidence_ui.cjs
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: preflight-evidence-ui-results
+          path: |
+            evidence-tests.xml
+            evidence-ui.png

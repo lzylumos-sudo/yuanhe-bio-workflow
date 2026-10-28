@@ -1,0 +1,91 @@
+Preflight evidence UI repair and administrator acceptance
+
+Scope
+1. Risk/availability result pages read canonical records.json directly. Large
+   nested route evidence no longer passes through the CSV field-size limit.
+2. Evidence revision is read-only until a validated save. The editor offers
+   candidate/evidence selection, review metadata and optional advanced JSON.
+   Cancelling, malformed data, stale editors and validation errors preserve
+   existing results. A successful save archives affected stages and records
+   provenance before marking them pending; it never qualifies a molecule.
+3. Recorded PAINS/BRENK review alerts can use the existing individual-review
+   contract, bound to exact structure, rule hash and catalog policy hash.
+   Hard exclusions cannot be waived through this editor. No automatic reviews
+   or exceptions are added to production data.
+
+Unchanged scientific policy
+All thresholds, risk rule actions, model assets, generation budgets, search
+budgets, ranking policy and MD settings remain frozen. Review cannot replace
+missing reaction steps, templates, identity checks or planning-pool materials.
+The native pre-docking gate re-evaluates complete route evidence before docking.
+No default configuration, force field or scientific protocol version changes.
+
+Revision behavior
+- Risk revision archives risk and availability; availability revision archives
+  availability only. Generation artifacts and config.json remain unchanged.
+- Previous review records are retained. New records are appended, not silently
+  substituted. A stale availability override cannot erase a later risk review.
+- Referenced route search evidence is copied into the stable revision folder
+  before the original availability directory is moved.
+- Source changes are narrowly checked; changed inference/policy implementations
+  require a new run. The prior source snapshot is never overwritten.
+- Older runs predating other changes on main may be ineligible for this limited
+  continuation. Preserve them and create a new UI run; never edit stored hashes
+  or expand the allowed-source list just to make a task run.
+- Running/interrupted jobs and downstream docking/MD artifacts block revisions.
+  The exclusive maintenance lease also blocks another server's active workers.
+
+Failure recovery
+Handled I/O failures restore prior reviews, active source pointer and archived
+stage directories. If the process crashes mid-commit, a pending marker blocks
+execution. Stop the service and all workers before recovery. Inspect the
+preflight_revision.pending.json referenced revision.json. Its before_reviews
+contains the previous bytes (null means absent) and archives maps original stage
+directories to their preserved locations. Restore those files/directories from
+the recorded revision or a verified backup, verify hashes and preserve the failed
+revision record. Remove the pending marker only after that recovery is verified.
+Do not use marker removal alone to bypass an incomplete revision.
+
+Administrator deployment
+1. Use a clean checkout of current main. Import the supplied Git bundle or apply
+   the mail patch on a dedicated branch. Review the diff and open a normal PR.
+   This repair was prepared on top of 6fdf74b4bab0a956f9663c2eab2ead014d47fa8b
+   (the concurrent-receptor preparation change is retained).
+2. Require the normal Engineering checks and new Preflight evidence UI
+   regressions workflow. The latter uses synthetic local fixtures only; its
+   success is not a claim of real inference, synthesis or MD completion.
+3. Merge through the normal repository review process. On the server, wait for
+   jobs to finish and back up runtime.json, workflow_runs, model paths and the
+   current source/version. Deploy the reviewed commit using DEPLOY.md and
+   deployment/WORKBENCH_DEPLOYMENT.md. Preserve environments and existing data.
+   Do not substitute the older published release ZIP for the newly merged code.
+4. Restart only the site's actual workbench service with its configured chemistry
+   interpreter. No service-unit name or SSH access is assumed in this repair.
+5. Verify the displayed source commit (software version may remain unchanged),
+   refresh the browser, open the previous large-evidence run, and confirm rows
+   and details load. Open/cancel the evidence editor and verify results remain.
+6. Return the deployed commit and UI URL to the researcher before real UI testing
+   resumes. Do not approve any molecule on behalf of a chemistry reviewer.
+
+Focused regression commands (Linux, Python 3.12)
+  python -m pip install pytest==9.1.1 rdkit==2024.9.6 numpy==1.26.4 filelock==3.18.0 PyYAML==6.0.2
+  PYTHONPATH=00_workbench:02_docking/src:03_virtual_screening/src python -m pytest 00_workbench/tests/test_ui_large_evidence.py 00_workbench/tests/test_preflight_revision.py 00_workbench/tests/test_concurrent_jobs.py 00_workbench/tests/test_screening_revision.py 02_docking/tests/preflight -q
+  node --experimental-vm-modules 00_workbench/webui/check_js.mjs
+
+Browser regression
+Install Playwright 1.62.1 and Chromium in an isolated test environment. Set
+PLAYWRIGHT_MODULE to its module path, CHROME_CHANNEL=chromium and
+PYTHON_EXECUTABLE to the test Python. Run:
+  node 00_workbench/tests/run_evidence_ui.cjs
+The harness owns an isolated local fixture server and closes it after the test.
+The fixture rejects scientific stage execution. The GitHub workflow supplies the
+same setup and uploads the JUnit report and browser screenshot.
+
+Real UI continuation after deployment
+Retain strict gates, generate small batches and inspect actual outcomes. Only a
+fully qualified candidate may proceed through reviewed receptor/pocket, Vina,
+screening, membrane construction, equilibration and production MD. Review alerts
+and absent routes are not automatically approved by this repair. If no candidate
+qualifies, preserve that outcome instead of lowering thresholds. MD completion
+requires final step/time, Finished mdrun, checkpoint and output verification, and
+the stage completion record; a running process or trajectory frame is insufficient.

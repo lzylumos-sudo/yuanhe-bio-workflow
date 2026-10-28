@@ -94,6 +94,7 @@ def continue_md(rid):
   finally:lease.close()
 
 def verify_source(d):
+ if (d/'preflight_revision.pending.json').exists():raise ValueError('Incomplete evidence revision: administrator recovery required')
  frozen=read(d/'source_snapshot.json')
  revision=read(d/'active_source_revision.json')
  if revision:
@@ -102,7 +103,13 @@ def verify_source(d):
   proof=read(path)
   if proof['initial_source_sha256']!=digest(d/'source_snapshot.json'):raise ValueError('Original source record changed')
   changed={k for k in set(frozen)|set(proof['source']) if frozen.get(k)!=proof['source'].get(k)}
-  if any(not (_md_revision_allowed(k) if proof.get('scope')=='md' else _screen_revision_allowed(k)) for k in changed):raise ValueError('Revision changes an upstream calculation')
+  from .preflight_revision import source_allowed as preflight_allowed
+  allowed=preflight_allowed if proof.get('scope')=='preflight' else _md_revision_allowed if proof.get('scope')=='md' else _screen_revision_allowed
+  if any(not allowed(k) for k in changed):raise ValueError('Revision changes an upstream calculation')
+  if proof.get('scope')=='preflight':
+   for key,sha in proof['upstream_stage_records'].items():
+    if key not in {'prepare','peptide2mol','reinvent4'} or digest(d/key/'stage.json')!=sha:raise ValueError('Upstream stage record changed after evidence revision')
+    require(d,key)
   frozen=proof['source']
  if frozen is not None and frozen!=source_snapshot():raise ValueError('Code differs from the recorded run version; preserve outputs and explicitly revise the affected stage')
 
@@ -450,23 +457,10 @@ def review(rid,stage,payload):
  return {'saved':True}
 
 
-def revise_preflight(rid,stage):
- """Explicit UI revision of evidence only. Preserve generation and old attempts."""
- if stage not in ('risk','availability'):raise ValueError('Invalid preflight stage')
- d=run_dir(rid)
- with _lock:
-  if _active:raise ValueError('Wait for active work to finish')
-  if (d/'docking').exists() or (d/'screening').exists() or (d/'md_systems').exists():raise ValueError('Downstream artifacts exist; create a separate evidence-review run')
-  lease=acquire_compute()
-  try:
-   for key in (('risk','availability') if stage=='risk' else ('availability',)):
-    target=d/key
-    if target.exists():
-     record=read(target/'stage.json',{})
-     if record.get('status')=='running':raise ValueError('Stage still running')
-     archive=d/'attempts'/(key+'_evidence_revision_'+str(time.time_ns()));archive.parent.mkdir(exist_ok=True);target.rename(archive)
-   return {'status':'pending','stage':stage,'generation_unchanged':True}
-  finally:lease.close()
+def revise_preflight(rid,stage,payload=None):
+ """Validate evidence first; a legacy empty POST must never archive results."""
+ from .preflight_revision import submit
+ return submit(rid,stage,payload)
 
 
 def lease_fds():

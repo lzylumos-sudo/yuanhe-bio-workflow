@@ -26,8 +26,10 @@ def catalog(name):
 
 
 def screen(smiles, rules, exceptions, engine=None):
-    result = rules.screen(smiles, exceptions)
+    catalog_reviews = [x for x in exceptions if str(x.get('rule_id', '')).startswith(('PAINS:', 'BRENK:'))]
+    result = rules.screen(smiles, [x for x in exceptions if x not in catalog_reviews])
     if not engine:
+        if catalog_reviews: raise ValueError('catalog_review_requires_engine_policy')
         return result
     mol = Chem.MolFromSmiles(canonical(smiles))
     alerts = list(result['alerts']) if engine['structure_enabled'] else []
@@ -42,6 +44,15 @@ def screen(smiles, rules, exceptions, engine=None):
                                'risk_category': 'assay_interference' if name == 'PAINS' else 'medicinal_chemistry',
                                'source': 'RDKit FilterCatalog/' + name, 'version': rdBase.rdkitVersion,
                                'matched_atom_indices': atoms})
+    policy_sha = hash_obj({k: engine[k] for k in ('structure_enabled', 'catalog_actions', 'catalog_rule_actions')})
+    for review in catalog_reviews:
+        alert = next((a for a in alerts if a['rule_id'] == review['rule_id']), None)
+        if (not alert or alert['action'] != 'review' or review.get('structure_smiles') != canonical(smiles) or
+            review.get('rules_sha256') != rules.sha256 or review.get('catalog_policy_sha256') != policy_sha):
+            raise ValueError('catalog_review_identity_rule_or_policy_mismatch')
+        if any(not isinstance(review.get(k), str) or not review[k].strip() for k in ('reviewer', 'reason', 'reviewed_at')):
+            raise ValueError('catalog_review_requires_review_record')
+    result['exceptions'].extend(catalog_reviews)
     handled = {x['rule_id'] for x in result['exceptions']}
     blocking = [a for a in alerts if a['rule_id'] not in handled and a['action'] in ('exclude', 'review')]
     decision = 'exclude' if any(a['action'] == 'exclude' for a in blocking) else 'review' if blocking else 'pass'
@@ -51,5 +62,5 @@ def screen(smiles, rules, exceptions, engine=None):
                   matched_atom_indices={x['rule_id']: x['matched_atom_indices'] for x in alerts},
                   decision=decision, filter_status={'pass': 'PASS', 'review': 'REVIEW', 'exclude': 'BLOCK'}[decision],
                   reason='; '.join(x['rule_id'] + ':' + x['action'] for x in blocking) or 'No blocking match to configured rules',
-                  catalog_policy_sha256=hash_obj({k: engine[k] for k in ('structure_enabled', 'catalog_actions', 'catalog_rule_actions')}))
+                  catalog_policy_sha256=policy_sha)
     return seal(result)
