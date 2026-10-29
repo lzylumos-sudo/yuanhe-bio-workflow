@@ -35,7 +35,7 @@ MODULES = {
         fields=COMMON+[field('budget', 'Sampling attempts', 1, 'integer', min=1, max=1000)],
         description='Upload an already prepared pocket PDB. Uses the pinned real model and counts actual attempts.'),
     'reinvent4': dict(label='REINVENT4 generation', environment='chem_python', files={},
-        fields=COMMON+[field('scaffold', 'Reviewed scaffold SMILES with one [*] attachment', ''),
+        fields=COMMON+[field('scaffold', 'Reviewed scaffold SMILES with one [*:1] attachment', ''),
                        field('budget', 'Sampling attempts', 1, 'integer', min=1, max=1000)],
         description='Supply an explicit scaffold; no Peptide2Mol output is required.'),
     'risk': dict(label='Substructure risk screening', environment='chem_python', files={'library': '.smi,.sdf,.csv'},
@@ -114,6 +114,12 @@ def parameters(kind, supplied):
         result[key] = v
     if kind == 'prepare' and result['first_residue'] > result['last_residue']:
         raise ValueError('Residue range is reversed')
+    if kind == 'reinvent4':
+        from rdkit import Chem
+        mol = Chem.MolFromSmiles(result['scaffold'])
+        points = [] if mol is None else [atom for atom in mol.GetAtoms() if atom.GetAtomicNum() == 0]
+        if len(points) != 1 or mol.GetNumAtoms() <= 1 or not (points[0].GetIsotope() or points[0].GetAtomMapNum()):
+            raise ValueError('Scaffold requires exactly one labelled attachment, for example [*:1]')
     if kind == 'interaction' and not re.fullmatch(r'[A-Za-z0-9_:.-]{1,40}', result['ligand']):
         raise ValueError('Invalid ligand selector')
     return result
@@ -207,7 +213,7 @@ def get(ident):
 
 def inventory():
     return {'modules': {k: {**v, 'scope': SCOPE} for k, v in MODULES.items()},
-            'jobs': [w.read(p) for p in sorted(JOBS.glob('*/job.json'), reverse=True)][:100]}
+            'jobs': sorted((w.read(p) for p in JOBS.glob('*/job.json')), key=lambda row: row['created'], reverse=True)[:100]}
 
 
 def launch(ident, payload):

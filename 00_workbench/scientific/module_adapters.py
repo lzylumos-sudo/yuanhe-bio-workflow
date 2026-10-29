@@ -1,5 +1,6 @@
 """Independent module adapters reuse the scientific engines and strict screening gates."""
 import json
+import math
 from pathlib import Path
 import shutil
 import sys
@@ -15,6 +16,9 @@ def molecule(path):
     rows = list(Chem.SDMolSupplier(str(path), removeHs=False))
     if len(rows) != 1 or rows[0] is None or not rows[0].GetNumConformers():
         raise ValueError('Exactly one valid ligand with coordinates is required')
+    conf = rows[0].GetConformer()
+    if not conf.Is3D() or any(not math.isfinite(float(x)) for point in conf.GetPositions() for x in point):
+        raise ValueError('Ligand requires finite 3D coordinates')
     return rows[0], Chem.MolToSmiles(Chem.RemoveHs(rows[0]), isomericSmiles=True)
 
 

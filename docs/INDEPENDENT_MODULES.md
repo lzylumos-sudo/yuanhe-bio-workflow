@@ -10,7 +10,7 @@ then start the module. A saved job is not a completed calculation.
 | --- | --- | --- |
 | Complex preparation | Protein/peptide PDB, chains, residue range | Existing preparation; receptor and pocket artifacts |
 | Peptide2Mol | Prepared pocket PDB, attempt count, seed | Pinned real model; raw output and actual attempt report |
-| REINVENT4 | Reviewed scaffold SMILES with exactly one [*], count, seed | Pinned real model; batch size one supported |
+| REINVENT4 | Reviewed scaffold SMILES with exactly one labelled [*:1], count, seed | Pinned real model; batch size one supported |
 | Substructure risk | SDF, CSV or tab-separated SMILES table | Existing strict rules, exclusions and molecule records |
 | Pre-docking availability | The same library formats | Both gates, including toxicity and complete-route evidence |
 | Candidate docking | One ligand SDF, receptor PDB, reviewed box | Both gates recomputed before Vina; rejected ligands are not docked |

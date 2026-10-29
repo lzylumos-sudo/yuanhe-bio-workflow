@@ -33,7 +33,7 @@ function render(){
   $('moduleJobState').textContent=job.operations[0]?job.operations[0].action+': '+job.operations[0].status:'Input saved; computation has not started';
   $('moduleInputs').textContent=JSON.stringify({parameters:job.parameters,inputs:job.inputs,scope:job.scope},null,2);
   const running=job.operations.some(x=>x.status==='running'),md=job.module==='md',last=job.operations[0];
-  $('moduleStart').textContent=md?'Build membrane system':job.module==='md_tpr'&&last?'Resume prepared MD':'Start module';
+  $('moduleStart').textContent=md?'Build membrane system':last?.status==='completed'?'Completed':job.module==='md_tpr'&&last?'Resume prepared MD':'Start module';
   $('moduleStart').disabled=running||busy||(job.operations.length>0&&(md||job.module!=='md_tpr'||last.status==='completed'));
   $('moduleCancel').disabled=!running||busy;
   $('moduleSystemReview').hidden=!md||!job.systems.length;
@@ -47,7 +47,15 @@ function render(){
   $('moduleAnalyzeMD').disabled=running||busy||!reviewed||system?.status!=='completed'||job.operations.some(x=>x.action==='analyze'&&x.status==='completed');
   $('moduleOperations').replaceChildren();
   for(const op of job.operations){const row=element('div');row.className='operation';row.append(element('strong',op.action+': '+op.status));if(op.error)row.append(element('p',op.error));
-    const details=element('details');details.open=op===last;details.append(element('summary','Logs and result'),element('pre',op.log||'No log output yet'),element('pre',op.result?JSON.stringify(op.result,null,2):'No completed result'));row.append(details);$('moduleOperations').append(row);}
+    const result=op.result?.result;
+    if(result?.plan)row.append(element('p','Final step: '+result.plan.final_step+' · Final time: '+result.plan.final_time_ps+' ps · Checkpoint and trajectory verified'));
+    else if(result?.runs)row.append(element('p',result.runs.length+' reference runs · Top-1 pose recovery: '+Math.round(result.top1_recovery_fraction*100)+'%'));
+    else if(result?.ligands)row.append(element('p',result.ligands.length+' ligand analyses · '+result.ligands.reduce((n,r)=>n+r.n_events,0)+' interaction events'));
+    else if(result?.status==='blocked_by_strict_preflight')row.append(element('p','Strict pre-docking screening did not pass. No docking was started.'));
+    else if(result?.report)row.append(element('p','Actual sampling attempts: '+result.report.completed));
+    else if(result?.risk)row.append(element('p','Risk screening finished for '+result.risk.input+' input records. Inspect detailed decisions below.'));
+    const details=element('details');details.open=['running','failed','blocked'].includes(op.status);details.append(element('summary','Execution log'),element('pre',op.log||'Engine logs are available in the artifact list.'));row.append(details);
+    const proof=element('details');proof.append(element('summary','Detailed result and evidence'),element('pre',op.result?JSON.stringify(op.result,null,2):'No completed result'));row.append(proof);$('moduleOperations').append(row);}
   $('moduleArtifacts').replaceChildren();
   for(const file of job.artifacts){const link=element('a',file.path+' ('+file.size+' bytes)');link.href='/module-artifacts/'+job.id+'/'+file.path.split('/').map(encodeURIComponent).join('/');link.setAttribute('download','');$('moduleArtifacts').append(link);}
 }

@@ -32,7 +32,7 @@ def request(kind):
         if key in p:
             p[key] = 'Public fixture engineering review'
     if kind == 'reinvent4':
-        p['scaffold'] = 'c1ccccc1[*]'
+        p['scaffold'] = 'c1ccccc1[*:1]'
     if kind == 'interaction':
         p['ligand'] = 'BEN'
     files = {}
@@ -214,3 +214,10 @@ time.sleep(90)
             os.kill(child,signal.SIGKILL)
         except ProcessLookupError:
             pass
+
+@pytest.mark.parametrize('scaffold', ['c1ccccc1[*]', '[*:1]CC[*:2]', 'invalid', 'CCO', '[*:1]'])
+def test_reinvent_attachment_is_validated_before_job_creation(isolated, scaffold):
+    payload=request('reinvent4');payload['parameters']['scaffold']=scaffold
+    with pytest.raises(ValueError,match='labelled attachment'):
+        jobs.create(payload)
+    assert not jobs.JOBS.exists()

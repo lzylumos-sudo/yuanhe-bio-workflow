@@ -40,6 +40,7 @@ def run(d, cfg, params, source):
     if a.digest(folder/'production.tpr') != source_hash:
         raise ValueError('Staged TPR changed')
     capture([gmx, '--version'], folder, 'engine.txt')
+    print('Inspecting the uploaded production input', flush=True)
     dump = capture([gmx, 'dump', '-s', 'production.tpr'], folder, 'tpr_dump.txt')
     steps = value(dump, 'nsteps', int); initial = value(dump, 'init-step', int)
     dt = value(dump, 'dt'); tinit = value(dump, 'tinit')
@@ -64,6 +65,7 @@ def run(d, cfg, params, source):
     elif (folder/'production.log').exists():
         raise ValueError('Interrupted output has no checkpoint; preserve this job and create a new one')
     # The worker process group and inherited lease also cover this child.
+    print('Running GROMACS: '+str(plan['final_step'])+' planned final steps', flush=True)
     with (folder/'execution.log').open('a', encoding='utf-8') as log:
         proc = subprocess.run(argv, cwd=folder, stdout=log, stderr=subprocess.STDOUT,
                               timeout=int(cfg.get('timeout_seconds', 86400)), pass_fds=a.lease_fds(),
@@ -88,4 +90,5 @@ def run(d, cfg, params, source):
             'candidate_qualified': False, 'scientific_validation': 'not_established',
             'plan': plan, 'files': {name: a.digest(folder/name) for name in required}}
     a.atomic(folder/'completion.json', done)
+    print('Completed: final step, time, checkpoint and trajectory verified', flush=True)
     return done
