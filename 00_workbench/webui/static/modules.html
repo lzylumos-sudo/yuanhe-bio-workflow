@@ -1,0 +1,25 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Independent modules | Yuanhe Bio</title><link rel="stylesheet" href="/css/studio.css"><link rel="stylesheet" href="/css/modules.css"></head>
+<body class="modules-page"><header><a href="/">Yuanhe Bio / Research workbench</a><a href="/modules.html">Independent modules</a></header>
+<main>
+<section class="panel"><h1>Independent modules</h1><p>Start any module with your own input. Each job keeps its input snapshot, settings, logs and downloadable results.</p>
+<p class="scope">Independent computation does not admit a candidate to the qualified research pipeline. Scientific screening rules remain active.</p>
+<label>Module<select id="moduleSelect" aria-label="Module"></select></label><p id="moduleDescription"></p>
+<form id="moduleForm"><div class="form-grid" id="moduleFiles"></div><div class="form-grid" id="moduleFields"></div>
+<label class="ack"><input type="checkbox" id="scopeAck" required> I understand the independent scope and have reviewed the supplied input.</label>
+<button type="submit" class="primary" id="saveModule">Save input snapshot</button></form>
+<p id="moduleError" class="error" role="alert"></p></section>
+<section class="panel"><div class="panel-title"><h2>Saved jobs</h2><button id="refreshModules" type="button">Refresh</button></div>
+<label>Job<select id="moduleJobSelect" aria-label="Saved module job"><option value="">Select a saved job</option></select></label>
+<div id="moduleJobDetail" hidden>
+<p id="moduleJobIdentity"></p><p id="moduleJobState" role="status"></p>
+<details><summary>Frozen parameters and input hashes</summary><pre id="moduleInputs"></pre></details>
+<div id="moduleSystemReview" hidden><label>Built system<select id="moduleSystem" aria-label="Built MD system"></select></label>
+<label class="ack"><input type="checkbox" id="moduleReviewAck"> I reviewed the built system, membrane orientation, ligand identity and force field.</label>
+<label>Review rationale<textarea id="moduleReviewReason" rows="3"></textarea></label></div>
+<div class="actions"><button id="moduleStart" class="primary" type="button">Start module</button><button id="moduleRunMD" type="button" hidden>Run / resume MD</button><button id="moduleAnalyzeMD" type="button" hidden>Analyze completed MD</button><button id="moduleCancel" type="button">Stop job</button></div>
+<h3>Execution history</h3><div id="moduleOperations"></div>
+<h3>Artifacts</h3><p>Inspect system artifacts before starting MD. Downloads preserve the recorded files.</p><div id="moduleArtifacts" class="artifacts"></div>
+</div></section>
+</main><script type="module" src="/js/module-jobs.js"></script></body></html>

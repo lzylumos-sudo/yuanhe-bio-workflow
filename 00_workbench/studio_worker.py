@@ -45,7 +45,7 @@ def main():
  os.environ['PATH']=str(Path(sys.executable).parent)+os.pathsep+os.environ.get('PATH','')
  lease_context=None
  try:
-  if c.get('research') and kind in {'md_build','md_validation'}:
+  if c.get('research') and kind=='md_build':
    from research.resources import detect,gpu_lease,disk_guard
    disk_guard(d,c['research'])
    available=[g for g in detect(d)['gpus'] if g['allocatable']]

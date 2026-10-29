@@ -28,7 +28,7 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from webui import data, jobs, stages, workflow, studio                                   # noqa: E402
+from webui import data, jobs, stages, workflow, studio, module_jobs                                   # noqa: E402
 
 STATIC = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'static')
 ROOT = data.ROOT
@@ -438,6 +438,12 @@ def api_validate(q, body):
 
 
 ROUTES = [
+    ('GET', r'^/api/modules/jobs$', lambda q: _json(module_jobs.inventory())),
+    ('POST', r'^/api/modules/jobs$', lambda q, body: _json(module_jobs.create(body), 201)),
+    ('GET', r'^/api/modules/jobs/(?P<ident>MOD-[a-f0-9]{32})$', lambda q, ident: _json(module_jobs.get(ident))),
+    ('POST', r'^/api/modules/jobs/(?P<ident>MOD-[a-f0-9]{32})/start$', lambda q, body, ident: _json(module_jobs.launch(ident, body))),
+    ('POST', r'^/api/modules/jobs/(?P<ident>MOD-[a-f0-9]{32})/cancel$', lambda q, body, ident: _json(module_jobs.cancel(ident))),
+
     ('GET', r'^/api/v1/versions$', api_versions),
     ('GET', r'^/api/v1/modules$', api_modules),
     ('GET', r'^/api/v1/protocols$', api_protocols),
@@ -580,6 +586,11 @@ class Handler(BaseHTTPRequestHandler):
                 status, ctype, body = dispatch('GET', path, query, None)
                 self._send(status, ctype, body)
                 return
+            if path.startswith('/module-artifacts/'):
+                full = _safe_join(str(module_jobs.JOBS), path[len('/module-artifacts/'):])
+                if not os.path.isfile(full): raise HttpError('Artifact not found',404)
+                self._send_file(full, {'Content-Disposition': 'attachment', 'X-Content-Type-Options': 'nosniff'})
+                return
             if path.startswith('/artifacts/'):
                 full = _safe_join(str(workflow.RUNS), path[len('/artifacts/'):])
                 if not os.path.isfile(full): raise HttpError('Artifact not found',404)
@@ -614,11 +625,11 @@ class Handler(BaseHTTPRequestHandler):
             self._send(*_error('Cross-site write request denied', 403)); return
         try:
             length = int(self.headers.get('Content-Length') or 0)
-            if not 0 <= length <= ((12 if parsed.path == '/api/studio/upload' else 1) * 1024 * 1024):
+            if not 0 <= length <= ((130 if parsed.path == '/api/modules/jobs' else 12 if parsed.path == '/api/studio/upload' else 1) * 1024 * 1024):
                 raise ValueError()
         except ValueError:
             self.close_connection = True
-            self._send(*_error('Invalid request body length or limit exceeded: 12 MB', 413)); return
+            self._send(*_error('Invalid request body length or endpoint limit exceeded', 413)); return
         raw = self.rfile.read(length) if length else b'{}'
         try:
             body = json.loads(raw.decode('utf-8') or '{}')

@@ -48,3 +48,6 @@ LOCAL_README.txt
 04_interaction_analysis/env/plip_python.txt
 build/
 dist/
+
+# Independent UI jobs contain local inputs and execution evidence.
+00_workbench/module_jobs/

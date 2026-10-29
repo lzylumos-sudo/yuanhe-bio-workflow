@@ -86,7 +86,8 @@ def docking_control(d,c,p,out,root):
   src=source/name;target=out/'standalone'/name;target.parent.mkdir(parents=True,exist_ok=True)
   if src.is_dir():shutil.copytree(src,target,ignore=shutil.ignore_patterns('__pycache__','*.pyc'))
   else:shutil.copy2(src,target)
- a.atomic(out/'standalone/config.json',{'vina':c['vina'],'seeds':[17,41,97],'scope':'1DRF folate crystallographic pose recovery; no activity claim','rmsd_threshold_A':2.0})
+ a.atomic(out/'standalone/config.json',{'vina':c['vina'],'cpu':min(int(c.get('docking_cpu',4)),os.cpu_count() or 1),'seeds':[17,41,97],'scope':'1DRF folate crystallographic pose recovery; no activity claim','rmsd_threshold_A':2.0})
+ shutil.copy2(Path(__file__).with_name('reference_docking.py'),out/'standalone/reference_docking.py')
  script=out/'standalone/run_control.py'
  script.write_text(CONTROL_SCRIPT)
  env={**os.environ,'PYTHONPATH':str(out/'standalone/src')}
@@ -102,7 +103,7 @@ from pathlib import Path
 from concurrent.futures import ThreadPoolExecutor
 from rdkit import Chem
 from rdkit.Chem import rdMolAlign
-from sbvs2.docking.vina_official import run_vina_job
+from reference_docking import run_reference_job
 from sbvs2.docking.protocol import Protocol
 from sbvs2.docking.box import Box
 base=Path(__file__).resolve().parent;c=json.loads((base/'config.json').read_text())
@@ -112,13 +113,13 @@ if ref is None:raise ValueError('Invalid crystallographic reference')
 proto=Protocol.preset('standard',seeds=tuple(c['seeds']))
 def one(seed):
  job=base/'jobs'/str(seed)
- rec=run_vina_job(c['vina'],base/'data/prepared/demo_1drf/receptor_prepared.pdb',refpath,box,proto,seed,job,cpu=4,timeout=3600)
+ rec=run_reference_job(c['vina'],base/'data/prepared/demo_1drf/receptor_prepared.pdb',refpath,box,proto,seed,job,cpu=c['cpu'],timeout=3600)
  if rec['status']!='ok':raise RuntimeError(rec['error'])
  poses=[Chem.RemoveHs(m) for m in Chem.SDMolSupplier(str(job/'poses.sdf'),removeHs=False)]
  rms=[float(rdMolAlign.CalcRMS(m,ref)) for m in poses]
  return {'seed':seed,'rmsd_A':rms,'top1_rmsd_A':rms[0],'best_rmsd_A':min(rms),'top1_recovered':rms[0]<=c['rmsd_threshold_A'],'any_recovered':min(rms)<=c['rmsd_threshold_A'],'cpu_threads':rec['cpu']}
 with ThreadPoolExecutor(max_workers=1) as pool:rows=list(pool.map(one,c['seeds']))
-result={'scope':c['scope'],'module_import':__import__('sbvs2').__file__,'rmsd':'symmetry-aware heavy atoms in fixed receptor frame; no ligand fitting','threshold_A':c['rmsd_threshold_A'],'runs':rows,'top1_recovery_fraction':sum(r['top1_recovered'] for r in rows)/len(rows),'any_pose_recovery_fraction':sum(r['any_recovered'] for r in rows)/len(rows),'clean_environment':sys.prefix!=sys.base_prefix and 'include-system-site-packages = false' in (Path(sys.prefix)/'pyvenv.cfg').read_text().lower(),'python_executable':sys.executable,'environment_scope':'interpreter isolation is measured; dependencies are recorded separately in the installation lock'}
+result={'scope':c['scope'],'candidate_qualified':False,'evidence_contract':'yuanhe.reference-control/1','module_import':__import__('sbvs2').__file__,'rmsd':'symmetry-aware heavy atoms in fixed receptor frame; no ligand fitting','threshold_A':c['rmsd_threshold_A'],'runs':rows,'top1_recovery_fraction':sum(r['top1_recovered'] for r in rows)/len(rows),'any_pose_recovery_fraction':sum(r['any_recovered'] for r in rows)/len(rows),'clean_environment':sys.prefix!=sys.base_prefix and 'include-system-site-packages = false' in (Path(sys.prefix)/'pyvenv.cfg').read_text().lower(),'python_executable':sys.executable,'environment_scope':'interpreter isolation is measured; dependencies are recorded separately in the installation lock'}
 (base/'result.json').write_text(json.dumps(result,indent=2,allow_nan=False))
 '''
 

@@ -85,6 +85,9 @@ def collect(cfg, root, ui_python=None, publish=None):
        'import rdkit,numpy,yaml,gemmi,scipy,pandas,filelock,meeko; '
        'from rdkit.Chem import FilterCatalog,rdMolDescriptors; print(rdkit.__version__)',
        'Install the complete workbench runtime; filelock and Meeko are required too.')
+    py('interaction', chem,
+       'import Bio,openmm,openpyxl,cairosvg,lxml; print("interaction imports OK")',
+       'Install deployment/module-runtime-requirements.txt in the chemistry runtime.')
     py('screening', screen,
        'import MDAnalysis,prolif,posebusters,fastapi,scipy,pandas,yaml,gemmi; print("screening imports OK")',
        'Install screening dependencies in screen_python, not just chem_python.')
@@ -146,14 +149,14 @@ def collect(cfg, root, ui_python=None, publish=None):
                     'Restore the licensed source and exact weights in deployment/model_dependencies.json.')
             for row in json.loads((root / 'deployment/vendor_patches/manifest.json').read_text()):
                 path = root / '01_molecule_generation/vendor' / row['vendor'] / row['file']
-                add(row['vendor'] + '_patch', {'ok': path.is_file() and digest(path) == row['after_sha256'], 'path': str(path)},
+                add(row['vendor'] + '_patch:' + row['file'], {'ok': path.is_file() and digest(path) == row['after_sha256'], 'path': str(path)},
                     'Apply deployment/apply_vendor_patches.py before installing the model environment.')
                 if row['vendor'] == 'REINVENT4':
-                    py('reinvent_installed_patch', reinvent_python,
+                    py('reinvent_installed_patch:' + row['file'], reinvent_python,
                        'import hashlib,importlib.util;from pathlib import Path;'
-                       'p=Path(importlib.util.find_spec("reinvent.runmodes.samplers.libinvent").origin);'
+                       'p=Path(importlib.util.find_spec(' + repr(row['file'][:-3].replace('/', '.')) + ').origin);'
                        'print(p);assert hashlib.sha256(p.read_bytes()).hexdigest()==' + repr(row['after_sha256']),
-                       'The installed REINVENT4 sampler must contain the recorded patch, not an older site-packages copy.')
+                       'Every installed REINVENT4 patched module must contain the recorded patch, not an older site-packages copy.')
         except (OSError, ValueError, KeyError) as exc:
             add('model_manifest', {'ok': False, 'error': str(exc)}, 'Restore the complete repository and model manifests.')
 

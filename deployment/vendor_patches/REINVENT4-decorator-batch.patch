@@ -1,0 +1,27 @@
+--- a/reinvent/models/libinvent/models/decorator.py
++++ b/reinvent/models/libinvent/models/decorator.py
+@@ -42,7 +42,6 @@
+         )
+ 
+     def forward(self, padded_seqs, seq_lengths):  # pylint: disable=arguments-differ
+-        # FIXME: This fails with a batch of 1 because squeezing looses a dimension with size 1
+         """
+         Performs the forward pass.
+         :param padded_seqs: A tensor with the sequences (batch, seq).
+@@ -67,13 +66,13 @@
+ 
+         # sum up bidirectional layers and collapse
+         hs_h = (
+-            hs_h.view(self.num_layers, 2, batch_size, self.num_dimensions).sum(dim=1).squeeze()
++            hs_h.view(self.num_layers, 2, batch_size, self.num_dimensions).sum(dim=1)
+         )  # (layers, batch, dim)
+         hs_c = (
+-            hs_c.view(self.num_layers, 2, batch_size, self.num_dimensions).sum(dim=1).squeeze()
++            hs_c.view(self.num_layers, 2, batch_size, self.num_dimensions).sum(dim=1)
+         )  # (layers, batch, dim)
+         padded_seqs = (
+-            padded_seqs.view(batch_size, max_seq_size, 2, self.num_dimensions).sum(dim=2).squeeze()
++            padded_seqs.view(batch_size, max_seq_size, 2, self.num_dimensions).sum(dim=2)
+         )  # (batch, seq, dim)
+ 
+         return padded_seqs, (hs_h, hs_c)

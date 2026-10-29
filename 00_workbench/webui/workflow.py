@@ -52,8 +52,8 @@ def defaults():
  return cfg
 
 def source_snapshot():
- roots=['00_workbench/yuanhe','00_workbench/research','00_workbench/scientific','00_workbench/webui','01_molecule_generation/src','02_docking/src','03_virtual_screening/src','05_molecular_dynamics/modules']
- files=[ROOT/'00_workbench'/n for n in ['pipeline_bridge.py','studio_worker.py','md_stage.py']]
+ roots=['00_workbench/yuanhe','00_workbench/research','00_workbench/scientific','00_workbench/webui','01_molecule_generation/src','02_docking/src','03_virtual_screening/src','04_interaction_analysis/src','05_molecular_dynamics/modules']
+ files=[ROOT/'00_workbench'/n for n in ['pipeline_bridge.py','studio_worker.py','module_worker.py','md_stage.py']]
  for root in roots:files.extend((ROOT/root).rglob('*.py'))
  files.extend((ROOT/'03_virtual_screening'/'configs').rglob('*'))
  files.extend((ROOT/'00_workbench/configs').glob('*.json'))
@@ -219,7 +219,7 @@ def live_record(rec,rid):
  actual=process_identity(pid)
  if actual.get('process_start')!=rec['process_start']:return False
  argv=actual.get('argv',[])
- if not any(str(UI/x) in argv for x in ('pipeline_bridge.py','studio_worker.py')):return False
+ if not any(str(UI/x) in argv for x in ('pipeline_bridge.py','studio_worker.py','module_worker.py')):return False
  try:return argv[argv.index('--run-id')+1]==rid and os.getpgid(pid)==pid
  except (ValueError,IndexError,ProcessLookupError):return False
 

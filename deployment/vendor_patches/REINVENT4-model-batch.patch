@@ -1,0 +1,17 @@
+--- a/reinvent/models/libinvent/models/model.py
++++ b/reinvent/models/libinvent/models/model.py
+@@ -168,11 +168,11 @@
+                 input_vector, seq_lengths, encoder_padded_seqs, hidden_states
+             )  # (batch, 1, voc)
+ 
+-            probs = logits.softmax(dim=2).squeeze()  # (batch, voc)
+-            log_probs = logits.log_softmax(dim=2).squeeze()  # (batch, voc)
++            probs = logits.softmax(dim=2).squeeze(1)  # (batch, voc)
++            log_probs = logits.log_softmax(dim=2).squeeze(1)  # (batch, voc)
+             input_vector = torch.multinomial(probs, 1) * not_finished  # (batch, 1)
+             sequences.append(input_vector)
+-            nlls += self._nll_loss(log_probs, input_vector.squeeze())
++            nlls += self._nll_loss(log_probs, input_vector.squeeze(1))
+             not_finished = (input_vector > 1).type(torch.long)  # 0 is padding, 1 is end token
+ 
+             if not_finished.sum() == 0:

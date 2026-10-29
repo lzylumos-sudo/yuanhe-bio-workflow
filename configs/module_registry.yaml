@@ -31,7 +31,15 @@
       "output_schema": "yuanhe.stage-output/1",
       "deprecated_aliases": [
         "01"
-      ]
+      ],
+      "independent_ui": {
+        "path": "/modules.html",
+        "jobs": [
+          "prepare",
+          "peptide2mol",
+          "reinvent4"
+        ]
+      }
     },
     {
       "module_id": "DOCK",
@@ -63,7 +71,14 @@
       "deprecated_aliases": [
         "sbvs",
         "sbvs2"
-      ]
+      ],
+      "independent_ui": {
+        "path": "/modules.html",
+        "jobs": [
+          "docking",
+          "docking_control"
+        ]
+      }
     },
     {
       "module_id": "SCREEN",
@@ -92,7 +107,15 @@
       "output_schema": "yuanhe.stage-output/1",
       "deprecated_aliases": [
         "03"
-      ]
+      ],
+      "independent_ui": {
+        "path": "/modules.html",
+        "jobs": [
+          "risk",
+          "availability",
+          "screening"
+        ]
+      }
     },
     {
       "module_id": "INTERACT",
@@ -118,7 +141,13 @@
       ],
       "input_schema": "yuanhe.stage-input/1",
       "output_schema": "yuanhe.stage-output/1",
-      "deprecated_aliases": []
+      "deprecated_aliases": [],
+      "independent_ui": {
+        "path": "/modules.html",
+        "jobs": [
+          "interaction"
+        ]
+      }
     },
     {
       "module_id": "MD",
@@ -153,7 +182,14 @@
       "output_schema": "yuanhe.stage-output/1",
       "deprecated_aliases": [
         "Nexus_MD_v2"
-      ]
+      ],
+      "independent_ui": {
+        "path": "/modules.html",
+        "jobs": [
+          "md",
+          "md_tpr"
+        ]
+      }
     },
     {
       "module_id": "WORKBENCH",
@@ -184,7 +220,11 @@
         "WEDGE-Design",
         "Yuanhe Workflow",
         "Yuanhe Research Studio"
-      ]
+      ],
+      "independent_ui": {
+        "path": "/",
+        "jobs": []
+      }
     }
   ],
   "backends": [

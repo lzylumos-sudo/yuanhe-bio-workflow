@@ -36,6 +36,7 @@ runtime)
   # Reuse the independently reconstructed Linux lock; do not merge unrelated envs.
   bash "$HERE/public_minimal/install.sh" "$RUNTIME"
   "$RUNTIME/bin/python" -m pip install --no-deps --no-build-isolation "$ROOT/03_virtual_screening"
+  "$RUNTIME/bin/python" -m pip install --no-deps -r "$HERE/module-runtime-requirements.txt"
   freeze "$RUNTIME" runtime
   "$RUNTIME/bin/python" -m venv "$TOOLS"
   "$TOOLS/bin/python" -m pip install 'uv==0.13.1'
