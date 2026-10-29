@@ -1,6 +1,6 @@
 """Real CPU inference regression against the pinned official LibInvent prior."""
 import argparse
-import hashlib
+import csv
 import json
 from pathlib import Path
 import sys
@@ -29,13 +29,31 @@ def main():
     for budget in [1, 2]:
         result = run(scaffold_smiles='c1ccccc1[*:1]', checkpoint=gen/config['prior'],
             checkpoint_sha256=config['prior_sha256'], output_dir=args.out/('batch_'+str(budget)),
-            budget=budget, seed=41, executable=args.executable, repo=gen/'vendor/REINVENT4', device='cpu',
+            budget=budget, seed=17, executable=args.executable, repo=gen/'vendor/REINVENT4', device='cpu',
             environment={'OMP_NUM_THREADS':'1','MKL_NUM_THREADS':'1'})
         assert result['report']['completed'] == budget
         manifest = json.loads((args.out/('batch_'+str(budget))/'manifest.json').read_text())
         assert manifest['commands'][-1]['returncode'] == 0
         rows.append({'requested':budget, 'completed':result['report']['completed'], 'report':result['report']})
-    proof={'status':'passed','scope':'real official-prior CPU inference; not biological validation',
+    # This fixed public fixture produces one chemically invalid sample. The
+    # inference must still finish, while the strict adapter must reject it.
+    rejected_out = args.out/'invalid_batch_1'
+    try:
+        run(scaffold_smiles='c1ccccc1[*:1]', checkpoint=gen/config['prior'],
+            checkpoint_sha256=config['prior_sha256'], output_dir=rejected_out,
+            budget=1, seed=41, executable=args.executable, repo=gen/'vendor/REINVENT4', device='cpu',
+            environment={'OMP_NUM_THREADS':'1','MKL_NUM_THREADS':'1'})
+    except RuntimeError as error:
+        assert 'no valid unique molecules retaining the scaffold core' in str(error), str(error)
+    else:
+        raise AssertionError('The known invalid sample was accepted')
+    rejected_manifest = json.loads((rejected_out/'manifest.json').read_text())
+    assert rejected_manifest['status'] == 'failed'
+    assert rejected_manifest['commands'][-1]['returncode'] == 0
+    with (rejected_out/'raw_sampling.csv').open() as handle:
+        assert len(list(csv.DictReader(handle))) == 1
+    assert not (rejected_out/'candidates.json').exists()
+    proof={'status':'passed','invalid_sample_rejected':True,'scope':'real official-prior CPU inference; not biological validation',
            'torch_version':torch.__version__, 'batches':rows, 'checkpoint_sha256':config['prior_sha256']}
     (args.out/'acceptance.json').write_text(json.dumps(proof,indent=2))
     print(json.dumps(proof,indent=2))
@@ -43,3 +61,4 @@ def main():
 
 if __name__ == '__main__':
     main()
+

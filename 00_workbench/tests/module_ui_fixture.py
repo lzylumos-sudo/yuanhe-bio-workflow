@@ -11,7 +11,7 @@ sys.path.insert(0, str(ROOT/'00_workbench'))
 def main():
     ap = argparse.ArgumentParser(); ap.add_argument('--root', type=Path, required=True)
     ap.add_argument('--port', type=int, default=0); ap.add_argument('--gmx', default='')
-    ap.add_argument('--vina', default='')
+    ap.add_argument('--vina', default=''); ap.add_argument('--reinvent-executable', default='')
     args = ap.parse_args(); root = args.root.resolve(); root.mkdir(parents=True, exist_ok=True)
     os.environ['YUANHE_MODULE_JOBS'] = str(root/'jobs')
     from webui import module_jobs as jobs, workflow as w, server
@@ -19,6 +19,8 @@ def main():
     cfg = w.defaults()
     cfg.update(chem_python=sys.executable, screen_python=sys.executable, md_python=sys.executable,
                gmx=args.gmx, vina=args.vina or 'vina')
+    if args.reinvent_executable:
+        cfg['reinvent_executable'] = args.reinvent_executable
     # No synthetic engine result: unavailable environments must fail visibly.
     w.defaults = lambda: cfg
     if args.gmx:

@@ -115,3 +115,5 @@ rerun diagnostics. Do not edit patch hashes or reuse an old installed package.
 CI retains logs and test artifacts. Local or CI success does not mean the
 remote server has been redeployed. Verify its deployed revision and runtime
 diagnostics before testing actual project inputs.
+
+The real LibInvent regression uses seed 17 for one- and two-sample inference, plus seed 41 as a known invalid-sample rejection fixture. A successful model process is not a qualification claim: invalid chemistry remains rejected, and every accepted generation still requires the normal downstream strict gates.
