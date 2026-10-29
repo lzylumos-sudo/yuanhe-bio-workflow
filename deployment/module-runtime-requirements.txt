@@ -3,6 +3,10 @@ openpyxl==3.1.5
 et_xmlfile==2.0.0
 CairoSVG==2.7.1
 cairocffi==1.7.1
+# The shared Conda lock has libffi, but not its Python binding. Installation
+# uses --no-deps, so both the binding and its parser must be explicit.
+cffi==1.17.1
+pycparser==2.22
 cssselect2==0.8.0
 defusedxml==0.7.1
 tinycss2==1.4.0
