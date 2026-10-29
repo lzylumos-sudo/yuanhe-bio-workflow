@@ -34,6 +34,8 @@ def core(rid,seed_id):
  if not row:raise ValueError('Seed not found')
  m=Chem.SDMolSupplier(str(within(d,row['raw_sdf'])),removeHs=True)[0]
  if m is None:raise ValueError('Unreadable structure')
+ from rdkit.Chem import rdDepictor
+ rdDepictor.Compute2DCoords(m)
  draw=rdMolDraw2D.MolDraw2DSVG(800,500);draw.drawOptions().addAtomIndices=False
  for a in m.GetAtoms():a.SetProp('atomNote',str(a.GetIdx()+1))
  rdMolDraw2D.PrepareAndDrawMolecule(draw,m)
@@ -86,6 +88,7 @@ def operations(rid):
 def launch(rid,kind,payload):
  if kind not in {'receptor','environment','install_membrane','md_build','md_run','md_analyze','md_validation'}:raise ValueError('Unknown operation')
  d,c=config(rid);w.verify_source(d)
+ cpu_control=kind=='md_validation' and payload.get('mode')=='docking_control'
  if c.get('research') and kind=='md_run':raise ValueError('Use the research MD stage queue to run/resume selected systems')
  if c.get('research') and kind=='md_build':
   if float(payload.get('production_ns',0))!=c['research']['md_production_ns']:raise ValueError('MD length differs from frozen research configuration')
@@ -95,7 +98,7 @@ def launch(rid,kind,payload):
  with w._lock:
   if kind=='receptor':w.require(d,'prepare')
   if kind=='md_build':w.require(d,'screening')
-  if kind.startswith('md_') and not c.get('md_python'):raise ValueError('Select the membrane simulation environment in settings Python')
+  if kind.startswith('md_') and not cpu_control and not c.get('md_python'):raise ValueError('Select the membrane simulation environment in settings Python')
   lease=w.acquire_compute(rid,lane='receptor') if kind=='receptor' else w.acquire_compute()
   out=None
   try:
@@ -105,7 +108,7 @@ def launch(rid,kind,payload):
    resources=receptor_environment() if kind=='receptor' else {'OPENMM_CPU_THREADS':'12','OMP_NUM_THREADS':'12'}
    w.atomic(out/'operation.json',{'kind':kind,'status':'running','started':time.time(),
      'resource_lane':'receptor' if kind=='receptor' else 'exclusive','resources':resources})
-   py=(c.get('md_python') if kind.startswith('md_') else c.get('prep_python') if kind=='receptor' else c['chem_python']) or sys.executable
+   py=(c['chem_python'] if cpu_control else c.get('md_python') if kind.startswith('md_') else c.get('prep_python') if kind=='receptor' else c['chem_python']) or sys.executable
    log=(out/'process.log').open('w',encoding='utf-8')
    w.spawn_job(rid,'operation',ident,out/'operation.json',
      [py,str(w.UI/'studio_worker.py'),'--run-id',rid,'--operation',ident],lease,log,

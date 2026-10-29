@@ -12,5 +12,19 @@
     "patch": "REINVENT4.patch",
     "before_sha256": "c8cf9b065da68483fcbf82b1b96dcdc7d348bb821df9c8e12dc340e2510c6539",
     "after_sha256": "67f8044a36d49a5543ac8523b84b0dba6c3b9eb80de7c371978f64439e8606b3"
+  },
+  {
+    "vendor": "REINVENT4",
+    "file": "reinvent/models/libinvent/models/decorator.py",
+    "patch": "REINVENT4-decorator-batch.patch",
+    "before_sha256": "fdd31cfb755a7e083f278cc987ef2635a646f032e27d54d7bc4bc4503f342bc2",
+    "after_sha256": "3c275a76fc9d5b74f35c0ee106348b3641c9b45f6a84b46da86041673d2a0348"
+  },
+  {
+    "vendor": "REINVENT4",
+    "file": "reinvent/models/libinvent/models/model.py",
+    "patch": "REINVENT4-model-batch.patch",
+    "before_sha256": "d9da9e39ab3cbb7045825c4f48f2d5015b61983b68a95ee243cb95d9af29b912",
+    "after_sha256": "76d5e5adcda81b3b4f8f354e4b4607d50c65e8b4cdbbf62a53bc294c6dd2b152"
   }
 ]

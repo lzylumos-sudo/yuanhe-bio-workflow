@@ -36,3 +36,33 @@ jobs:
             ${{ runner.temp }}/predocking-acceptance/acceptance.json
             ${{ runner.temp }}/predocking-acceptance/availability/summary.json
             ${{ runner.temp }}/predocking-acceptance/availability/toxicity.log
+
+  reinvent-real-sampling:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: '3.12'
+      - name: Fetch hash-pinned official source and prior; apply all recorded patches
+        run: python deployment/fetch_reinvent_test_fixture.py --destination "$RUNNER_TEMP/reinvent-fixture"
+      - name: Isolated CPU inference environment
+        run: |
+          python -m pip install torch==2.12.0 torchvision==0.27.0 --index-url https://download.pytorch.org/whl/cpu
+          python -m pip install -r deployment/reinvent-cpu-test-requirements.txt
+          python -m pip install --no-deps ./01_molecule_generation/vendor/REINVENT4
+          python -m pip check
+          reinvent --help
+      - name: Actual one-sample and multi-sample inference and stereo regression
+        run: |
+          python deployment/vendor_patches/test_libinvent_batch.py --executable "$(command -v reinvent)" --out "$RUNNER_TEMP/reinvent-acceptance"
+          python deployment/vendor_patches/test_libinvent_stereo.py
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: reinvent-real-batch-regression
+          path: |
+            ${{ runner.temp }}/reinvent-acceptance/acceptance.json
+            ${{ runner.temp }}/reinvent-acceptance/*/manifest.json
+            ${{ runner.temp }}/reinvent-acceptance/*/report.json

@@ -6,6 +6,10 @@
 
 Generative AI · Structure-Based Drug Design · Virtual Screening · Molecular Dynamics
 
+## Independent modules
+
+Open **Independent modules** in the workbench (/modules.html) to upload inputs and run generation, screening, docking, interaction analysis or MD without completing earlier stages. See [inputs, execution, evidence and upgrade instructions](docs/INDEPENDENT_MODULES.md). Formal candidate gates remain unchanged.
+
 ## Deploy from this repository
 
 **New administrator? Start with [DEPLOY.md](DEPLOY.md).** It contains the complete
