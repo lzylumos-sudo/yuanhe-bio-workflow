@@ -23,6 +23,22 @@ jobs:
           python deployment/check_governance.py
           python deployment/check_scientific_baseline.py
           python deployment/sync_platform_version.py --check
+      - name: Verify isolated module export dependency closure
+        run: |
+          python -m venv "$RUNNER_TEMP/module-exports"
+          "$RUNNER_TEMP/module-exports/bin/python" -m pip install --no-deps pillow==12.2.0 -r deployment/module-runtime-requirements.txt
+          "$RUNNER_TEMP/module-exports/bin/python" -m pip check
+          "$RUNNER_TEMP/module-exports/bin/python" - <<'PY'
+          from io import BytesIO
+          import cairosvg
+          from openpyxl import Workbook, load_workbook
+          png = cairosvg.svg2png(bytestring=b'<svg xmlns="http://www.w3.org/2000/svg" width="2" height="2"><rect width="2" height="2" fill="red"/></svg>')
+          assert png.startswith(b'\x89PNG\r\n\x1a\n')
+          book = Workbook(); book.active['A1'] = 'module export'
+          data = BytesIO(); book.save(data); data.seek(0)
+          assert load_workbook(data).active['A1'].value == 'module export'
+          print('Isolated SVG and spreadsheet exports passed with --no-deps')
+          PY
       - name: Install recorded chemistry and web dependencies
         id: dependencies
         run: |
