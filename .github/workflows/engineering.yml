@@ -46,6 +46,15 @@ jobs:
         if: ${{ !cancelled() && steps.dependencies.outcome == 'success' }}
         working-directory: 02_docking
         run: PYTHONPATH=src python -m pytest tests -q --junitxml=../docking-tests.xml
+      - name: Real public reference docking with separate evidence
+        if: ${{ !cancelled() && steps.dependencies.outcome == 'success' }}
+        env:
+          SBVS_PROJECT_ROOT: ${{ github.workspace }}/02_docking
+          YUANHE_VENDOR_DIR: ${{ runner.temp }}/reference-tools
+          YUANHE_VENDOR_RECEIPT: ${{ runner.temp }}/reference-tools/receipt.json
+        run: |
+          python 02_docking/scripts/install_vendor.py vina
+          python deployment/validate_reference_control.py --vina "$RUNNER_TEMP/reference-tools/vina" --out "$RUNNER_TEMP/reference-control"
       - name: Install isolated PyMOL renderer
         if: ${{ !cancelled() && steps.dependencies.outcome == 'success' }}
         run: |

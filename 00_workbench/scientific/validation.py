@@ -86,7 +86,7 @@ def docking_control(d,c,p,out,root):
   src=source/name;target=out/'standalone'/name;target.parent.mkdir(parents=True,exist_ok=True)
   if src.is_dir():shutil.copytree(src,target,ignore=shutil.ignore_patterns('__pycache__','*.pyc'))
   else:shutil.copy2(src,target)
- a.atomic(out/'standalone/config.json',{'vina':c['vina'],'seeds':[17,41,97],'scope':'1DRF folate crystallographic pose recovery; no activity claim','rmsd_threshold_A':2.0})
+ a.atomic(out/'standalone/config.json',{'vina':c['vina'],'cpu':min(int(c.get('docking_cpu',4)),os.cpu_count() or 1),'seeds':[17,41,97],'scope':'1DRF folate crystallographic pose recovery; no activity claim','rmsd_threshold_A':2.0})
  shutil.copy2(Path(__file__).with_name('reference_docking.py'),out/'standalone/reference_docking.py')
  script=out/'standalone/run_control.py'
  script.write_text(CONTROL_SCRIPT)
@@ -113,7 +113,7 @@ if ref is None:raise ValueError('Invalid crystallographic reference')
 proto=Protocol.preset('standard',seeds=tuple(c['seeds']))
 def one(seed):
  job=base/'jobs'/str(seed)
- rec=run_reference_job(c['vina'],base/'data/prepared/demo_1drf/receptor_prepared.pdb',refpath,box,proto,seed,job,cpu=4,timeout=3600)
+ rec=run_reference_job(c['vina'],base/'data/prepared/demo_1drf/receptor_prepared.pdb',refpath,box,proto,seed,job,cpu=c['cpu'],timeout=3600)
  if rec['status']!='ok':raise RuntimeError(rec['error'])
  poses=[Chem.RemoveHs(m) for m in Chem.SDMolSupplier(str(job/'poses.sdf'),removeHs=False)]
  rms=[float(rdMolAlign.CalcRMS(m,ref)) for m in poses]
