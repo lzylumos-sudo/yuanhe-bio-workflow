@@ -15,11 +15,13 @@ sys.path.insert(0, str(ROOT / '00_workbench'))
 sys.path.insert(0, str(ROOT / '02_docking/src'))
 from research.config import resolve
 from yuanhe_preflight.config import validate, absolute_paths
+from yuanhe.runtime import SCHEMA_VERSION, validate_runtime_config
 
 
 def configured(existing, prefix, gmx, assets, root=ROOT):
     """Retain valid existing policies; only bind installation-specific assets."""
-    cfg = copy.deepcopy(existing)
+    cfg = validate_runtime_config(existing)
+    cfg['schema_version'] = SCHEMA_VERSION
     try:
         research = resolve(cfg.get('research'))
     except (ValueError, KeyError, TypeError) as exc:
@@ -45,6 +47,7 @@ def configured(existing, prefix, gmx, assets, root=ROOT):
     runtime = str(prefix / 'envs/runtime/bin/python')
     cfg.update(chem_python=runtime, screen_python=runtime, prep_python=runtime, md_python=runtime,
                peptide_python=str(prefix / 'envs/peptide2mol/bin/python'),
+               reinvent_python=str(prefix / 'envs/reinvent4/bin/python'),
                reinvent_executable=str(prefix / 'envs/reinvent4/bin/reinvent'),
                vina=str(prefix / 'bin/vina'), gmx=str(gmx))
     return cfg

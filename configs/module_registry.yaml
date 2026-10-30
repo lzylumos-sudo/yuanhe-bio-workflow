@@ -39,6 +39,18 @@
           "peptide2mol",
           "reinvent4"
         ]
+      },
+      "capability_backends": {
+        "pocket_conditioned_generation": [
+          "peptide2mol"
+        ],
+        "scaffold_decoration": [
+          "reinvent4"
+        ],
+        "pretrained_sampling": [
+          "peptide2mol",
+          "reinvent4"
+        ]
       }
     },
     {
@@ -188,6 +200,31 @@
         "jobs": [
           "md",
           "md_tpr"
+        ]
+      },
+      "capability_backends": {
+        "parameterization": [
+          "openmm_soluble",
+          "openmm_system_builder"
+        ],
+        "membrane_system_building": [
+          "openmm_system_builder"
+        ],
+        "minimization": [
+          "openmm_soluble",
+          "gromacs_membrane"
+        ],
+        "equilibration": [
+          "openmm_soluble",
+          "gromacs_membrane"
+        ],
+        "production": [
+          "openmm_soluble",
+          "gromacs_membrane"
+        ],
+        "trajectory_analysis": [
+          "openmm_soluble",
+          "gromacs_membrane"
         ]
       }
     },
@@ -376,15 +413,17 @@
       "status": "active",
       "environment": "chem_python",
       "required_files": [],
-      "executables": [
-        "pymol"
-      ],
+      "executables": [],
       "supported_protocols": [],
       "parent": null,
       "verification": "unknown",
       "verification_evidence": [],
       "input_schema": "yuanhe.stage-input/1",
-      "output_schema": "yuanhe.stage-output/1"
+      "output_schema": "yuanhe.stage-output/1",
+      "optional_executables": [
+        "pymol"
+      ],
+      "optional_tools_note": "PyMOL is optional for rendering; analysis and scene export do not require it."
     },
     {
       "backend_id": "openmm_soluble",
@@ -428,7 +467,7 @@
         "psi4"
       ],
       "status": "active",
-      "environment": "prep_python",
+      "environment": "md_python",
       "required_files": [],
       "executables": [
         "antechamber"

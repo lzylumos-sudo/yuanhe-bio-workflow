@@ -22,7 +22,7 @@ def source_identity(root=ROOT):
         from verify_release import verify
         return verify(root)['source_commit']
     identity = git_identity(root)
-    if identity['commit'] == 'unknown' or identity['dirty']:
+    if identity['commit'] == 'unknown' or identity['dirty'] is not False:
         raise ValueError('Use a clean Git checkout or a verified administrator package')
     return identity['commit']
 

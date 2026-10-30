@@ -44,7 +44,7 @@ def main():
             if key in ('risk', 'availability'):
                 with (d/key/'molecules.csv').open('w', newline='', encoding='utf-8') as f:
                     writer = csv.writer(f); writer.writerow(['id', 'evidence']); writer.writerow(['SYNTHETIC_ONLY', 'x'*150000])
-    w.inventory = lambda: {'version': {'software_version': 'UI-REGRESSION-FIXTURE', 'git': {'commit': 'synthetic'}},
+    w.inventory = lambda: {'version': {'software_version': server.VERSION, 'git': {'commit': 'synthetic'}},
         'notice': 'Synthetic local regression fixtures. No inference, docking or MD.', 'registered_modules': [],
         'runs': ['UI_RISK_FIXTURE', 'UI_ROUTE_FIXTURE'], 'defaults': cfg}
     httpd = server.Server(('127.0.0.1', args.port), server.Handler)

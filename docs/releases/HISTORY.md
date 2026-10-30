@@ -5,6 +5,7 @@ For new installations, use the [current administrator download](../../DEPLOY.md)
 | Identity | Role | Deployment status |
 |---|---|---|
 | Version in root [VERSION](../../VERSION) | Current integrated administrator build; [release metadata](../../deployment/current_release.json) | Use the current download entrypoint; target-machine acceptance required |
+| 0.11.0-dev.3 | Historical tag at `3e6df84b8b1ea824916e610e2b1d8dc92423cf8f`; later main commits retained this label | Superseded by dev.4 runtime/configuration unification; compare commits, not version labels alone |
 | 0.11.0-dev.2 | Earlier package at `d0bdfd51b936e8b16422e4bf2dae898897ad8c0d`; later main commits retained this label | Historical tag; lacks subsequent synthesis-only deployment integration |
 | 0.11.0-dev.1 | Original architecture-governance branch, source `a6bbe7a2399b0603894dcd6feb97f86efa61b512` | Historical development snapshot, superseded by the integrated build |
 | 0.4.0-rc1 | Legacy workbench/UI identity, including deployment fix source `dc7c2251b32afb1864188db823e2f0a8629a4d64` | Historical main-branch snapshot; no longer the current package |

@@ -1,0 +1,9 @@
+{
+  "schema_version": "yuanhe.site/2",
+  "software_version": "0.11.0-dev.4",
+  "prefix": "/home/user/yuanhe-runtime-0.11.0-dev.4",
+  "model_source": "/home/user/yuanhe-bio-workflow",
+  "gmx": "/home/user/yuanhe/envs/gromacs-cuda/bin/gmx",
+  "host": "10.71.121.57",
+  "port": 8778
+}

@@ -1,8 +1,37 @@
+import {PLATFORM_VERSION} from './platform-version.js';
 const $=id=>document.getElementById(id);
 const element=(tag,text)=>{const e=document.createElement(tag);if(text!==undefined)e.textContent=text;return e;};
-let catalog={},current=null,busy=false;
-async function api(path,body){const r=await fetch(path,body===undefined?{}:{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});const data=await r.json();if(!r.ok)throw Error(data.error||data.message||('Request failed ('+r.status+')'));return data;}
-function fail(e){$('moduleError').textContent=e.message||String(e);}
+let catalog={},current=null,busy=false,resourceStatus=null,versionCompatible=false;
+let selectionEpoch=0,detailRequest=0,listRequest=0,errorVersion=0;
+const resourceNote=element('p'),versionNote=element('p','Checking service version…');
+resourceNote.id='moduleResourceStatus';resourceNote.setAttribute('role','status');
+versionNote.id='modulePlatformVersion';versionNote.setAttribute('role','status');
+$('moduleError').after(resourceNote);$('moduleDescription').before(versionNote);
+async function api(path,body){
+  if(body!==undefined&&!path.endsWith('/cancel')){await checkVersion();if(!versionCompatible)throw Error('Service version is not verified. Refresh the page before starting or saving a job.');}
+  const r=await fetch(path,body===undefined?{}:{method:'POST',headers:{'Content-Type':'application/json','X-Yuanhe-UI-Version':PLATFORM_VERSION},body:JSON.stringify(body)}),data=await r.json();
+  if(!r.ok){const error=Error(data.error||data.message||('Request failed ('+r.status+')'));Object.assign(error,{code:data.error_code,recoverable:data.recoverable,details:data.details,suggestedAction:data.suggested_action});throw error;}return data;
+}
+function clearError(expected=errorVersion){if(expected!==errorVersion)return;$('moduleError').textContent='';$('moduleError').removeAttribute('data-code');errorVersion++;}
+function fail(e,epoch=selectionEpoch,expected=errorVersion){
+  if(epoch!==selectionEpoch||expected!==errorVersion)return;
+  if(e.code==='UI_VERSION_MISMATCH'){versionCompatible=false;versionNote.textContent='Service version changed. Reload this page or deploy matching frontend and backend files before submitting jobs.';}
+  const waiting=e.code==='RESOURCE_BUSY';
+  $('moduleError').textContent=waiting?'Server busy. This request has not been queued. Wait for the active task to finish, then start again.':e.message||String(e);
+  $('moduleError').dataset.code=e.code||'';$('moduleError').setAttribute('role',waiting?'status':'alert');errorVersion++;
+  if(waiting){resourceStatus={available:false};render();}
+}
+function renderAvailability(){
+  const occupied=resourceStatus?.available===false;
+  resourceNote.textContent=occupied?'Compute resource occupied. No new job will start automatically. Refresh or wait for availability, then start the job.':'';
+  $('saveModule').disabled=busy||!versionCompatible;
+}
+async function checkVersion(){
+  try{const version=await api('/api/v1/versions'),commit=version.source?.commit||version.git?.commit||'unknown';versionCompatible=version.software_version===PLATFORM_VERSION;
+    versionNote.textContent='Platform '+version.software_version+' · Source '+commit.slice(0,12)+(version.git?.dirty?' · Local changes':'')+(versionCompatible?'':' · UI version '+PLATFORM_VERSION+' differs. Reload the page or deploy matching frontend and backend files before submitting jobs.');
+    versionNote.title='Server source: '+commit+'; UI version: '+PLATFORM_VERSION;
+  }catch{versionCompatible=false;versionNote.textContent='Service version unavailable. Refresh before submitting or starting jobs.';}render();
+}
 function form(){
   const spec=catalog[$('moduleSelect').value];if(!spec)return;
   $('moduleDescription').textContent=spec.description;
@@ -19,22 +48,31 @@ function form(){
     input.value=f.type==='vector'?f.default.join(', '):f.default;input.setAttribute('aria-label',f.label);label.append(input);$('moduleFields').append(label);
   }
 }
-async function refresh(){
-  const info=await api('/api/modules/jobs');catalog=info.modules;
+async function refresh({automatic=false}={}){
+  const request=++listRequest,epoch=selectionEpoch,previousError=errorVersion;
+  let info;try{info=await api('/api/modules/jobs');}catch(e){if(request===listRequest)fail(e,epoch,previousError);return;}
+  if(request!==listRequest||epoch!==selectionEpoch)return;catalog=info.modules;resourceStatus=info.resource_status||null;
   if(!$('moduleSelect').options.length){for(const [key,spec] of Object.entries(catalog)){const option=element('option',spec.label);option.value=key;$('moduleSelect').append(option);}form();}
   const selected=current?.id||$('moduleJobSelect').value;$('moduleJobSelect').replaceChildren(element('option','Select a saved job'));$('moduleJobSelect').options[0].value='';
   for(const job of info.jobs){const option=element('option',(catalog[job.module]?.label||job.module)+' · '+job.id);option.value=job.id;$('moduleJobSelect').append(option);}
-  $('moduleJobSelect').value=selected;if(selected)await load(selected);
+  $('moduleJobSelect').value=selected;
+  if(selected)await load(selected,{clearFailure:!automatic||$('moduleError').dataset.code==='RESOURCE_BUSY'&&resourceStatus?.available===true});
+  else if(!automatic)clearError(previousError);render();
 }
-async function load(id){current=await api('/api/modules/jobs/'+id);render();}
+async function load(id,{clearFailure=true}={}){
+  const epoch=selectionEpoch,request=++detailRequest,previousError=errorVersion;
+  try{const job=await api('/api/modules/jobs/'+id);if(epoch!==selectionEpoch||request!==detailRequest||$('moduleJobSelect').value!==id)return;current=job;render();if(clearFailure)clearError(previousError);}
+  catch(e){if(request===detailRequest)fail(e,epoch,previousError);}
+}
 function render(){
+  renderAvailability();
   const job=current;if(!job)return;$('moduleJobDetail').hidden=false;
   $('moduleJobIdentity').textContent=(catalog[job.module]?.label||job.module)+' · '+job.id;
   $('moduleJobState').textContent=job.operations[0]?job.operations[0].action+': '+job.operations[0].status:'Input saved; computation has not started';
   $('moduleInputs').textContent=JSON.stringify({parameters:job.parameters,inputs:job.inputs,scope:job.scope},null,2);
   const running=job.operations.some(x=>x.status==='running'),md=job.module==='md',last=job.operations[0];
   $('moduleStart').textContent=md?'Build membrane system':last?.status==='completed'?'Completed':job.module==='md_tpr'&&last?'Resume prepared MD':'Start module';
-  $('moduleStart').disabled=running||busy||(job.operations.length>0&&(md||job.module!=='md_tpr'||last.status==='completed'));
+  $('moduleStart').disabled=!versionCompatible||resourceStatus?.available===false||running||busy||(job.operations.length>0&&(md||job.module!=='md_tpr'||last.status==='completed'));
   $('moduleCancel').disabled=!running||busy;
   $('moduleSystemReview').hidden=!md||!job.systems.length;
   const previous=$('moduleSystem').value;$('moduleSystem').replaceChildren();
@@ -43,8 +81,8 @@ function render(){
   const system=job.systems.find(x=>x.id===$('moduleSystem').value);
   const reviewed=$('moduleReviewAck').checked&&$('moduleReviewReason').value.trim();
   $('moduleRunMD').hidden=!md;$('moduleAnalyzeMD').hidden=!md;
-  $('moduleRunMD').disabled=running||busy||!reviewed||!system||!['built','completed'].includes(system.status)||job.operations.some(x=>x.action==='run'&&x.status==='completed');
-  $('moduleAnalyzeMD').disabled=running||busy||!reviewed||system?.status!=='completed'||job.operations.some(x=>x.action==='analyze'&&x.status==='completed');
+  $('moduleRunMD').disabled=!versionCompatible||resourceStatus?.available===false||running||busy||!reviewed||!system||!['built','completed'].includes(system.status)||job.operations.some(x=>x.action==='run'&&x.status==='completed');
+  $('moduleAnalyzeMD').disabled=!versionCompatible||resourceStatus?.available===false||running||busy||!reviewed||system?.status!=='completed'||job.operations.some(x=>x.action==='analyze'&&x.status==='completed');
   $('moduleOperations').replaceChildren();
   for(const op of job.operations){const row=element('div');row.className='operation';row.append(element('strong',op.action+': '+op.status));if(op.error)row.append(element('p',op.error));
     const result=op.result?.result;
@@ -52,7 +90,7 @@ function render(){
     else if(result?.runs)row.append(element('p',result.runs.length+' reference runs · Top-1 pose recovery: '+Math.round(result.top1_recovery_fraction*100)+'%'));
     else if(result?.ligands)row.append(element('p',result.ligands.length+' ligand analyses · '+result.ligands.reduce((n,r)=>n+r.n_events,0)+' interaction events'));
     else if(result?.status==='blocked_by_strict_preflight')row.append(element('p','Strict pre-docking screening did not pass. No docking was started.'));
-    else if(result?.report)row.append(element('p','Actual sampling attempts: '+result.report.completed));
+    else if(result?.report){const report=result.report;row.append(element('p','Actual sampling attempts: '+report.completed+' · Valid molecules: '+(report.valid??'unknown')+' · Unique molecules: '+(report.unique??'unknown')));if(report.valid===0)row.append(element('p','No usable molecules were produced. Execution finished; output acceptance has not passed.'));else row.append(element('p','Generated molecules require screening and review; execution completion does not establish candidate qualification.'));}
     else if(result?.risk)row.append(element('p','Risk screening finished for '+result.risk.input+' input records. Inspect detailed decisions below.'));
     const details=element('details');details.open=['running','failed','blocked'].includes(op.status);details.append(element('summary','Execution log'),element('pre',op.log||'Engine logs are available in the artifact list.'));row.append(details);
     const proof=element('details');proof.append(element('summary','Detailed result and evidence'),element('pre',op.result?JSON.stringify(op.result,null,2):'No completed result'));row.append(proof);$('moduleOperations').append(row);}
@@ -61,25 +99,25 @@ function render(){
 }
 function encoded(file){return new Promise((resolve,reject)=>{const reader=new FileReader();reader.onerror=()=>reject(Error('Could not read input file'));reader.onload=()=>resolve(reader.result.split(',')[1]);reader.readAsDataURL(file);});}
 $('moduleForm').onsubmit=async event=>{
-  event.preventDefault();if(busy)return;busy=true;$('saveModule').disabled=true;$('moduleError').textContent='';
+  event.preventDefault();if(busy||!versionCompatible)return;busy=true;clearError();const epoch=selectionEpoch,previousError=errorVersion;renderAvailability();
   try{
     const kind=$('moduleSelect').value,spec=catalog[kind],parameters={},files={};
     for(const f of spec.fields){const value=$('moduleFields').querySelector('[data-key="'+f.key+'"]').value;
       parameters[f.key]=f.type==='vector'?value.split(',').map(x=>Number(x.trim())):['number','integer'].includes(f.type)?Number(value):value;}
     for(const input of $('moduleFiles').querySelectorAll('input')){const file=input.files[0];if(!file)continue;if(file.size>64*1024*1024)throw Error('Each file must be <= 64 MiB');files[input.dataset.role]={name:file.name,base64:await encoded(file)};}
-    current=await api('/api/modules/jobs',{module:kind,parameters,files,acknowledged:$('scopeAck').checked});await refresh();
-  }catch(e){fail(e);}finally{busy=false;$('saveModule').disabled=false;render();}
+    const saved=await api('/api/modules/jobs',{module:kind,parameters,files,acknowledged:$('scopeAck').checked});if(epoch!==selectionEpoch)return;selectionEpoch++;current=saved;await refresh();
+  }catch(e){fail(e,epoch,previousError);}finally{busy=false;render();}
 };
 async function start(action){
-  if(!current||busy)return;busy=true;render();$('moduleError').textContent='';
-  try{current=await api('/api/modules/jobs/'+current.id+'/start',{action,system_id:$('moduleSystem').value,system_reviewed:$('moduleReviewAck').checked,review_reason:$('moduleReviewReason').value});}
-  catch(e){fail(e);}finally{busy=false;if(current)await load(current.id).catch(fail);}
+  if(!current||busy||!versionCompatible||resourceStatus?.available===false)return;busy=true;clearError();const id=current.id,epoch=selectionEpoch,previousError=errorVersion;render();
+  try{const job=await api('/api/modules/jobs/'+id+'/start',{action,system_id:$('moduleSystem').value,system_reviewed:$('moduleReviewAck').checked,review_reason:$('moduleReviewReason').value});if(epoch===selectionEpoch&&$('moduleJobSelect').value===id)current=job;}
+  catch(e){fail(e,epoch,previousError);}finally{busy=false;if(epoch===selectionEpoch&&$('moduleJobSelect').value===id)await load(id,{clearFailure:false});render();}
 }
 $('moduleStart').onclick=()=>start(current?.module==='md'?'build':'run');
 $('moduleRunMD').onclick=()=>start('run');$('moduleAnalyzeMD').onclick=()=>start('analyze');
-$('moduleCancel').onclick=async()=>{try{current=await api('/api/modules/jobs/'+current.id+'/cancel',{});render();}catch(e){fail(e);}};
-$('moduleSelect').onchange=form;$('refreshModules').onclick=()=>refresh().catch(fail);
-$('moduleJobSelect').onchange=()=>{const id=$('moduleJobSelect').value;if(id){$('moduleReviewAck').checked=false;$('moduleReviewReason').value='';load(id).catch(fail);}else{current=null;$('moduleJobDetail').hidden=true;}};
+$('moduleCancel').onclick=async()=>{if(!current||busy)return;const id=current.id,epoch=selectionEpoch;clearError();const previousError=errorVersion;busy=true;render();try{const job=await api('/api/modules/jobs/'+id+'/cancel',{});if(epoch===selectionEpoch&&$('moduleJobSelect').value===id)current=job;}catch(e){fail(e,epoch,previousError);}finally{busy=false;render();}};
+$('moduleSelect').onchange=()=>{clearError();form();};$('refreshModules').onclick=async()=>{await checkVersion();await refresh();};
+$('moduleJobSelect').onchange=()=>{selectionEpoch++;detailRequest++;clearError();const id=$('moduleJobSelect').value;current=null;$('moduleJobDetail').hidden=true;if(id){$('moduleReviewAck').checked=false;$('moduleReviewReason').value='';load(id);}renderAvailability();};
 $('moduleReviewAck').onchange=render;$('moduleReviewReason').oninput=render;$('moduleSystem').onchange=()=>{$('moduleReviewAck').checked=false;render();};
-refresh().catch(fail);
-setInterval(()=>{if(current&&!busy&&current.operations.some(x=>x.status==='running'))load(current.id).catch(fail);},3000);
+renderAvailability();checkVersion();refresh();
+setInterval(()=>{if(busy)return;if(resourceStatus?.available===false)refresh({automatic:true});else if(current&&current.operations.some(x=>x.status==='running'))load(current.id);},3000);

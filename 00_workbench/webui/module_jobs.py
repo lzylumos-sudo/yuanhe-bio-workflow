@@ -212,11 +212,14 @@ def get(ident):
 
 
 def inventory():
+    from .scheduling import exclusive_status
     return {'modules': {k: {**v, 'scope': SCOPE} for k, v in MODULES.items()},
+            'resource_status': exclusive_status(w.ROOT),
             'jobs': sorted((w.read(p) for p in JOBS.glob('*/job.json')), key=lambda row: row['created'], reverse=True)[:100]}
 
 
 def launch(ident, payload):
+    from .scheduling import ResourceBusyError
     d, req = verified(ident)
     if w.read(d/'source.json') != w.source_snapshot():
         raise ValueError('Source changed; create a new independent job')
@@ -233,10 +236,10 @@ def launch(ident, payload):
             raise ValueError('Review the system artifacts and record a rationale before running')
     with w._lock:
         if any(key[0] == ident for key in w._active):
-            raise ValueError('Module job already has an active worker')
+            raise ResourceBusyError('Module job already has an active worker')
         history = get(ident)['operations']
         if any(x['status'] == 'running' for x in history):
-            raise ValueError('A recorded worker is still running')
+            raise ResourceBusyError('A recorded worker is still running')
         if any(x['action'] == action and x['status'] == 'completed' for x in history):
             raise ValueError('This action completed; create a new job for a new experiment')
         if history and kind not in {'md', 'md_tpr'}:
@@ -249,6 +252,11 @@ def launch(ident, payload):
             py = req['config'].get(spec(kind)['environment']) or req['config']['chem_python']
             if not Path(py).is_file():
                 raise ValueError('Configure the module environment before execution')
+            if kind == 'reinvent4':
+                from yuanhe.runtime import reinvent_environment_check
+                check = reinvent_environment_check(req['config'])
+                if not check['ok']:
+                    raise ValueError(check['detail'])
             op = str(time.time_ns()); out = d/'operations'/op; out.mkdir(parents=True)
             w.atomic(out/'operation.json', {'action': action, 'status': 'running', 'started': time.time(),
                       'system_id': system, 'system_reviewed': payload.get('system_reviewed') is True,

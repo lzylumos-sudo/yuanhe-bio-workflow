@@ -2,6 +2,7 @@
 import copy
 import json
 from pathlib import Path
+from types import SimpleNamespace
 import subprocess
 import sys
 import pytest
@@ -151,6 +152,10 @@ def test_invalid_configuration_type_is_input_error():
 
 
 def test_missing_worker_marks_manifest_failed_and_releases_lease(tmp_path,monkeypatch):
+    from research import resources
+    # Reach the missing-worker path independently of the CI runner's free space.
+    # Keep the real guard; only this test's resource reader reports ample space.
+    monkeypatch.setattr(resources,'shutil',SimpleNamespace(disk_usage=lambda path: SimpleNamespace(free=100*1024**3)))
     monkeypatch.setattr(workflow,'RUNS',tmp_path)
     rid=workflow.create({'chem_python':'/missing/worker/python'})['id']
     with pytest.raises(FileNotFoundError):workflow.start(rid,'prepare')

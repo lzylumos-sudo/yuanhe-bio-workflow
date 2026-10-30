@@ -1,6 +1,7 @@
 """Engineering regressions only. No target docking or model inference."""
 import importlib,json,os,sys,threading,urllib.request,urllib.error
 from pathlib import Path
+from types import SimpleNamespace
 import pytest
 ROOT=Path(__file__).resolve().parents[1];sys.path.insert(0,str(ROOT))
 from webui import workflow,server,jobs
@@ -92,6 +93,9 @@ def test_review_can_fix_blocked_stage(sandbox):
  with pytest.raises(ValueError):workflow.review(rid,'peptide2mol',{'command':'sh'})
 
 def test_failed_retry_archives_previous_attempt(sandbox,monkeypatch):
+ from research import resources
+ # This test exercises retry archival, not host capacity. Preserve the real guard.
+ monkeypatch.setattr(resources,'shutil',SimpleNamespace(disk_usage=lambda path: SimpleNamespace(free=100*1024**3)))
  rid=workflow.create({'structure':'input.pdb'})['id'];d=workflow.run_dir(rid)
  workflow.atomic(d/'prepare/stage.json',{'status':'failed','error':'old failure'})
  (d/'prepare/old.log').write_text('previous attempt')
@@ -101,6 +105,36 @@ def test_failed_retry_archives_previous_attempt(sandbox,monkeypatch):
  monkeypatch.setattr(workflow.subprocess,'Popen',lambda *a,**k:Finished())
  workflow.start(rid,'prepare')
  assert len(list((d/'attempts').glob('prepare_*/old.log')))==1
+
+
+@pytest.mark.parametrize('free_bytes,additional_bytes,blocked',[
+ (50*1024**3-1,0,True),(50*1024**3,0,False),(50*1024**3,1,True),
+])
+def test_disk_guard_retains_production_reserve(tmp_path,monkeypatch,free_bytes,additional_bytes,blocked):
+ from research import resources
+ from research.config import defaults
+ cfg=defaults()
+ assert cfg['disk_reserve_gb']==50
+ monkeypatch.setattr(resources,'shutil',SimpleNamespace(disk_usage=lambda path: SimpleNamespace(free=free_bytes)))
+ if blocked:
+  with pytest.raises(RuntimeError,match='Insufficient free disk space'):
+   resources.disk_guard(tmp_path,cfg,additional_bytes=additional_bytes)
+ else:resources.disk_guard(tmp_path,cfg,additional_bytes=additional_bytes)
+
+
+def test_low_disk_blocks_retry_before_worker_or_artifact_changes(sandbox,monkeypatch):
+ from research import resources
+ monkeypatch.setattr(resources,'shutil',SimpleNamespace(disk_usage=lambda path: SimpleNamespace(free=0)))
+ rid=workflow.create({'structure':'input.pdb'})['id'];d=workflow.run_dir(rid)
+ workflow.atomic(d/'prepare/stage.json',{'status':'failed','error':'retained attempt'})
+ log=d/'prepare/old.log';log.write_text('preserve this evidence')
+ before=(d/'prepare/stage.json').read_bytes()
+ def unexpected_worker(*args,**kwargs):raise AssertionError('Low disk must block before worker dispatch')
+ monkeypatch.setattr(workflow.subprocess,'Popen',unexpected_worker)
+ with pytest.raises(RuntimeError,match='Insufficient free disk space'):workflow.start(rid,'prepare')
+ assert (d/'prepare/stage.json').read_bytes()==before
+ assert log.read_text()=='preserve this evidence' and not (d/'attempts').exists()
+ lease=workflow.acquire_compute();lease.close()
 
 def test_pose_viewer_uses_recorded_relative_sdf(sandbox):
  from rdkit import Chem

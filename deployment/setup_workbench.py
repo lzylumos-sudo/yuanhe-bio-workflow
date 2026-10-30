@@ -18,8 +18,14 @@ ROOT = Path(__file__).resolve().parents[1]
 def load_config(path):
     value = json.loads(Path(path).read_text(encoding='utf-8'))
     required = {'prefix', 'model_source', 'gmx', 'host', 'port'}
-    if not isinstance(value, dict) or set(value) != required:
-        raise ValueError('Use exactly the five fields in deployment/site.example.json')
+    metadata = {'schema_version', 'software_version'}
+    if not isinstance(value, dict) or not required <= set(value) or set(value) - required - metadata:
+        raise ValueError('Use the machine settings and version fields in deployment/site.example.json')
+    if set(value) & metadata:
+        if not metadata <= set(value) or value['schema_version'] != 'yuanhe.site/2':
+            raise ValueError('Unsupported or incomplete site configuration schema')
+        if not isinstance(value['software_version'], str) or not value['software_version'].strip():
+            raise ValueError('software_version must name the intended release')
     for key in required - {'port'}:
         if not isinstance(value[key], str) or not value[key].strip():
             raise ValueError('Expected a nonempty string: ' + key)
@@ -32,6 +38,10 @@ def preflight(config, root=ROOT):
     checks = []
     def add(name, ok, detail):
         checks.append(dict(check=name, ok=bool(ok), detail=detail))
+    if config.get('software_version'):
+        actual = (root / 'VERSION').read_text().strip()
+        add('release_version', actual == config['software_version'],
+            'Configuration expects ' + config['software_version'] + '; source is ' + actual)
     add('platform', platform.system() == 'Linux' and platform.machine() in ('x86_64', 'AMD64'),
         'Linux x86_64 or Linux inside WSL2 required')
     add('python', sys.version_info >= (3, 11), 'Bootstrap Python 3.11+ required')

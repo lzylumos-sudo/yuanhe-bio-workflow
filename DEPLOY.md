@@ -29,7 +29,7 @@ For a reproducible tagged checkout instead of latest main, select the immutable 
 The administrator supplies these actual values:
 
 1. A **new** writable installation prefix on Linux x86_64/WSL2.
-2. A model bundle containing both `vendor/Peptide2Mol` and `vendor/REINVENT4`. First installations obtain it using the public download helper below. An old project is optional. Restoration verifies pinned weight hashes and refuses overwrites.
+2. A model bundle containing both `vendor/Peptide2Mol` and `vendor/REINVENT4`. First installations obtain it using the public download helper below. An old project is optional: restoration reuses verified weights, reconstructs pinned source from cached Git objects or the public upstream, and refuses overwrites. Old vendor working-tree code is not copied.
 3. A CUDA-enabled GROMACS executable. If missing, use the portable build below.
 4. A private bind address and unused port. The example defaults to `127.0.0.1:8777` for access on the machine. For remote users choose the site's approved private address and access controls; this service has no public authentication gateway.
 
@@ -70,17 +70,21 @@ All research defaults, model pins and runtime locks are already in GitHub. Only 
 cp deployment/site.example.json /srv/yuanhe/site.json
 ```
 
-Edit that copy, preserving its five fields:
+Edit the five machine settings, preserving the schema and intended software version:
 
 ```json
 {
-  "prefix": "/srv/yuanhe/runtime-NEW",
+  "schema_version": "yuanhe.site/2",
+  "software_version": "0.11.0-dev.4",
+  "prefix": "/srv/yuanhe/runtime-0.11.0-dev.4",
   "model_source": "/srv/yuanhe/models-NEW",
   "gmx": "/srv/yuanhe/gromacs-NEW/install/bin/gmx",
   "host": "127.0.0.1",
   "port": 8777
 }
 ```
+
+Legacy five-field site files remain readable. Versioned files reject a different source version before installation. Use the template shipped with the selected release; never copy an old research-task snapshot into site settings. The recorded campus installation has a [separate-port upgrade template](deployment/site.campus-upgrade.json) and [upgrade procedure](deployment/UPGRADE_RUNTIME.md). Review those machine-specific paths before use.
 
 `prefix` must be new/nonexistent with a writable parent. `model_source` is the verified bundle above; `gmx` is the CUDA executable. Keep loopback access or select a private bind address and unused port. Run:
 
@@ -104,7 +108,7 @@ python3 deployment/deploy_workbench.py \
 
 The default is a read-only plan. Inspect the source SHA, paths and storage allocation, then repeat the command with `--execute`. It performs:
 
-1. Copy and hash-check licensed model assets without changing the source installation.
+1. Reconstruct pinned vendor sources and copy hash-verified model weights without changing the source installation; apply the selected release's patches before model installation.
 2. Install the locked chemistry/preparation/MD runtime and ZVSS.
 3. Install pinned Peptide2Mol with matching CUDA/PyG and patched REINVENT4 from its frozen lock.
 4. Install isolated ADMET-AI/AiZynthFinder; download and verify SCScore, expansion model, templates and planning building-block pool.
