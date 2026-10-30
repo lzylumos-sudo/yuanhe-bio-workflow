@@ -1,6 +1,6 @@
 # Runtime and configuration upgrade
 
-Use one immutable administrator release and its matching source manifest, frontend and configuration templates. The dev.3 tag and later main snapshots shared a version label; dev.4 is a new build, not a replacement of that historical tag. Historical research tasks retain their original versions and configurations.
+Use one immutable administrator release and its matching source manifest, frontend and configuration templates. The current development build is 0.11.0-dev.5; historical tags and research tasks retain their original versions and configurations.
 
 ## Administrator settings
 
@@ -13,10 +13,10 @@ The campus template contains observed paths, not a guarantee that they still exi
 ## Install without changing the running service
 
 1. Download the named administrator ZIP and SHA256SUMS from the release linked by `deployment/current_release.json`, verify checksums, and extract into a new source directory. Run `python3 deployment/verify_release.py`. Alternatively, clone the exact new release tag into a new directory and record `git rev-parse HEAD`. Do not update a source directory used by running workers.
-2. Copy and review the chosen site JSON outside that directory. Run `python3 deployment/setup_workbench.py --config /home/user/yuanhe-site-dev4.json`. This is a read-only plan; fix any failed checks before proceeding.
+2. Copy and review the chosen site JSON outside that directory. Run `python3 deployment/setup_workbench.py --config /home/user/yuanhe-site-0.11.0-dev.5.json`. This is a read-only plan; fix any failed checks before proceeding. Source configuration hashes must match the recorded protocol; a cross-platform checkout must preserve the repository's line endings.
 3. Repeat with `--execute`. The installer creates new environments and runtime settings from current defaults, validates dependencies and records its source identity. It does not switch the service or copy old frozen scientific settings into new runs.
 4. Start the exact launch script printed in the new prefix's `evidence/deployment.json`. The campus template uses port 8778. Keep old job/checkpoint directories separate.
-5. From the new source, run `python3 deployment/verify_service.py --url http://10.71.121.57:8778 --expected-commit FULL_SOURCE_COMMIT --out /home/user/yuanhe-service-dev4.json`, replacing the commit with the verified package manifest's `git_commit` or exact Git HEAD. This checks source/version and seven served frontend file hashes; version text alone is insufficient.
+5. From the new source, run `python3 deployment/verify_service.py --url http://10.71.121.57:8778 --expected-commit FULL_SOURCE_COMMIT --out /home/user/yuanhe-service-0.11.0-dev.5.json`, replacing the commit with the verified package manifest's `git_commit` or exact Git HEAD. This checks source/version and seven served frontend file hashes; version text alone is insufficient.
 
 ## Compatibility and acceptance
 
