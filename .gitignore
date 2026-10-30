@@ -23,6 +23,8 @@ exports/
 logs/
 cache/
 installation_evidence/
+# Psi4 writes this timing report during the original runtime readiness check.
+/timer.dat
 *.ckpt
 *.prior
 *.pt

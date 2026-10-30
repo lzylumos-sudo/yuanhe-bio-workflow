@@ -1,4 +1,5 @@
-* text=auto
+# Keep hashed scientific configuration bytes identical across Linux and Windows.
+* text=auto eol=lf
 *.sh text eol=lf
 *.py text eol=lf
 *.patch text eol=lf

@@ -45,6 +45,15 @@ def preflight(config, root=ROOT):
     add('platform', platform.system() == 'Linux' and platform.machine() in ('x86_64', 'AMD64'),
         'Linux x86_64 or Linux inside WSL2 required')
     add('python', sys.version_info >= (3, 11), 'Bootstrap Python 3.11+ required')
+    try:
+        verification = subprocess.run([sys.executable, '-B', '-c',
+            'import sys;sys.path.insert(0,' + repr(str(root / '00_workbench')) + ');'
+            'from yuanhe.protocols import validate_sources;print(validate_sources())'],
+            capture_output=True, text=True, timeout=30)
+        add('scientific_source_integrity', verification.returncode == 0,
+            (verification.stdout + verification.stderr)[-2000:])
+    except (OSError, subprocess.SubprocessError) as exc:
+        add('scientific_source_integrity', False, str(exc))
     for tool in ('bash', 'git', 'curl', 'patch', 'make', 'gcc', 'g++', 'tar',
                  os.environ.get('MICROMAMBA', 'micromamba')):
         add('tool:' + tool, shutil.which(tool), 'Install prerequisite; see DEPLOY.md')

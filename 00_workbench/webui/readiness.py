@@ -73,6 +73,13 @@ def collect(cfg, root, ui_python=None, publish=None):
        'import rdkit,numpy,yaml,gemmi,scipy,pandas,filelock,meeko; '
        'from rdkit.Chem import FilterCatalog,rdMolDescriptors; print(rdkit.__version__)',
        'Install the complete workbench runtime; filelock and Meeko are required too.')
+    py('predocking_runtime', chem,
+       'import sys;from pathlib import Path;sys.path.insert(0,' + repr(str(root / '02_docking/src')) + ');'
+       'from yuanhe_preflight.engine import evaluate,rank;'
+       'from yuanhe_preflight.synthesis import sascorer;'
+       'assert Path(sascorer.__file__).with_name("fpscores.pkl.gz").is_file();'
+       'print("Pre-docking engine and installed RDKit SA_Score imports OK")',
+       'Restore the pre-docking source and the complete pinned RDKit package, including its Contrib data.')
     py('interaction', chem,
        'import Bio,openmm,openpyxl,cairosvg,lxml; print("interaction imports OK")',
        'Install deployment/module-runtime-requirements.txt in the chemistry runtime.')

@@ -36,6 +36,8 @@ def preflight(path, cfg, out, *, availability):
 
 
 def screening(d, cfg, p, files, out):
+    if not all(key in p for key in ('center', 'size', 'review_reason')):
+        raise ValueError('Create a new screening input snapshot with the reviewed original docking box and review rationale')
     import yaml
     from zvss.runctx import load_context
     from zvss.stages import run_all
@@ -59,7 +61,9 @@ def screening(d, cfg, p, files, out):
     ctx = load_context(root=str(workspace), run_id='screen', target_profile=str(workspace/'target.yaml'),
                        budget_config=str(workspace/'configs/budgets/full.yaml'), host_config=str(workspace/'host.json'))
     inputs = {'input_dirs': [str(files['poses'].parent)], 'manifest': None, 'recursive': False,
-              'hints': {'receptor_file': str(files['receptor']), 'receptor_sha256': a.digest(files['receptor']), 'seed': p['seed']}}
+              'hints': {'receptor_file': str(files['receptor']), 'receptor_sha256': a.digest(files['receptor']), 'seed': p['seed'],
+                        'box': {'center': p['center'], 'size': p['size'], 'source': 'reviewed_independent_input'},
+                        'review_reason': p['review_reason']}}
     state = run_all(ctx, inputs, progress=lambda stage, info: print(stage, info.get('status'), flush=True))
     if state.get('errors'):
         raise RuntimeError('Screening reported errors; inspect workspace/runs/screen/run_state.json')

@@ -182,6 +182,8 @@ def validate_config(config):
 
 def create(config):
  cfg,assets,source=validate_config(config)
+ from yuanhe.protocols import validate_sources
+ validate_sources()
  from yuanhe.records import new_run_id
  rid=new_run_id();d=run_dir(rid);d.mkdir(parents=True)
  shutil.copyfile(source,d/'input.pdb');cfg['input_sha256']=digest(d/'input.pdb')

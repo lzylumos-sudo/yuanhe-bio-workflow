@@ -98,7 +98,7 @@ def docking_control(d,c,p,out,root):
  result=a.read(out/'standalone/result.json');result['artifact_sha256']={str(x.relative_to(out)):a.digest(x) for x in (out/'standalone').rglob('*') if x.is_file() and '__pycache__' not in x.parts}
  return result
 
-CONTROL_SCRIPT = r'''import json,os,sys
+CONTROL_SCRIPT = r'''import json,os,sys,site
 from pathlib import Path
 from concurrent.futures import ThreadPoolExecutor
 from rdkit import Chem
@@ -119,7 +119,12 @@ def one(seed):
  rms=[float(rdMolAlign.CalcRMS(m,ref)) for m in poses]
  return {'seed':seed,'rmsd_A':rms,'top1_rmsd_A':rms[0],'best_rmsd_A':min(rms),'top1_recovered':rms[0]<=c['rmsd_threshold_A'],'any_recovered':min(rms)<=c['rmsd_threshold_A'],'cpu_threads':rec['cpu']}
 with ThreadPoolExecutor(max_workers=1) as pool:rows=list(pool.map(one,c['seeds']))
-result={'scope':c['scope'],'candidate_qualified':False,'evidence_contract':'yuanhe.reference-control/1','module_import':__import__('sbvs2').__file__,'rmsd':'symmetry-aware heavy atoms in fixed receptor frame; no ligand fitting','threshold_A':c['rmsd_threshold_A'],'runs':rows,'top1_recovery_fraction':sum(r['top1_recovered'] for r in rows)/len(rows),'any_pose_recovery_fraction':sum(r['any_recovered'] for r in rows)/len(rows),'clean_environment':sys.prefix!=sys.base_prefix and 'include-system-site-packages = false' in (Path(sys.prefix)/'pyvenv.cfg').read_text().lower(),'python_executable':sys.executable,'environment_scope':'interpreter isolation is measured; dependencies are recorded separately in the installation lock'}
+prefix=Path(sys.prefix).resolve();venv_cfg=prefix/'pyvenv.cfg'
+kind='venv' if venv_cfg.is_file() else 'conda' if (prefix/'conda-meta/history').is_file() else 'system'
+no_system_packages=kind=='conda' or kind=='venv' and 'include-system-site-packages = false' in venv_cfg.read_text().lower()
+rdkit_file=Path(Chem.__file__).resolve()
+isolation={'kind':kind,'prefix':str(prefix),'base_prefix':sys.base_prefix,'user_site_enabled':bool(site.ENABLE_USER_SITE),'rdkit_file':str(rdkit_file),'rdkit_within_prefix':rdkit_file.is_relative_to(prefix),'no_system_site_packages':no_system_packages}
+result={'scope':c['scope'],'candidate_qualified':False,'evidence_contract':'yuanhe.reference-control/1','module_import':__import__('sbvs2').__file__,'rmsd':'symmetry-aware heavy atoms in fixed receptor frame; no ligand fitting','threshold_A':c['rmsd_threshold_A'],'runs':rows,'top1_recovery_fraction':sum(r['top1_recovered'] for r in rows)/len(rows),'any_pose_recovery_fraction':sum(r['any_recovered'] for r in rows)/len(rows),'clean_environment':no_system_packages and not site.ENABLE_USER_SITE and isolation['rdkit_within_prefix'],'interpreter_isolation':isolation,'python_executable':sys.executable,'environment_scope':'interpreter isolation is measured for venv and Conda; dependency versions and integrity are recorded separately in the installation lock'}
 (base/'result.json').write_text(json.dumps(result,indent=2,allow_nan=False))
 '''
 
