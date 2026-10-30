@@ -47,7 +47,9 @@ jobs:
         env:
           PLAYWRIGHT_MODULE: ${{ runner.temp }}/yuanhe-ui/node_modules/playwright
           CHROME_CHANNEL: chromium
-        run: node 00_workbench/tests/test_module_state_ui.cjs
+        run: |
+          node 00_workbench/tests/test_module_state_ui.cjs
+          node 00_workbench/tests/test_studio_state_ui.cjs
       - name: Independent modules through the actual browser and real GROMACS
         env:
           PLAYWRIGHT_MODULE: ${{ runner.temp }}/yuanhe-ui/node_modules/playwright
