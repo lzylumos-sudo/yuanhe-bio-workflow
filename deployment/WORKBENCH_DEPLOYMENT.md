@@ -40,7 +40,7 @@ cd yuanhe-bio-workflow
 git rev-parse HEAD
 ```
 
-Use clean `main` for the latest merged fixes, recording the exact commit before installation. To reproduce a published release instead, select its immutable tag from `deployment/current_release.json`; it can predate main. For the named ZIP, follow `DEPLOY.md` and `verify_release.py`; do not mistake a source commit hash for the product version. Choose a new dedicated installation prefix owned by the service account, for example `/srv/yuanhe/release-20261022`. The commands below use `YUANHE_PREFIX`; replace the example path once, consistently.
+Use clean `main` for the latest merged fixes, recording the exact commit before installation. To reproduce a published release instead, select its immutable tag from `deployment/current_release.json`; it can predate main. For the named ZIP, follow `DEPLOY.md` and `verify_release.py`; do not mistake a source commit hash for the product version. Prefer the versioned site configuration and `setup_workbench.py` in `DEPLOY.md`. For the manual commands below, choose a new dedicated installation prefix owned by the service account, such as `/srv/yuanhe/runtime-NEW`; replace `YUANHE_PREFIX` once, consistently.
 
 GitHub deliberately does not contain model weights, installed environments or private scientific data. For first installation, `python3 deployment/fetch_generation_models.py --destination /absolute/NEW-model-bundle --execute` obtains the exact public sources and weights, retains their licenses and verifies hashes. Review upstream terms linked in `DEPLOY.md`. Use that bundle with `setup_workbench.py`, which restores it automatically. For the manual steps below, restore the downloaded bundle or an existing compatible bundle:
 
@@ -48,14 +48,14 @@ GitHub deliberately does not contain model weights, installed environments or pr
 python3 deployment/restore_models.py --source-root /absolute/model-bundle
 ```
 
-or check out the exact upstream revisions into `01_molecule_generation/vendor/Peptide2Mol` and `01_molecule_generation/vendor/REINVENT4`, and place the two weights at the manifest paths. Retain the upstream LICENSE files and REINVENT4 `uv.lock`. The manifest records source URLs, commits, weight paths and SHA-256. Do not substitute a similarly named model or edit expected hashes to accept a different weight.
+The restorer copies only verified weights. It reconstructs vendor source from the pinned Git commits, using cached committed objects when available and fetching public source otherwise. Old working-tree modifications, environments and wrappers are not reused. Current patches are applied in the new source directory. For manual restoration, check out the exact upstream revisions into `01_molecule_generation/vendor/Peptide2Mol` and `01_molecule_generation/vendor/REINVENT4`, then place the two weights at the manifest paths. Retain the upstream LICENSE files and REINVENT4 `uv.lock`. Do not substitute a similarly named model or edit expected hashes to accept a different weight.
 
 Run `python3 deployment/apply_vendor_patches.py` after restoring both sources and **before** installing REINVENT4. It verifies the known before/after hashes and refuses unknown revisions. The patches preserve bounded sampling and chemical stereochemistry. The installer repeats this idempotent check. Missing assets are reported by diagnostics; they are not silently replaced with historical molecules.
 
 ## 4. Install the shared runtime and model environments
 
 ```bash
-export YUANHE_PREFIX=/srv/yuanhe/release-20261022
+export YUANHE_PREFIX=/srv/yuanhe/runtime-NEW
 # If needed: export MICROMAMBA=/absolute/path/to/micromamba
 bash deployment/install_workbench.sh runtime "$YUANHE_PREFIX"
 bash deployment/install_workbench.sh peptide "$YUANHE_PREFIX"

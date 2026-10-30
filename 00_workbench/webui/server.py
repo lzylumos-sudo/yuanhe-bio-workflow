@@ -29,6 +29,7 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from webui import data, jobs, stages, workflow, studio, module_jobs                                   # noqa: E402
+from webui.scheduling import ResourceBusyError
 
 STATIC = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'static')
 ROOT = data.ROOT
@@ -64,6 +65,25 @@ class HttpError(Exception):
     def __init__(self, message, status=400):
         super().__init__(message)
         self.status = status
+
+
+def ui_version_error(path, supplied, *, browser=False):
+    """Require browser release identity; headerless CLI clients and stopping remain supported."""
+    if (supplied is None and not browser) or (supplied is not None and supplied.strip() == VERSION):
+        return None
+    stop_routes = (
+        r'/api/modules/jobs/MOD-[a-f0-9]{32}/cancel',
+        r'/api/project/run/[A-Za-z0-9_-]+/cancel',
+        r'/api/jobs/[0-9a-f]+/cancel',
+        r'/api/studio/run/[A-Za-z0-9_-]+/cancel-operation',
+    )
+    if any(re.fullmatch(route, path) for route in stop_routes):
+        return None
+    return _error('Frontend and service versions do not match', 409,
+                  error_code='UI_VERSION_MISMATCH', recoverable=True,
+                  details={'ui_version': supplied, 'service_version': VERSION},
+                  suggested_action='Reload the page or deploy matching frontend and backend files '
+                                   'before retrying. No change was applied.')
 
 
 # ---------------------------------------------------------------------------
@@ -206,6 +226,8 @@ def api_jobs_start(q, body):
         job_id = jobs.start(kind, payload)
     except ValueError as exc:
         raise HttpError(str(exc), 400) from exc
+    except ResourceBusyError:
+        raise
     except RuntimeError as exc:
         raise HttpError(str(exc), 409) from exc
     return _json(dict(id=job_id), 201)
@@ -514,6 +536,12 @@ def dispatch(method, path, query, body):
             if method == 'POST':
                 return handler(query, body, **kwargs) if kwargs else handler(query, body)
             return handler(query, **kwargs) if kwargs else handler(query)
+        except ResourceBusyError as exc:
+            return _error(str(exc), 409, error_code='RESOURCE_BUSY', recoverable=True,
+                          run_id=kwargs.get('rid') or kwargs.get('ident'), stage=kwargs.get('key'),
+                          details={'queued': False},
+                          suggested_action='Wait for the active job or maintenance operation to finish, '
+                                           'refresh, then start again. The request has not been queued.')
         except HttpError:
             raise
         except (ValueError, KeyError) as exc:
@@ -623,6 +651,13 @@ class Handler(BaseHTTPRequestHandler):
         if self.headers.get('Sec-Fetch-Site') == 'cross-site':
             self.close_connection = True
             self._send(*_error('Cross-site write request denied', 403)); return
+        mismatch = ui_version_error(parsed.path, self.headers.get('X-Yuanhe-UI-Version'),
+                                    browser=bool(origin or self.headers.get('Sec-Fetch-Site')))
+        if mismatch is not None:
+            # The upload body has not been consumed; do not reuse this connection.
+            self.close_connection = True
+            self._send(*mismatch, extra={'Connection': 'close'})
+            return
         try:
             length = int(self.headers.get('Content-Length') or 0)
             if not 0 <= length <= ((130 if parsed.path == '/api/modules/jobs' else 12 if parsed.path == '/api/studio/upload' else 1) * 1024 * 1024):

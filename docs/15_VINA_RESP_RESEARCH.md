@@ -27,9 +27,12 @@ New workbench jobs, SBVS/SBVS2 jobs and screening redocking use official
 The new adapter checks the executable's version banner. It does not invoke GNINA,
 a CNN model, a GPU docking mode or an automatic GNINA fallback.
 
-Use `deployment/runtime.example.json`, `02_docking/configs/research_vina.yaml`
-and `03_virtual_screening/configs/host.yaml` as new-task templates. Replace the
-executable paths and review the receptor and search box. Center and full box
+For full workbench deployment, follow [DEPLOY.md](../DEPLOY.md) using the release's
+`deployment/site.example.json`; the installer generates `runtime.json` for the new
+environments. `deployment/runtime.example.json` is a manual configuration reference,
+not an old runtime to copy over that result. Independent module users can use
+`02_docking/configs/research_vina.yaml` and `03_virtual_screening/configs/host.yaml`
+as new-task templates. Review executable paths, receptor and search box. Center and full box
 size are in angstroms, never nanometers. Defaults: scoring `vina`, exhaustiveness
 32, nine modes, energy range 3 kcal/mol. Configure seeds explicitly; docking
 multiseed sampling is separate from the single MD trajectory policy.

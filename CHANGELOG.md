@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.11.0-dev.4 - 2026-10-30
+
+- Unify runtime resolution across registry probes, diagnostics and workers; retain schema-checked compatibility with legacy environment settings.
+- Correct REINVENT4 interpreter resolution, official Vina version parsing and MD executable/environment probes. Keep engineering readiness separate from scientific validation.
+- Return recoverable resource-busy responses without relaxing locking or provenance; clear resolved UI errors and show zero valid model outputs explicitly.
+- Generate frontend version guards and versioned administrator site settings from VERSION. Verify served frontend hashes against the expected source during deployment.
+- Provide a separate-port campus upgrade configuration and migration instructions. Historical tasks, scientific rules, model pins and force fields remain unchanged.
+- Reuse only verified model weights from old installations; reconstruct vendor code from pinned upstream commits before applying current patches, so old working-tree edits and wrappers cannot enter a new runtime.
+
 ## 0.11.0-dev.3 — 2026-10-26
 
 - Integrate synthesis environment/asset installation and current configuration defaults. Preserve old installations and fail before service handoff on dependency errors.

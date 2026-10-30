@@ -2,6 +2,8 @@ Yuanhe Bio: use the administrator-provided UI link
 
 After deploying the GitHub project and configuring dependencies, models, GPUs and data directories, the administrator shares the workbench URL. Open it to operate the page manually or authorize Codex to operate the same page. Users need no local computation environment, terminal or separate launch entry point.
 
+Administrator installation starts at DEPLOY.md with deployment/site.example.json from the selected release. For the existing campus server, use deployment/UPGRADE_RUNTIME.md and deployment/site.campus-upgrade.json. The installer generates runtime.json; do not replace it with an old task snapshot. System & Versions shows the service identity. A frontend/backend version mismatch requires refreshing the current interface before new submissions.
+
 1. Create a research run
 Select the structure, chains and residue ranges, and confirm the actual inputs. Historical GNINA, AM1-BCC or short-MD runs retain their original identities and protocols. Create a new run after migration.
 
@@ -21,7 +23,7 @@ Configure the initial velocity seed, GPU index, output interval, checkpoint inte
 MurJ uses an explicit membrane. The built-in single-lipid membrane is not a complete mixed bacterial membrane. Enter and review membrane PB thickness, dielectric, pore model and supporting evidence before building.
 
 6. Run and resume
-Preview the built system in Tool 5 and confirm identity, parameters, orientation and protocol. Select Start / Resume from checkpoint, or execute through the sixth stage. The default is one trajectory for that system; extra trajectories in Tool 7 are not required.
+Preview the built system in Tool 5 and confirm identity, parameters, orientation and protocol. Select Start / Resume from checkpoint, or execute through the GROMACS stage. The default is one trajectory for that system; extra trajectories in Tool 7 are not required.
 After stopping, wait for checkpoint writing, reopen the same run and system, and use the same button to resume. Do not create a replacement system or change frozen inputs. Missing matching checkpoints or changed inputs block resumption.
 
 7. Analyze and inspect
@@ -37,5 +39,5 @@ Method and configuration migration: docs/15_VINA_RESP_RESEARCH.md
 Component licenses: docs/16_RESEARCH_DEPENDENCY_LICENSES.md
 Detailed UI instructions: docs/18_UI_RESEARCH_WORKFLOW.md
 
-Pre-docking substructure risk and acquisition gates (2026-10-21)
-REINVENT4 → standardization and deduplication → risk → availability → AutoDock Vina. See docs/PREDOCKING_PREFLIGHT.md for configuration, real supplier catalog fields, local AiZynthFinder assets, review, caching and CLI instructions. Missing real evidence never grants automatic passage; the pre-docking integration does not change MD code or parameters.
+Current pre-docking screening
+REINVENT4 → standardization and deduplication → risk → Pre-Docking Screening → AutoDock Vina. Pre-Docking Screening uses AI toxicity, SA and SCScore, complete synthesis-route evidence and diversity ranking. See 02_docking/docs/PREDOCKING_V2.md for current configuration and local model assets. New defaults have no supplier/catalog fields or purchase bypass. Missing real evidence never grants automatic passage; the pre-docking integration does not change MD code or parameters.

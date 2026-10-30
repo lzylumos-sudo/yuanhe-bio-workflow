@@ -106,6 +106,7 @@ def stage_peptide2mol(d,cfg,out):
  return {'requested':cfg['budget'],'sampled':sampled,'rejected':sampled-len(rows),'remaining':len(rows)}
 
 def stage_reinvent4(d,cfg,out):
+ from yuanhe.runtime import runtime_env, resolve_python
  from src.adapters.registry import backend
  reinvent4=backend("reinvent4")
  from src.cores import derive_design_core
@@ -140,7 +141,7 @@ def stage_reinvent4(d,cfg,out):
   if rc:
    from research.generation import guarded_sample
    result=guarded_sample(reinvent4.run,kwargs,d,rc,'reinvent4')
-  else:result=reinvent4.run(**kwargs,device='cpu')
+  else:result=reinvent4.run(**kwargs,device='cpu',environment=runtime_env(resolve_python(cfg,'reinvent_python'),for_overlay=True))
   core_records[-1].update(attempts=result['report']['completed'],valid=result['report'].get('valid'),unique=result['report'].get('unique'))
   sampled+=result['report']['completed']
   for c in read(out/f'core_{n:04d}/candidates.json')['candidates']:

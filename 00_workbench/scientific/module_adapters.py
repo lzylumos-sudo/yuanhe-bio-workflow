@@ -86,11 +86,13 @@ def execute(d, req, operation, out):
             args.update(pocket_pdb=files['pocket'], checkpoint=gen/model['checkpoint'],
                         checkpoint_sha256=model['checkpoint_sha256'], executable=cfg['peptide_python'])
         else:
+            from yuanhe.runtime import runtime_env, resolve_python
             scaffold = Chem.MolFromSmiles(p['scaffold'])
             if scaffold is None or sum(atom.GetAtomicNum() == 0 for atom in scaffold.GetAtoms()) != 1:
                 raise ValueError('REINVENT4 requires exactly one attachment atom')
             args.update(scaffold_smiles=p['scaffold'], checkpoint=gen/model['prior'],
-                        checkpoint_sha256=model['prior_sha256'], executable=cfg['reinvent_executable'], device='cpu')
+                        checkpoint_sha256=model['prior_sha256'], executable=cfg['reinvent_executable'], device='cpu',
+                        environment=runtime_env(resolve_python(cfg, 'reinvent_python'), for_overlay=True))
         result = backend(kind).run(**args)
         return {'report': result['report'], 'scope': 'Real pretrained sampling; candidates remain unqualified'}
     if kind in {'risk', 'availability'}:

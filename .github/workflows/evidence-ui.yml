@@ -43,6 +43,11 @@ jobs:
           UI_TEST_TEMP: ${{ runner.temp }}
           UI_SCREENSHOT: evidence-ui.png
         run: node 00_workbench/tests/run_evidence_ui.cjs
+      - name: UI resource recovery and frontend version guards
+        env:
+          PLAYWRIGHT_MODULE: ${{ runner.temp }}/yuanhe-ui/node_modules/playwright
+          CHROME_CHANNEL: chromium
+        run: node 00_workbench/tests/test_module_state_ui.cjs
       - name: Independent modules through the actual browser and real GROMACS
         env:
           PLAYWRIGHT_MODULE: ${{ runner.temp }}/yuanhe-ui/node_modules/playwright

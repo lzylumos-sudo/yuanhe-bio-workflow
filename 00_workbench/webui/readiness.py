@@ -14,19 +14,7 @@ import shutil
 import subprocess
 import sys
 import time
-
-
-def runtime_env(executable):
-    env = dict(os.environ)
-    exe = shutil.which(str(executable)) or str(executable)
-    bindir = Path(exe).absolute().parent
-    env['PATH'] = str(bindir) + os.pathsep + env.get('PATH', '')
-    env.pop('PYTHONHOME', None)
-    env.pop('PYTHONPATH', None)
-    env['PYTHONNOUSERSITE'] = '1'
-    if (bindir.parent / 'dat/leap').is_dir():
-        env['AMBERHOME'] = str(bindir.parent)
-    return env
+from yuanhe.runtime import runtime_env, resolve_python, resolve_executable, vina_version, reinvent_environment_check
 
 
 def probe(argv, root, timeout=90):
@@ -78,9 +66,9 @@ def collect(cfg, root, ui_python=None, publish=None):
                      'platform': platform.platform()}, 'Deploy on Linux x86_64 / WSL2.')
     add('ui_interpreter', ui_check(ui_python or sys.executable, root),
         'Restart the web service with the configured chemistry Python via start_linux.sh.')
-    chem = cfg.get('chem_python', '')
-    screen = cfg.get('screen_python') or chem
-    md = cfg.get('md_python', '')
+    chem = resolve_python(cfg, 'chem_python')
+    screen = resolve_python(cfg, 'screen_python')
+    md = resolve_python(cfg, 'md_python')
     py('chemistry', chem,
        'import rdkit,numpy,yaml,gemmi,scipy,pandas,filelock,meeko; '
        'from rdkit.Chem import FilterCatalog,rdMolDescriptors; print(rdkit.__version__)',
@@ -91,7 +79,7 @@ def collect(cfg, root, ui_python=None, publish=None):
     py('screening', screen,
        'import MDAnalysis,prolif,posebusters,fastapi,scipy,pandas,yaml,gemmi; print("screening imports OK")',
        'Install screening dependencies in screen_python, not just chem_python.')
-    py('preparation', cfg.get('prep_python', ''),
+    py('preparation', resolve_python(cfg, 'prep_python'),
        'import pdbfixer,openmm; from openmm.app import ForceField; '
        'ForceField("amber14-all.xml","amber14/tip3p.xml"); print(openmm.__version__)',
        'Install PDBFixer and OpenMM in prep_python.')
@@ -109,10 +97,10 @@ def collect(cfg, root, ui_python=None, publish=None):
        'c=m.Context(s,i,m.Platform.getPlatformByName("CUDA")); '
        'c.setPositions([[0,0,0]]);i.step(1);print(c.getPlatform().getName())',
        'Provide a compatible NVIDIA driver and CUDA OpenMM runtime; no CPU fallback.')
-    vina = probe([cfg.get('vina', ''), '--version'], root)
-    vina['ok'] = vina['ok'] and 'AutoDock Vina v1.2.7' in vina.get('output', '')
+    vina = probe([resolve_executable(cfg, 'vina', chem) or cfg.get('vina', ''), '--version'], root)
+    vina['ok'] = vina['ok'] and vina_version(vina.get('output', '')) == '1.2.7'
     add('vina', vina, 'Configure the official Vina 1.2.7 executable.')
-    gmx = probe([cfg.get('gmx', ''), '--version'], root)
+    gmx = probe([resolve_executable(cfg, 'gmx', md) or cfg.get('gmx', ''), '--version'], root)
     # This full workflow requests a GPU. A CPU-only executable is not sufficient.
     gmx['ok'] = gmx['ok'] and any('GPU support:' in line and 'CUDA' in line
                                                for line in gmx.get('output', '').splitlines())
@@ -122,7 +110,7 @@ def collect(cfg, root, ui_python=None, publish=None):
         'Make the administrator-assigned NVIDIA GPU available to Linux / the container.')
 
     if not cfg.get('imported_candidates'):
-        py('peptide_cuda', cfg.get('peptide_python', ''),
+        py('peptide_cuda', resolve_python(cfg, 'peptide_python'),
            'import torch,torch_geometric,torch_sparse,torch_scatter,torch_cluster,lightning,hydra,rdkit,rootutils,lmdb; '
            'assert torch.cuda.is_available(), "CUDA unavailable"; '
            'x=torch.tensor([[0.,0.,0.],[1.,0.,0.]],device="cuda"); '
@@ -130,10 +118,13 @@ def collect(cfg, root, ui_python=None, publish=None):
            'print(torch_scatter.scatter_add(torch.ones(2,device="cuda"),torch.tensor([0,0],device="cuda"))); '
            'torch.cuda.synchronize();print(torch.cuda.get_device_name())',
            'Install the pinned Peptide2Mol Python/PyTorch and matching CUDA PyG wheels.')
-        add('reinvent_cli', probe([cfg.get('reinvent_executable', ''), '--help'], root),
+        reinvent_python = resolve_python(cfg, 'reinvent_python')
+        add('reinvent_environment', reinvent_environment_check(cfg),
+            'Configure reinvent_python and reinvent_executable from the same environment bin directory; '
+            'cross-environment wrappers need verified real paths.')
+        add('reinvent_cli', probe([resolve_executable(cfg, 'reinvent_executable', reinvent_python)
+                                  or cfg.get('reinvent_executable', ''), '--help'], root),
             'Install the pinned, patched REINVENT4 source into its dedicated environment.')
-        reinvent_exe = shutil.which(cfg.get('reinvent_executable', '')) or cfg.get('reinvent_executable', '')
-        reinvent_python = str(Path(reinvent_exe).absolute().parent / 'python') if reinvent_exe else ''
         if (cfg.get('research') or {}).get('reinvent_device', 'auto') != 'cpu':
             py('reinvent_cuda', reinvent_python,
                'import torch;assert torch.cuda.is_available(),"CUDA unavailable";'

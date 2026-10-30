@@ -1,5 +1,6 @@
 /* api.js -- thin fetch layer over the stdlib JSON API, with an in-memory cache
    that can be dropped when the pipeline has produced new files. */
+import { PLATFORM_VERSION } from './platform-version.js';
 
 const cache = new Map();
 
@@ -27,7 +28,7 @@ export async function get(path, { force = false } = {}) {
 export async function post(path, body) {
   const res = await fetch(path, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+    headers: { 'Content-Type': 'application/json', Accept: 'application/json', 'X-Yuanhe-UI-Version': PLATFORM_VERSION },
     body: JSON.stringify(body || {}),
   });
   const text = await res.text();

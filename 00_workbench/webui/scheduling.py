@@ -12,6 +12,10 @@ from pathlib import Path
 import tempfile
 
 
+class ResourceBusyError(RuntimeError):
+    """Expected, retryable contention; the caller has not been queued."""
+
+
 class Lease:
     def __init__(self):
         self.handles = []
@@ -23,7 +27,7 @@ class Lease:
             fcntl.flock(handle, (fcntl.LOCK_SH if shared else fcntl.LOCK_EX) | fcntl.LOCK_NB)
         except BlockingIOError:
             handle.close()
-            raise RuntimeError(message) from None
+            raise ResourceBusyError(message) from None
         except BaseException:
             handle.close()
             raise
@@ -78,6 +82,19 @@ def acquire(root, run=None, lane=None, stage=None, review=None):
     except BaseException:
         lease.close()
         raise
+
+
+def exclusive_status(root):
+    """Advisory availability for independent jobs; launch still acquires a lease."""
+    result = {'available': None, 'policy': 'exclusive', 'queued': False}
+    try:
+        with acquire(root):
+            pass
+    except ResourceBusyError as exc:
+        return {**result, 'available': False, 'message': str(exc)}
+    except (ImportError, OSError):
+        return {**result, 'message': 'Resource availability could not be checked'}
+    return {**result, 'available': True, 'message': 'Independent execution capacity is available'}
 
 
 def receptor_environment():

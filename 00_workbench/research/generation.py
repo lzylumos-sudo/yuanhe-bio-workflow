@@ -3,17 +3,19 @@ from .resources import detect,gpu_lease,disk_guard
 
 def sample_reinvent(adapter,kwargs,path,cfg):
     from webui.workflow import atomic
+    from yuanhe.runtime import runtime_env
     disk_guard(path,cfg)
+    environment=runtime_env(kwargs['executable'],for_overlay=True)
     available=[g for g in detect(path)['gpus'] if g['allocatable']]
     if cfg['reinvent_device']!='cpu':
         for gpu in available:
             try:
                 with gpu_lease(gpu):
-                    return adapter(**kwargs,device='cuda:0',environment={'CUDA_VISIBLE_DEVICES':gpu['uuid']})
+                    return adapter(**kwargs,device='cuda:0',environment={**environment,'CUDA_VISIBLE_DEVICES':gpu['uuid']})
             except BlockingIOError:continue
         if cfg['reinvent_device']=='cuda':raise RuntimeError('No authorized free GPU for REINVENT4')
     atomic(path/'reinvent_cpu_fallback.json',{'reason':'CPU explicitly selected or no authorized unallocated GPU','device':'cpu'})
-    return adapter(**kwargs,device='cpu',environment={'CUDA_VISIBLE_DEVICES':''})
+    return adapter(**kwargs,device='cpu',environment={**environment,'CUDA_VISIBLE_DEVICES':''})
 
 def sample_peptide(adapter,kwargs,path):
     for gpu in detect(path)['gpus']:

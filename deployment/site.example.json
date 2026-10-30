@@ -1,7 +1,9 @@
 {
-  "prefix": "/srv/yuanhe/runtime-NEW",
+  "prefix": "/srv/yuanhe/runtime-0.11.0-dev.4",
   "model_source": "/srv/yuanhe/models-NEW",
   "gmx": "/srv/yuanhe/gromacs-NEW/install/bin/gmx",
   "host": "127.0.0.1",
-  "port": 8777
+  "port": 8777,
+  "schema_version": "yuanhe.site/2",
+  "software_version": "0.11.0-dev.4"
 }

@@ -1,6 +1,6 @@
 # Installation and configuration
 
-**Administrators deploying the complete browser workflow:** use the [current full workbench deployment guide](../deployment/WORKBENCH_DEPLOYMENT.md) for installation, model/data prerequisites, independent diagnostics and acceptance.
+**Administrators deploying the complete browser workflow:** start with [DEPLOY.md](../DEPLOY.md) and the release's versioned [site configuration](../deployment/site.example.json). Existing campus installations use the [upgrade procedure](../deployment/UPGRADE_RUNTIME.md) and [campus configuration](../deployment/site.campus-upgrade.json). The [full workbench reference](../deployment/WORKBENCH_DEPLOYMENT.md) expands individual installation steps.
 
 The recorded compute environment is Linux x86-64 with an RTX 5090 D; final release acceptance remains open. Windows/WSL2 with RTX 5070 is a planned deployment target, not a validated platform. See [the support matrix](12_SUPPORT_MATRIX.md) for the exact boundary. Keep environments on the WSL Linux filesystem, not an exFAT external disk. The external disk carries the project, structures, model files and run records. A new host still needs compatible installed dependencies.
 
@@ -23,7 +23,7 @@ See [environment specifications and reconstruction](14_ENVIRONMENTS.md) for the 
 - GROMACS: Linux build selected by its actual executable path. Record whether execution really used CPU or GPU.
 - Optional ZLIS and standalone OpenMM: follow their module READMEs. Their environments and evidence do not validate GROMACS.
 
-See `deployment/validation_5070/INSTALL_AND_VALIDATE.txt` for installation commands and target-machine experiments, and `USER_GUIDE.txt` for the UI workflow.
+The files under `deployment/validation_5070/` record historical installation experiments; use `DEPLOY.md` for current installation. See `USER_GUIDE.txt` for the UI workflow.
 
 ## Restore models
 
@@ -33,13 +33,13 @@ From the repository root:
 python3 deployment/restore_models.py --source-root /path/to/source-project
 ```
 
-The restorer accepts this repository layout or a source directory containing the pinned model files. It copies only model directories into ignored `01_molecule_generation/vendor/`, excludes Git metadata and secrets, refuses overwrite and checks both weight hashes. It does not install dependencies or run inference. Without upstream Git metadata, adapters record a source fingerprint rather than claiming verified upstream commit identity.
+The restorer accepts this repository layout or a model bundle. It reuses only the two hash-verified weights and reconstructs each vendor directory from the exact upstream commit in `deployment/model_dependencies.json`. Existing vendor Git objects can supply that commit offline; otherwise Git fetches the pinned public source. Old working-tree edits, installed environments, wrappers and configuration are not copied. New source metadata is retained, existing destinations are refused, and no dependencies or inference are run. Apply this release's recorded vendor patches before installation, as described in `DEPLOY.md`.
 
-Alternatively obtain the pinned source and weights listed in `deployment/model_dependencies.json`. Upstream sources may not reproduce historical local patches; validate actual inference separately. Missing weights, wrong hashes and empty valid outputs must fail explicitly.
+Alternatively obtain the pinned source and weights using `deployment/fetch_generation_models.py` as described in `DEPLOY.md`. Actual inference still needs separate validation. Missing weights, wrong hashes and empty valid outputs must remain explicit.
 
 ## Runtime settings
 
-Copy `deployment/runtime.example.json` to ignored `deployment/runtime.json`, then enter actual paths in Environment and diagnostics. Save before creating a new run. Existing runs retain frozen settings.
+For current installations, `deployment/setup_workbench.py --config /path/to/site.json --execute` generates ignored `deployment/runtime.json` from the selected release and the new environments. `site.example.json` is the administrator input; `runtime.example.json` is a reference for manually managed environments, not a replacement for the generated runtime. Keep schema fields and all actual interpreter paths together. Save any deliberate environment changes before creating a new run; existing runs retain frozen settings. Never copy an old run configuration over a new installation.
 
 `python3 deployment/doctor.py --config deployment/runtime.json` is an optional read-only check. A passing dependency check is not scientific acceptance. Select `data/structures/9nu4.pdb`, review chains and residue ranges, then review cores, receptor, docking box and membrane system at the relevant stages.
 

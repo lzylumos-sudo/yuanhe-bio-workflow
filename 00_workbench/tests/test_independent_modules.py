@@ -113,6 +113,22 @@ def test_missing_environment_does_not_leave_running_job(isolated, monkeypatch):
     lease.close.assert_called_once()
 
 
+def test_mixed_reinvent_environment_rejected_before_worker(isolated, monkeypatch):
+    from yuanhe import runtime
+    cfg = w.defaults(); cfg['chem_python'] = sys.executable
+    monkeypatch.setattr(w, 'defaults', lambda: cfg)
+    monkeypatch.setattr(runtime, 'reinvent_environment_check', lambda _: {
+        'ok': False, 'detail': 'REINVENT launcher uses an old environment'})
+    lease = Mock(); monkeypatch.setattr(w, 'acquire_compute', lambda: lease)
+    spawn = Mock(); monkeypatch.setattr(w, 'spawn_job', spawn)
+    job = jobs.create(request('reinvent4'))
+    with pytest.raises(ValueError, match='old environment'):
+        jobs.launch(job['id'], {})
+    assert jobs.get(job['id'])['operations'] == []
+    spawn.assert_not_called()
+    lease.close.assert_called_once()
+
+
 def test_reference_contract_is_not_candidate_evidence(tmp_path):
     from scientific.reference_docking import reference_inputs
     from yuanhe_preflight.gate import validate_evidence, QualificationError
