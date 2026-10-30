@@ -142,7 +142,7 @@ def collect(cfg, root, ui_python=None, publish=None):
                 path = root / '01_molecule_generation/vendor' / row['vendor'] / row['file']
                 add(row['vendor'] + '_patch:' + row['file'], {'ok': path.is_file() and digest(path) == row['after_sha256'], 'path': str(path)},
                     'Apply deployment/apply_vendor_patches.py before installing the model environment.')
-                if row['vendor'] == 'REINVENT4':
+                if row['vendor'] == 'REINVENT4' and row['file'].endswith('.py'):
                     py('reinvent_installed_patch:' + row['file'], reinvent_python,
                        'import hashlib,importlib.util;from pathlib import Path;'
                        'p=Path(importlib.util.find_spec(' + repr(row['file'][:-3].replace('/', '.')) + ').origin);'

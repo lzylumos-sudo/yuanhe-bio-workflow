@@ -26,5 +26,19 @@
     "patch": "REINVENT4-model-batch.patch",
     "before_sha256": "d9da9e39ab3cbb7045825c4f48f2d5015b61983b68a95ee243cb95d9af29b912",
     "after_sha256": "76d5e5adcda81b3b4f8f354e4b4607d50c65e8b4cdbbf62a53bc294c6dd2b152"
+  },
+  {
+    "vendor": "REINVENT4",
+    "file": "pyproject.toml",
+    "patch": "REINVENT4-cu130-pyproject.patch",
+    "before_sha256": "eac6a998265046665fe5a642d68f63be88dea5c34b229ceef590f7e76b1bf2e1",
+    "after_sha256": "66676a796555be1931fa831a4c3bbcce51031976b58de6d963b9abe723dab49d"
+  },
+  {
+    "vendor": "REINVENT4",
+    "file": "uv.lock",
+    "patch": "REINVENT4-cu130-uv.patch",
+    "before_sha256": "904bcf4afab45c5174b4175b85dd161fa8bce041c307534cc29439572fe8e47a",
+    "after_sha256": "1d1b998f495b2c1e88cb56c43fef074f14a0f7f65593f63c0151c84a02f5ec0b"
   }
 ]

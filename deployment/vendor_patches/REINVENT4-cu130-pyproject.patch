@@ -1,0 +1,20 @@
+--- a/pyproject.toml
++++ b/pyproject.toml
+@@ -39,7 +39,7 @@
+ # We go quite defensive and add upper bounds,
+ # in case major version updates break backward compatibility.
+ dependencies = [
+-  "torch==2.12.0", # requires --extra-index-url https://download.pytorch.org/whl/cu126 where cu126 may need to be replaced with a suitable CUDA version
++  "torch==2.12.0", # requires --extra-index-url https://download.pytorch.org/whl/cu130 where cu130 may need to be replaced with a suitable CUDA version
+   "torchvision",  # needs to match torch
+   "tensorboard >=2,<3",
+   "rdkit >=2025.09.1",
+@@ -139,7 +139,7 @@
+ 
+ [[tool.uv.index]]
+ name = "pytorch"
+-url = "https://download.pytorch.org/whl/cu126"
++url = "https://download.pytorch.org/whl/cu130"
+ explicit = true
+ 
+ [[tool.uv.index]]

@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.11.0-dev.5 - 2026-10-30
+
+- Correct the REINVENT4 CUDA build for Blackwell using hash-verified dependency patches and a frozen cu130 lock; retain unrelated package versions and scientific defaults.
+- Check dependency metadata separately from installed Python modules, and update administrator templates to the new version and a fresh runtime prefix.
+- Target installation and UI acceptance remain pending; see docs/releases/0.11.0-dev.5.md.
+
 ## 0.11.0-dev.4 - 2026-10-30
 
 - Unify runtime resolution across registry probes, diagnostics and workers; retain schema-checked compatibility with legacy environment settings.

@@ -75,8 +75,8 @@ Edit the five machine settings, preserving the schema and intended software vers
 ```json
 {
   "schema_version": "yuanhe.site/2",
-  "software_version": "0.11.0-dev.4",
-  "prefix": "/srv/yuanhe/runtime-0.11.0-dev.4",
+  "software_version": "0.11.0-dev.5",
+  "prefix": "/srv/yuanhe/runtime-0.11.0-dev.5",
   "model_source": "/srv/yuanhe/models-NEW",
   "gmx": "/srv/yuanhe/gromacs-NEW/install/bin/gmx",
   "host": "127.0.0.1",

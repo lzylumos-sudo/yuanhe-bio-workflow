@@ -4,7 +4,7 @@ Use one immutable administrator release and its matching source manifest, fronte
 
 ## Administrator settings
 
-For a generic machine, copy `deployment/site.example.json` outside the source directory. For the previously inspected campus machine, copy `deployment/site.campus-upgrade.json`. It selects a new `/home/user/yuanhe-runtime-0.11.0-dev.4` prefix, reuses the existing public model bundle and CUDA GROMACS executable, binds `10.71.121.57`, and uses **8778** for validation while the existing service keeps **8777**.
+For a generic machine, copy `deployment/site.example.json` outside the source directory. For the previously inspected campus machine, copy `deployment/site.campus-upgrade.json`. It selects a new `/home/user/yuanhe-runtime-0.11.0-dev.5` prefix, reuses the existing public model bundle and CUDA GROMACS executable, binds `10.71.121.57`, and uses **8778** for validation while the existing service keeps **8777**.
 
 The campus template contains observed paths, not a guarantee that they still exist. Preflight checks them and refuses an existing destination. If the destination already exists from a failed attempt, preserve its logs and choose another new prefix. Do not overwrite it or reuse its evidence as a successful install.
 
