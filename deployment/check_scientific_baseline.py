@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Strict equality for protected scientific implementations and default configurations."""
+"""Strict protected-source hashes, with explicit versioned presentation revisions."""
 import hashlib,json
 from pathlib import Path
 ROOT=Path(__file__).resolve().parents[1]
@@ -14,7 +14,17 @@ PREFIXES=('01_molecule_generation/src/adapters/peptide2mol.py','01_molecule_gene
 
 def check():
     files=[f for f in BASELINE['files'] if f['path'].startswith(PREFIXES)]
-    errors=[f['path'] for f in files if not (ROOT/f['path']).is_file() or hashlib.sha256((ROOT/f['path']).read_bytes()).hexdigest()!=f['sha256']]
+    revision_file=ROOT/'docs/architecture/presentation_revisions.json'
+    revisions=json.loads(revision_file.read_text()) if revision_file.is_file() else {'schema':'yuanhe.presentation-revisions/1','revisions':[]}
+    if revisions['schema']!='yuanhe.presentation-revisions/1':raise ValueError('Unknown presentation revision schema')
+    allowed={'04_interaction_analysis/src/zlis/diagram2d.py'}
+    original={f['path']:f['sha256'] for f in files};revised={}
+    for revision in revisions['revisions']:
+        path=revision['path']
+        if path not in allowed or path in revised or revision['scope']!='presentation_only':raise ValueError('Invalid presentation revision: '+path)
+        if revision['baseline_sha256']!=original.get(path):raise ValueError('Presentation revision does not match preserved baseline: '+path)
+        revised[path]=revision['revised_sha256']
+    errors=[f['path'] for f in files if not (ROOT/f['path']).is_file() or hashlib.sha256((ROOT/f['path']).read_bytes()).hexdigest()!=revised.get(f['path'],f['sha256'])]
     if errors:raise ValueError('Scientific baseline drift: '+', '.join(errors))
-    return {'strictly_equal_files':len(files),'baseline_commit':BASELINE['baseline_commit']}
+    return {'strictly_equal_files':len(files)-len(revised),'versioned_presentation_files':len(revised),'baseline_commit':BASELINE['baseline_commit']}
 if __name__=='__main__':print(json.dumps(check()))

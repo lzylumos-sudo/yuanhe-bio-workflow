@@ -1,0 +1,19 @@
+{
+  "schema": "yuanhe.presentation-revisions/1",
+  "revisions": [
+    {
+      "path": "04_interaction_analysis/src/zlis/diagram2d.py",
+      "baseline_sha256": "cd6aed7dfd8d5186ec9a7745fe0413db71fceb14d07ae85e59fb6a7a181dd0cd",
+      "revised_sha256": "0baa44db10a610fe26db4b155c7ea1813e65ad49c0068aaf1b895f53e7b4f10a",
+      "software_version": "0.11.0-dev.5",
+      "scope": "presentation_only",
+      "reason": "UI-006: keep residue labels outside ligand atom labels and display complete wrapped legends and scientific caveats.",
+      "changed_functions": [
+        "_layout",
+        "render_svg"
+      ],
+      "unchanged": "Interaction detection, chemical perception, event selection, scientific thresholds, counts and force fields.",
+      "validation": "Real UI revalidation pending; no scientific qualification claimed."
+    }
+  ]
+}
