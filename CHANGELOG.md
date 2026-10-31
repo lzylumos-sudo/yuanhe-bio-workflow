@@ -2,6 +2,7 @@
 
 ## 0.11.0-dev.5 - 2026-10-30
 
+- Retry transient pinned-asset download failures at most three times, with atomic publication after SHA-256 verification; certificate rejection, hash mismatch and permanent failures still stop installation immediately.
 - Correct the REINVENT4 CUDA build for Blackwell using hash-verified dependency patches and a frozen cu130 lock; retain unrelated package versions and scientific defaults.
 - Check dependency metadata separately from installed Python modules, and update administrator templates to the new version and a fresh runtime prefix.
 - Fix UI-observed independent-module handoffs: accept REINVENT SMILES CSV headers, locate the installed Conda RDKit SA scorer, collect reviewed redocking boxes, preserve live log/download elements, and correct interaction diagram labels and footers.
