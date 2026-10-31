@@ -22,6 +22,15 @@ TOOLS="$PREFIX/tools"
 UV="$TOOLS/bin/uv"
 GEN="$ROOT/01_molecule_generation"
 export UV_PYTHON_INSTALL_DIR="$PREFIX/python" UV_CACHE_DIR="$PREFIX/cache" UV_LINK_MODE=copy
+# Large CUDA downloads can contend with build-dependency metadata requests.
+# Keep the pinned indexes/locks and TLS validation; bound network concurrency
+# and allow transient slow connections to recover within uv itself.
+export UV_CONCURRENT_DOWNLOADS="${UV_CONCURRENT_DOWNLOADS:-4}"
+export UV_HTTP_CONNECT_TIMEOUT="${UV_HTTP_CONNECT_TIMEOUT:-60}"
+export UV_HTTP_TIMEOUT="${UV_HTTP_TIMEOUT:-120}"
+export UV_HTTP_RETRIES="${UV_HTTP_RETRIES:-5}"
+printf 'uv download policy: concurrent=%s, connect=%ss, read=%ss, retries=%s\n' \
+  "$UV_CONCURRENT_DOWNLOADS" "$UV_HTTP_CONNECT_TIMEOUT" "$UV_HTTP_TIMEOUT" "$UV_HTTP_RETRIES"
 freeze() {
   if [[ -x "$UV" ]]; then
     "$UV" pip check --python "$1/bin/python"

@@ -8,6 +8,7 @@
 - Preserve canonical scientific file bytes across checkouts and verify protocol sources before installation or task creation; recognize isolated Conda provenance and allow fractional research MD durations without unlocking frozen budgets.
 - Recompute strict pre-docking evidence for uploaded screening poses before redocking; keep rejected states blocked. Show final availability counts and exclude generated prediction caches from source-change reporting.
 - Record HF/RESP optimizer settings under request schema hf-resp/3 and pass explicit Cartesian coordinates to OptKing after UI testing showed that automatic internal-coordinate recovery repeated the same failure. Preserve HF/6-31G*, RESP constraints, tight convergence, the 50-gradient limit and the bound pose; the numerical revision has its own strict before/after source hashes.
+- Bound uv download concurrency and increase connection/read timeouts and HTTP retries after an original-flow REINVENT install failed fetching build-dependency metadata. Preserve official indexes, frozen locks, hashes, TLS validation and failure evidence.
 - The first corrected installation passed readiness and exposed these UI defects. Re-deployment and affected-module UI acceptance remain pending; see docs/releases/0.11.0-dev.5.md.
 
 ## 0.11.0-dev.4 - 2026-10-30
