@@ -30,7 +30,7 @@ def check():
     if optimizers['schema']!='yuanhe.optimizer-revisions/1':raise ValueError('Unknown optimizer revision schema')
     for revision in optimizers['revisions']:
         path=revision['path']
-        if path!='05_molecular_dynamics/modules/parameterization/hf_resp.py' or path in revised or revision['scope']!='optimizer_numerics' or revision['request_schema']!='hf-resp/3':
+        if path!='05_molecular_dynamics/modules/parameterization/hf_resp.py' or path in revised or revision['scope']!='optimizer_numerics' or revision['request_schema']!='hf-resp/4':
             raise ValueError('Invalid optimizer revision: '+path)
         if revision['baseline_sha256']!=original.get(path):raise ValueError('Optimizer revision does not match preserved baseline: '+path)
         revised[path]=revision['revised_sha256']
