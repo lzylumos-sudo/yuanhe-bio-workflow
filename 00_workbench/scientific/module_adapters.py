@@ -36,6 +36,8 @@ def preflight(path, cfg, out, *, availability):
 
 
 def screening(d, cfg, p, files, out):
+    if not all(key in p for key in ('center', 'size', 'review_reason')):
+        raise ValueError('Create a new screening input snapshot with the reviewed original docking box and review rationale')
     import yaml
     from zvss.runctx import load_context
     from zvss.stages import run_all
@@ -48,6 +50,34 @@ def screening(d, cfg, p, files, out):
     chains = sorted({line[21:22] for line in atoms})
     if len(chains) != 1:
         raise ValueError('Generic screening currently requires a single reviewed receptor chain')
+    # Uploaded poses have no portable trusted evidence bundle. Recompute the
+    # existing gates locally and bind their real proof to each exact chemical state.
+    from rdkit import Chem
+    from yuanhe_preflight.common import canonical
+    from yuanhe_preflight.gate import validate_evidence
+    evidence = preflight(files['poses'], cfg, out, availability=True)
+    qualified = a.read(out/'availability/qualified.json', [])
+    if not qualified:
+        return {'status': 'blocked_by_strict_preflight', 'operation': 'redocking',
+                'screening': evidence, 'redocked': 0, 'candidate_qualified': False}
+    proofs = {}
+    for row in qualified:
+        smiles = canonical(row['smiles'])
+        proofs[smiles] = validate_evidence(row['qualification_evidence'], smiles)
+    pose_inputs = out/'qualified_poses'; pose_inputs.mkdir()
+    imported = 0
+    for index, mol in enumerate(Chem.SDMolSupplier(str(files['poses']), removeHs=False)):
+        if mol is None or canonical(mol) not in proofs:
+            continue
+        # Keep every accepted original pose, including its score properties;
+        # never generate new coordinates or copy a proof across chemical states.
+        path = pose_inputs/f'input_{index:08d}.sdf'
+        with Chem.SDWriter(str(path)) as writer:
+            writer.write(mol)
+        a.atomic(Path(str(path)+'.qualification.json'), proofs[canonical(mol)])
+        imported += 1
+    if not imported:
+        raise ValueError('No uploaded poses match the validated screening evidence')
     profile = yaml.safe_load((workspace/'configs/targets/generic.yaml').read_text())
     profile['structures'] = {'primary': {'pdb_id': 'USER_INPUT', 'chain': chains[0], 'role': 'Exact uploaded receptor'}}
     profile['structures_dir'] = str(receptors)
@@ -58,12 +88,15 @@ def screening(d, cfg, p, files, out):
         'executors': {'md_openmm_linux': {'mode': 'disabled', 'note': 'MD is a separately reviewed independent module'}}})
     ctx = load_context(root=str(workspace), run_id='screen', target_profile=str(workspace/'target.yaml'),
                        budget_config=str(workspace/'configs/budgets/full.yaml'), host_config=str(workspace/'host.json'))
-    inputs = {'input_dirs': [str(files['poses'].parent)], 'manifest': None, 'recursive': False,
-              'hints': {'receptor_file': str(files['receptor']), 'receptor_sha256': a.digest(files['receptor']), 'seed': p['seed']}}
+    inputs = {'input_dirs': [str(pose_inputs)], 'manifest': None, 'recursive': False,
+              'hints': {'receptor_file': str(files['receptor']), 'receptor_sha256': a.digest(files['receptor']), 'seed': p['seed'],
+                        'box': {'center': p['center'], 'size': p['size'], 'source': 'reviewed_independent_input'},
+                        'review_reason': p['review_reason']}}
     state = run_all(ctx, inputs, progress=lambda stage, info: print(stage, info.get('status'), flush=True))
     if state.get('errors'):
         raise RuntimeError('Screening reported errors; inspect workspace/runs/screen/run_state.json')
-    return {'run_state': state, 'candidate_qualified': False, 'scope': 'Generic imported-pose assessment; missing evidence is not a pass'}
+    return {'run_state': state, 'screening': evidence, 'accepted_poses': imported,
+            'candidate_qualified': False, 'scope': 'Generic imported-pose assessment after strict preflight; missing evidence is not a pass'}
 
 
 def execute(d, req, operation, out):

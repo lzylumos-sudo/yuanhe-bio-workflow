@@ -4,6 +4,31 @@ import pytest
 sys.path.insert(0,str(Path(__file__).resolve().parents[1]))
 from scientific.md_cli import export_bundle,validate
 
+@pytest.mark.parametrize('problem,status', [
+ (RuntimeError('parameterization failed'), 'failed'),
+ (KeyboardInterrupt(), 'cancelled'),
+ (SystemExit(143), 'cancelled'),
+])
+def test_membrane_construction_records_failure_and_preserves_evidence(tmp_path,problem,status):
+ from scientific.membrane import construction_state
+ original={'id':'MD_example','status':'building','source_hashes':{'ligand':'original'},'parameters':{'production_ns':.01}}
+ path=tmp_path/'system.json';path.write_text(json.dumps(original))
+ with pytest.raises(type(problem)) as captured:
+  with construction_state(tmp_path):raise problem
+ record=json.loads(path.read_text())
+ assert captured.value is problem
+ assert record['status']==status and record['error_type']==type(problem).__name__
+ assert record['source_hashes']==original['source_hashes']
+ assert record['parameters']==original['parameters']
+ assert record['ended']>0
+
+def test_membrane_construction_preserves_successful_record(tmp_path):
+ from scientific.membrane import construction_state
+ path=tmp_path/'system.json';path.write_text(json.dumps({'status':'building'}))
+ expected={'status':'built','atom_count':100,'files':{'system.top':'verified'}}
+ with construction_state(tmp_path):path.write_text(json.dumps(expected))
+ assert json.loads(path.read_text())==expected
+
 def test_handoff_preserves_identity_and_rejects_modified_input(tmp_path):
  r=tmp_path/'receptor.pdb';r.write_text('ATOM source')
  l=tmp_path/'ligand.sdf';l.write_text('source sdf')

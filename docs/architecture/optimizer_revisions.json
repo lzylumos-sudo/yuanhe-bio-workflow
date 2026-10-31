@@ -1,0 +1,28 @@
+{
+  "schema": "yuanhe.optimizer-revisions/1",
+  "revisions": [
+    {
+      "path": "05_molecular_dynamics/modules/parameterization/hf_resp.py",
+      "scope": "optimizer_numerics",
+      "request_schema": "hf-resp/4",
+      "baseline_sha256": "3ec5408021ad0bd7b0093af7138082adc50a31dcb59788e62def87fe76368bfd",
+      "revised_sha256": "671ba83ad28a9a6757fbed8250dcb009bc9a94f746d68a4b3062577dc036c10c",
+      "reason": "Public M2/IXO UI validation at 66802b2 exhausted the unchanged 50-gradient budget. Cartesian OptKing 0.5.0 starts from a uniform 0.1 diagonal Hessian. Compute the initial full HF Hessian (full_hess_every=0), then retain BFGS updates, Cartesian coordinates and strict convergence; no charge-model fallback.",
+      "reference": "https://psicode.org/psi4manual/master/optking.html",
+      "preserved": [
+        "HF/6-31G* gas phase and PK SCF",
+        "tight electronic and geometry convergence",
+        "two-stage RESP restraints and net charge",
+        "supplied chemical state and bound pose",
+        "no charge-model fallback"
+      ],
+      "acceptance": "Pending fresh original-flow deployment and actual UI revalidation.",
+      "previous_revision": {
+        "request_schema": "hf-resp/3",
+        "sha256": "d472a4650ce6feb48ebf6f92115d6571834212bd27310d7bb79dbfa1a822a1a8",
+        "tested_commit": "66802b25242abf5e97d4e5c70bc3a1b2ea68ec0e",
+        "ui_result": "Cartesian geometry reached all 50 steps without a backtransform reset but failed GAU_TIGHT convergence."
+      }
+    }
+  ]
+}

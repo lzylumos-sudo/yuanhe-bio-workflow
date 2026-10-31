@@ -7,6 +7,13 @@
     "after_sha256": "58dc906f523ae5c4c20707471a7154caa21a787051f8735a2bf5da20f8c83305"
   },
   {
+    "vendor": "Peptide2Mol",
+    "file": "src/eval.py",
+    "patch": "Peptide2Mol-seed.patch",
+    "before_sha256": "e7b5959aa8b92c5f24ee60cbd4068c0eca9d286a96a15c20541ad6677e0dc7c4",
+    "after_sha256": "527f79de46b3a1bff958b73ffa9bcc5e28e00d47105320e78ea95a7f08eddf74"
+  },
+  {
     "vendor": "REINVENT4",
     "file": "reinvent/runmodes/samplers/libinvent.py",
     "patch": "REINVENT4.patch",
@@ -26,5 +33,19 @@
     "patch": "REINVENT4-model-batch.patch",
     "before_sha256": "d9da9e39ab3cbb7045825c4f48f2d5015b61983b68a95ee243cb95d9af29b912",
     "after_sha256": "76d5e5adcda81b3b4f8f354e4b4607d50c65e8b4cdbbf62a53bc294c6dd2b152"
+  },
+  {
+    "vendor": "REINVENT4",
+    "file": "pyproject.toml",
+    "patch": "REINVENT4-cu130-pyproject.patch",
+    "before_sha256": "eac6a998265046665fe5a642d68f63be88dea5c34b229ceef590f7e76b1bf2e1",
+    "after_sha256": "66676a796555be1931fa831a4c3bbcce51031976b58de6d963b9abe723dab49d"
+  },
+  {
+    "vendor": "REINVENT4",
+    "file": "uv.lock",
+    "patch": "REINVENT4-cu130-uv.patch",
+    "before_sha256": "904bcf4afab45c5174b4175b85dd161fa8bce041c307534cc29439572fe8e47a",
+    "after_sha256": "1d1b998f495b2c1e88cb56c43fef074f14a0f7f65593f63c0151c84a02f5ec0b"
   }
 ]

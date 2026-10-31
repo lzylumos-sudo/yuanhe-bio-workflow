@@ -13,6 +13,7 @@ from __future__ import annotations
 import html
 import json
 import math
+import textwrap
 from collections import defaultdict
 from pathlib import Path
 
@@ -125,6 +126,11 @@ def _label_text(res: dict, evs: list[dict], view: str) -> list[str]:
 
 
 def _layout(groups: dict, pos: dict, saved: dict | None, centre, radius):
+    # Include space for RDKit atom labels, not just the atom anchor points.
+    left = min(p[0] for p in pos.values()) - 38
+    right = max(p[0] for p in pos.values()) + 38
+    top = min(p[1] for p in pos.values()) - 38
+    bottom = max(p[1] for p in pos.values()) + 38
     boxes = {}
     for res, evs in groups.items():
         lines = evs["lines"]
@@ -164,8 +170,14 @@ def _layout(groups: dict, pos: dict, saved: dict | None, centre, radius):
                 if dist < radius + 40:
                     A[0] = centre[0] + dx / dist * (radius + 40)
                     A[1] = centre[1] + dy / dist * (radius + 40)
+                if (A[0]+A[2]/2 > left and A[0]-A[2]/2 < right and
+                        A[1]+A[3]/2 > top and A[1]-A[3]/2 < bottom):
+                    choices = [(left-A[2]/2-10, A[1]), (right+A[2]/2+10, A[1]),
+                               (A[0], top-A[3]/2-10), (A[0], bottom+A[3]/2+10)]
+                    A[0], A[1] = min(choices, key=lambda p: math.hypot(p[0]-A[0], p[1]-A[1]))
+                    moved = True
                 A[0] = min(max(A[0], A[2] / 2 + 8), W - A[2] / 2 - 8)
-                A[1] = min(max(A[1], A[3] / 2 + 8), H - A[3] / 2 - 48)
+                A[1] = min(max(A[1], A[3] / 2 + 40), H - A[3] / 2 - 60)
         if not moved:
             break
     return boxes
@@ -196,6 +208,7 @@ def render_svg(result: dict, view: str = "detailed", layout: dict | None = None,
         out.append(f'<marker id="arrs_{t}" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="9" markerHeight="9" orient="auto-start-reverse">'
                    f'<path d="M0,0 L10,5 L0,10 z" fill="{c}"/></marker>')
     out.append('</defs>')
+    background_index = len(out)
     out.append(f'<rect width="{W}" height="{H}" fill="white"/>')
     out.append(f'<text x="18" y="28" font-size="17" font-weight="bold">{html.escape(result["ligand"]["label"])} '
                f'&#8211; {view} view</text>')
@@ -274,16 +287,26 @@ def render_svg(result: dict, view: str = "detailed", layout: dict | None = None,
     ly = H - 36
     lx = 18
     for t in present:
+        entry_width = 36 + len(TYPE_LABEL.get(t, t)) * 6.4 + 16
+        if lx > 18 and lx + entry_width > W - 18:
+            lx = 18
+            ly += 18
         out.append(f'<line x1="{lx}" y1="{ly - 4}" x2="{lx + 30}" y2="{ly - 4}" stroke="{COLORS[t]}" stroke-width="2.4" stroke-dasharray="{DASH[t]}"/>')
         out.append(f'<text x="{lx + 36}" y="{ly}" font-size="11">{html.escape(TYPE_LABEL.get(t, t))}</text>')
-        lx += 36 + len(TYPE_LABEL.get(t, t)) * 6.4 + 16
+        lx += entry_width
     foot = "H-bond arrow: donor → acceptor (not electron flow). "
     chem = result["chemistry"]
     foot += f'Ligand chemistry: {chem["source"]} ({chem["status"]}). '
     if hidden:
         foot += "Hidden in this view: " + "; ".join(f"{v} {k}" for k, v in hidden.items()) + ". "
     foot += "Static-structure geometry, not binding energy."
-    out.append(f'<text x="18" y="{H - 10}" font-size="10" fill="#555">{html.escape(foot[:230])}</text>')
+    footer_lines = textwrap.wrap(foot, width=max(20, int((W-36)/6.2)))
+    footer_y = ly + 26
+    render_height = max(H, footer_y + 14*len(footer_lines) + 4)
+    out[0] = f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 {W} {render_height}" width="{W}" height="{render_height}" font-family="{FONT}">'
+    out[background_index] = f'<rect width="{W}" height="{render_height}" fill="white"/>'
+    for index, line in enumerate(footer_lines):
+        out.append(f'<text x="18" y="{footer_y+index*14}" font-size="10" fill="#555">{html.escape(line)}</text>')
     out.append('</svg>')
     svg = "\n".join(out)
     layout_out = {"view": view, "labels": {k: [round(v[0], 1), round(v[1], 1)] for k, v in boxes.items()},

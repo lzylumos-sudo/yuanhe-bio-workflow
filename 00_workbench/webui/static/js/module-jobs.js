@@ -83,19 +83,27 @@ function render(){
   $('moduleRunMD').hidden=!md;$('moduleAnalyzeMD').hidden=!md;
   $('moduleRunMD').disabled=!versionCompatible||resourceStatus?.available===false||running||busy||!reviewed||!system||!['built','completed'].includes(system.status)||job.operations.some(x=>x.action==='run'&&x.status==='completed');
   $('moduleAnalyzeMD').disabled=!versionCompatible||resourceStatus?.available===false||running||busy||!reviewed||system?.status!=='completed'||job.operations.some(x=>x.action==='analyze'&&x.status==='completed');
-  $('moduleOperations').replaceChildren();
-  for(const op of job.operations){const row=element('div');row.className='operation';row.append(element('strong',op.action+': '+op.status));if(op.error)row.append(element('p',op.error));
+  const operationRows=new Map([...$('moduleOperations').children].map(row=>[row.dataset.operation,row])),activeOperations=new Set();
+  for(const [index,op] of job.operations.entries()){
+    const key=job.id+':'+(op.id??index),previous=operationRows.get(key),signature=JSON.stringify([op.action,op.status,op.error,op.result]);activeOperations.add(key);
+    const logText=op.log||'Engine logs are available in the artifact list.';
+    if(previous?._signature===signature){const log=previous.querySelector('details pre');if(log.textContent!==logText)log.textContent=logText;if($('moduleOperations').children[index]!==previous)$('moduleOperations').insertBefore(previous,$('moduleOperations').children[index]||null);continue;}
+    const opened=previous?[...previous.querySelectorAll('details')].map(details=>details.open):null;
+    const row=element('div');row.className='operation';row.dataset.operation=key;row._signature=signature;row.append(element('strong',op.action+': '+op.status));if(op.error)row.append(element('p',op.error));
     const result=op.result?.result;
     if(result?.plan)row.append(element('p','Final step: '+result.plan.final_step+' · Final time: '+result.plan.final_time_ps+' ps · Checkpoint and trajectory verified'));
     else if(result?.runs)row.append(element('p',result.runs.length+' reference runs · Top-1 pose recovery: '+Math.round(result.top1_recovery_fraction*100)+'%'));
     else if(result?.ligands)row.append(element('p',result.ligands.length+' ligand analyses · '+result.ligands.reduce((n,r)=>n+r.n_events,0)+' interaction events'));
-    else if(result?.status==='blocked_by_strict_preflight')row.append(element('p','Strict pre-docking screening did not pass. No docking was started.'));
+    else if(result?.status==='blocked_by_strict_preflight')row.append(element('p','Strict pre-docking screening did not pass. No '+(result.operation==='redocking'?'redocking':'docking')+' was started.'));
     else if(result?.report){const report=result.report;row.append(element('p','Actual sampling attempts: '+report.completed+' · Valid molecules: '+(report.valid??'unknown')+' · Unique molecules: '+(report.unique??'unknown')));if(report.valid===0)row.append(element('p','No usable molecules were produced. Execution finished; output acceptance has not passed.'));else row.append(element('p','Generated molecules require screening and review; execution completion does not establish candidate qualification.'));}
+    else if(result?.availability){const availability=result.availability;row.append(element('p','Availability screening: '+availability.completed+' of '+availability.input+' records processed · Passed: '+availability.passed+' · Review required: '+availability.review+' · Excluded: '+availability.excluded));row.append(element('p','Screening completion does not establish candidate qualification. Inspect detailed decisions below.'));}
     else if(result?.risk)row.append(element('p','Risk screening finished for '+result.risk.input+' input records. Inspect detailed decisions below.'));
-    const details=element('details');details.open=['running','failed','blocked'].includes(op.status);details.append(element('summary','Execution log'),element('pre',op.log||'Engine logs are available in the artifact list.'));row.append(details);
-    const proof=element('details');proof.append(element('summary','Detailed result and evidence'),element('pre',op.result?JSON.stringify(op.result,null,2):'No completed result'));row.append(proof);$('moduleOperations').append(row);}
-  $('moduleArtifacts').replaceChildren();
-  for(const file of job.artifacts){const link=element('a',file.path+' ('+file.size+' bytes)');link.href='/module-artifacts/'+job.id+'/'+file.path.split('/').map(encodeURIComponent).join('/');link.setAttribute('download','');$('moduleArtifacts').append(link);}
+    const details=element('details');details.open=opened?opened[0]:['running','failed','blocked'].includes(op.status);details.append(element('summary','Execution log'),element('pre',logText));row.append(details);
+    const proof=element('details');proof.open=opened?opened[1]:false;proof.append(element('summary','Detailed result and evidence'),element('pre',op.result?JSON.stringify(op.result,null,2):'No completed result'));row.append(proof);if(previous)previous.replaceWith(row);else $('moduleOperations').append(row);if($('moduleOperations').children[index]!==row)$('moduleOperations').insertBefore(row,$('moduleOperations').children[index]||null);}
+  for(const [key,row] of operationRows)if(!activeOperations.has(key))row.remove();
+  const artifactLinks=new Map([...$('moduleArtifacts').children].map(link=>[link.getAttribute('href'),link])),activeArtifacts=new Set();
+  for(const file of job.artifacts){const href='/module-artifacts/'+job.id+'/'+file.path.split('/').map(encodeURIComponent).join('/'),label=file.path+' ('+file.size+' bytes)';activeArtifacts.add(href);let link=artifactLinks.get(href);if(!link){link=element('a');link.href=href;link.setAttribute('download','');$('moduleArtifacts').append(link);}if(link.textContent!==label)link.textContent=label;}
+  for(const [href,link] of artifactLinks)if(!activeArtifacts.has(href))link.remove();
 }
 function encoded(file){return new Promise((resolve,reject)=>{const reader=new FileReader();reader.onerror=()=>reject(Error('Could not read input file'));reader.onload=()=>resolve(reader.result.split(',')[1]);reader.readAsDataURL(file);});}
 $('moduleForm').onsubmit=async event=>{
@@ -120,4 +128,5 @@ $('moduleSelect').onchange=()=>{clearError();form();};$('refreshModules').onclic
 $('moduleJobSelect').onchange=()=>{selectionEpoch++;detailRequest++;clearError();const id=$('moduleJobSelect').value;current=null;$('moduleJobDetail').hidden=true;if(id){$('moduleReviewAck').checked=false;$('moduleReviewReason').value='';load(id);}renderAvailability();};
 $('moduleReviewAck').onchange=render;$('moduleReviewReason').oninput=render;$('moduleSystem').onchange=()=>{$('moduleReviewAck').checked=false;render();};
 renderAvailability();checkVersion();refresh();
-setInterval(()=>{if(busy)return;if(resourceStatus?.available===false)refresh({automatic:true});else if(current&&current.operations.some(x=>x.status==='running'))load(current.id);},3000);
+// Cancellation can be acknowledged before the worker saves the final system status.
+setInterval(()=>{if(busy)return;if(resourceStatus?.available===false)refresh({automatic:true});else if(current&&(current.operations.some(x=>x.status==='running')||current.systems.some(x=>x.status==='building')))load(current.id);},3000);

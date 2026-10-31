@@ -8,7 +8,8 @@ concurrency:
 jobs:
   contracts-and-workbench:
     runs-on: ubuntu-24.04
-    timeout-minutes: 20
+    # Full geometry, reference docking and frontend checks exceed 20 minutes.
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-python@v7
@@ -53,7 +54,37 @@ jobs:
       - name: Full workbench and scientific handoff regressions
         if: ${{ !cancelled() && steps.dependencies.outcome == 'success' }}
         working-directory: 00_workbench
-        run: PYTHONPATH=. python -m pytest tests -q --junitxml=../workbench-tests.xml
+        run: |
+          # Stream resource evidence: a runner shutdown can prevent artifact upload.
+          python -u - <<'PY' &
+          import json, os, time
+          from pathlib import Path
+          parent = os.getppid()
+          while os.getppid() == parent:
+              memory = {}
+              for line in Path('/proc/meminfo').read_text().splitlines():
+                  key, value = line.split(':', 1)
+                  if key in ('MemTotal', 'MemAvailable', 'SwapTotal', 'SwapFree'):
+                      memory[key + '_kB'] = int(value.split()[0])
+              processes = []
+              for entry in Path('/proc').iterdir():
+                  if not entry.name.isdigit():
+                      continue
+                  try:
+                      values = dict(line.split(':', 1) for line in (entry / 'status').read_text().splitlines())
+                      processes.append({'pid': int(entry.name), 'name': values['Name'].strip(),
+                                        'rss_kB': int(values.get('VmRSS', '0 kB').split()[0])})
+                  except (OSError, ValueError, KeyError):
+                      pass
+              events = Path('/sys/fs/cgroup/memory.events')
+              print('[ci-memory] ' + json.dumps({'time': time.time(), 'memory': memory,
+                    'largest_processes': sorted(processes, key=lambda item: item['rss_kB'], reverse=True)[:4],
+                    'cgroup_events': events.read_text().strip() if events.exists() else None}), flush=True)
+              time.sleep(5)
+          PY
+          memory_monitor=$!
+          trap 'kill "$memory_monitor" 2>/dev/null || true' EXIT
+          PYTHONPATH=. python -m pytest tests -vv --durations=10 -o faulthandler_timeout=60 --junitxml=../workbench-tests.xml
       - name: Screening contracts and portable real-data fixtures
         if: ${{ !cancelled() && steps.dependencies.outcome == 'success' }}
         working-directory: 03_virtual_screening

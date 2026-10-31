@@ -23,6 +23,10 @@ exports/
 logs/
 cache/
 installation_evidence/
+# Psi4 writes this timing report during the original runtime readiness check.
+/timer.dat
+# Generated prediction and synthesis caches are runtime state, not source edits.
+/data/predocking_cache/
 *.ckpt
 *.prior
 *.pt

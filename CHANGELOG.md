@@ -1,5 +1,21 @@
 # Changelog
 
+## 0.11.0-dev.5 - 2026-10-30
+
+- Retry transient pinned-asset download failures at most three times, with atomic publication after SHA-256 verification; certificate rejection, hash mismatch and permanent failures still stop installation immediately.
+- Correct the REINVENT4 CUDA build for Blackwell using hash-verified dependency patches and a frozen cu130 lock; retain unrelated package versions and scientific defaults.
+- Check dependency metadata separately from installed Python modules, and update administrator templates to the new version and a fresh runtime prefix.
+- Fix UI-observed independent-module handoffs: accept REINVENT SMILES CSV headers, locate the installed Conda RDKit SA scorer, collect reviewed redocking boxes, preserve live log/download elements, and correct interaction diagram labels and footers.
+- Preserve canonical scientific file bytes across checkouts and verify protocol sources before installation or task creation; recognize isolated Conda provenance and allow fractional research MD durations without unlocking frozen budgets.
+- Recompute strict pre-docking evidence for uploaded screening poses before redocking; keep rejected states blocked. Show final availability counts and exclude generated prediction caches from source-change reporting.
+- Record HF/RESP optimizer settings under request schema hf-resp/4: use Cartesian coordinates and an initial full HF Hessian after the real public UI case exhausted the original 50-gradient budget. Preserve HF/6-31G*, PK SCF, strict convergence, RESP constraints and the bound pose; version the exact numerical-source hashes and reject older charge caches.
+- Mark membrane systems failed or cancelled when construction exits early, preserving their input identity and partial evidence instead of leaving a stale building state.
+- Keep refreshing a building system after cancellation is acknowledged so its final worker metadata appears without a manual refresh.
+- Apply the requested Peptide2Mol seed before data and model initialization through a hash-pinned vendor patch. The prior single-device path only recorded the seed in configuration and an environment variable; it did not initialize the random generators. Preserve weights, sampling budgets, precision and molecular validity checks; seeded inference does not promise valid molecules or deterministic GPU kernels.
+- Bound uv download concurrency and increase connection/read timeouts and HTTP retries after an original-flow REINVENT install failed fetching build-dependency metadata. Preserve official indexes, frozen locks, hashes, TLS validation and failure evidence.
+- Bound legacy pocket distance temporaries by splitting point rows after CI recorded approximately 7.1 GiB process RSS and nearly exhausted host memory and swap. Preserve geometry formulas, all cutoffs, row order and nearest-atom tie behavior; retain the full public geometry regressions.
+- The first corrected installation passed readiness and exposed these UI defects. Re-deployment and affected-module UI acceptance remain pending; see docs/releases/0.11.0-dev.5.md.
+
 ## 0.11.0-dev.4 - 2026-10-30
 
 - Unify runtime resolution across registry probes, diagnostics and workers; retain schema-checked compatibility with legacy environment settings.

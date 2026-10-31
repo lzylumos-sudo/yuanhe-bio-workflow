@@ -26,7 +26,8 @@ def compute(mol, output, settings=None):
         raise ValueError('Undefined ligand stereochemistry')
     net=Chem.GetFormalCharge(mol)
     if settings.get('net_charge',net)!=net: raise ValueError('Declared net charge differs from chemical structure')
-    request={'schema':'hf-resp/1','method':'HF/6-31G*','optimization':'HF/6-31G* gas phase',
+    request={'schema':'hf-resp/4','method':'HF/6-31G*','optimization':'HF/6-31G* gas phase',
+             'optimizer':{'opt_coordinates':'cartesian','dynamic_level':0,'full_hess_every':0,'geom_maxiter':50,'g_convergence':'gau_tight'},
              'net_charge':net,'multiplicity':1,'protonation':'explicit supplied chemical state; no state inference',
              'conformer':'single independent optimized copy of selected pose',
              'grid':{'vdw_scale_factors':[1.4,1.6,1.8,2.0],'points_per_A2':1.0},
@@ -67,7 +68,12 @@ def worker(out):
     lines=[f"{req['net_charge']} {req['multiplicity']}"]+[f'{a.GetSymbol()} {p[0]:.12f} {p[1]:.12f} {p[2]:.12f}' for a,p in zip(mol.GetAtoms(),xyz)]
     qm=psi4.geometry('\n'.join(lines+['units angstrom','no_reorient','no_com','symmetry c1']))
     qm.set_name('ligand');psi4.set_options({'basis':'6-31G*','scf_type':'pk','e_convergence':1e-10,'d_convergence':1e-8,'g_convergence':'gau_tight'})
-    energy=psi4.optimize('hf/6-31G*',molecule=qm)
+    # Automatic recovery repeated the same failed internal-coordinate transform
+    # for the public UI fixture. Explicit Cartesian coordinates avoid that
+    # transform. Its generic diagonal Hessian did not converge the public
+    # fixture within 50 steps, so compute the initial full HF Hessian before
+    # subsequent BFGS updates. Tight convergence and the method are unchanged.
+    energy=psi4.optimize('hf/6-31G*',molecule=qm,optimizer_keywords=req['optimizer'])
     optimized=Chem.Mol(mol);points=np.asarray(qm.geometry())*psi4.constants.bohr2angstroms
     for i,p in enumerate(points):optimized.GetConformer().SetAtomPosition(i,p.tolist())
     with Chem.SDWriter('qm_optimized.sdf') as w:w.write(optimized)

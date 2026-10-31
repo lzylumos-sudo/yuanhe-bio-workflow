@@ -1,0 +1,12 @@
+--- a/src/eval.py
++++ b/src/eval.py
+@@ -6 +6 @@
+-from lightning import LightningDataModule, LightningModule, Trainer
++from lightning import LightningDataModule, LightningModule, Trainer, seed_everything
+@@ -65 +65,6 @@
+     assert cfg.ckpt_path
++
++    # PL_GLOBAL_SEED alone does not initialize RNGs for single-device inference.
++    # Seed before data/model construction, including their random initialization.
++    if cfg.get("seed") is not None:
++        seed_everything(int(cfg.seed), workers=True)

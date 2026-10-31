@@ -1,8 +1,8 @@
 {
-  "software_version": "0.11.0-dev.4",
-  "tag": "v0.11.0-dev.4",
+  "software_version": "0.11.0-dev.5",
+  "tag": "v0.11.0-dev.5",
   "channel": "development",
-  "release_url": "https://github.com/lzylumos-sudo/yuanhe-bio-workflow/releases/tag/v0.11.0-dev.4",
-  "download_url": "https://github.com/lzylumos-sudo/yuanhe-bio-workflow/releases/download/v0.11.0-dev.4/yuanhe-bio-platform-0.11.0-dev.4.zip",
-  "checksums_url": "https://github.com/lzylumos-sudo/yuanhe-bio-workflow/releases/download/v0.11.0-dev.4/SHA256SUMS.txt"
+  "release_url": "https://github.com/lzylumos-sudo/yuanhe-bio-workflow/releases/tag/v0.11.0-dev.5",
+  "download_url": "https://github.com/lzylumos-sudo/yuanhe-bio-workflow/releases/download/v0.11.0-dev.5/yuanhe-bio-platform-0.11.0-dev.5.zip",
+  "checksums_url": "https://github.com/lzylumos-sudo/yuanhe-bio-workflow/releases/download/v0.11.0-dev.5/SHA256SUMS.txt"
 }

@@ -1,7 +1,10 @@
 #!/usr/bin/env python3
 """Download pinned official assets into an explicit destination; no runtime edits."""
-import argparse,hashlib,json,os,shutil,sys
+import argparse,hashlib,json,os,shutil,ssl,sys,time
+from http.client import IncompleteRead
 from pathlib import Path
+from urllib.error import HTTPError, URLError
+from urllib.parse import urlsplit
 from urllib.request import urlopen
 ROOT=Path(__file__).resolve().parents[1]
 sys.path.insert(0,str(ROOT/'02_docking/src'))
@@ -12,6 +15,38 @@ def digest(path):
     with path.open('rb') as f:
         for block in iter(lambda:f.read(1024**2),b''):h.update(block)
     return h.hexdigest()
+
+def transient_download_failure(exc):
+    if isinstance(exc, HTTPError):
+        return exc.code in (408, 500, 502, 503, 504)
+    if isinstance(exc, URLError):
+        exc = exc.reason
+    return isinstance(exc, (TimeoutError, ConnectionError, ssl.SSLEOFError, IncompleteRead))
+
+
+def download_verified(item, path):
+    """Retry transient transport failures; never publish unchecked bytes."""
+    temp = path.with_suffix(path.suffix + '.part')
+    attempts = 3
+    for attempt in range(1, attempts + 1):
+        print(f"Downloading pinned asset {item['name']} from {urlsplit(item['url']).hostname} "
+              f"(attempt {attempt}/{attempts})", flush=True)
+        try:
+            with urlopen(item['url'], timeout=120) as src, temp.open('wb') as out:
+                shutil.copyfileobj(src, out)
+            if digest(temp) != item['sha256']:
+                raise ValueError('Official asset hash mismatch: ' + item['name'])
+            os.replace(temp, path)
+            return
+        except Exception as exc:
+            if attempt == attempts or not transient_download_failure(exc):
+                raise
+            print(f"Transient download failure for {item['name']} ({type(exc).__name__}); "
+                  f"retrying in {attempt}s", file=sys.stderr, flush=True)
+            time.sleep(attempt)
+        finally:
+            temp.unlink(missing_ok=True)
+
 
 def main():
     ap=argparse.ArgumentParser(description=__doc__);ap.add_argument('--output',type=Path,required=True)
@@ -24,12 +59,7 @@ def main():
         path=dest/item['filename']
         if path.exists() and digest(path)!=item['sha256']:raise ValueError('Existing asset differs; preserve and choose another destination: '+str(path))
         if not path.exists():
-            temp=path.with_suffix(path.suffix+'.part')
-            try:
-                with urlopen(item['url'],timeout=120) as src,temp.open('wb') as out:shutil.copyfileobj(src,out)
-                if digest(temp)!=item['sha256']:raise ValueError('Official asset hash mismatch: '+item['name'])
-                os.replace(temp,path)
-            finally:temp.unlink(missing_ok=True)
+            download_verified(item, path)
         installed[item['name']]={**item,'path':str(path)}
     cfg=defaults(ROOT);cfg['engine']['toxicity']['python']=args.tox_python
     sc=installed['scscore'];cfg['engine']['synthesis'].update(scscore_path=sc['path'],scscore_sha256=sc['sha256'])
