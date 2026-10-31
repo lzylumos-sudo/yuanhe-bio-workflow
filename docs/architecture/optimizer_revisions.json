@@ -4,10 +4,10 @@
     {
       "path": "05_molecular_dynamics/modules/parameterization/hf_resp.py",
       "scope": "optimizer_numerics",
-      "request_schema": "hf-resp/2",
+      "request_schema": "hf-resp/3",
       "baseline_sha256": "3ec5408021ad0bd7b0093af7138082adc50a31dcb59788e62def87fe76368bfd",
-      "revised_sha256": "2e0c89018871c43ad9ffe35722122ec130c10d12eee00070e47f553c9467f31a",
-      "reason": "UI public M2/IXO build repeatedly resets OptKing internal coordinates after back-transformation errors. Enable documented dynamic_level=1 with an explicit 50-gradient ceiling; convergence failure remains an error.",
+      "revised_sha256": "d472a4650ce6feb48ebf6f92115d6571834212bd27310d7bb79dbfa1a822a1a8",
+      "reason": "Public M2/IXO UI revalidation at 43ae682 still repeated identical internal-coordinate back-transformation failures with dynamic_level=1. Use explicit Cartesian coordinates through optimizer_keywords with dynamic switching disabled, the same GAU_TIGHT criteria and a 50-gradient ceiling; convergence failure remains an error.",
       "reference": "https://psicode.org/psi4manual/1.10.x/optking.html",
       "preserved": [
         "HF/6-31G* gas phase and PK SCF",
@@ -16,7 +16,7 @@
         "supplied chemical state and bound pose",
         "no charge-model fallback"
       ],
-      "acceptance": "Pending original-flow deployment and UI revalidation"
+      "acceptance": "Pending fresh original-flow deployment and UI revalidation; automatic recovery did not resolve the observed failure"
     }
   ]
 }

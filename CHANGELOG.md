@@ -7,7 +7,7 @@
 - Fix UI-observed independent-module handoffs: accept REINVENT SMILES CSV headers, locate the installed Conda RDKit SA scorer, collect reviewed redocking boxes, preserve live log/download elements, and correct interaction diagram labels and footers.
 - Preserve canonical scientific file bytes across checkouts and verify protocol sources before installation or task creation; recognize isolated Conda provenance and allow fractional research MD durations without unlocking frozen budgets.
 - Recompute strict pre-docking evidence for uploaded screening poses before redocking; keep rejected states blocked. Show final availability counts and exclude generated prediction caches from source-change reporting.
-- Record HF/RESP optimizer settings under request schema hf-resp/2 and enable OptKing's documented dynamic coordinate recovery for repeated back-transformation failures. Preserve HF/6-31G*, RESP constraints, tight convergence and the bound pose; the numerical revision has its own strict before/after source hashes.
+- Record HF/RESP optimizer settings under request schema hf-resp/3 and pass explicit Cartesian coordinates to OptKing after UI testing showed that automatic internal-coordinate recovery repeated the same failure. Preserve HF/6-31G*, RESP constraints, tight convergence, the 50-gradient limit and the bound pose; the numerical revision has its own strict before/after source hashes.
 - The first corrected installation passed readiness and exposed these UI defects. Re-deployment and affected-module UI acceptance remain pending; see docs/releases/0.11.0-dev.5.md.
 
 ## 0.11.0-dev.4 - 2026-10-30
