@@ -53,7 +53,7 @@ jobs:
       - name: Full workbench and scientific handoff regressions
         if: ${{ !cancelled() && steps.dependencies.outcome == 'success' }}
         working-directory: 00_workbench
-        run: PYTHONPATH=. python -m pytest tests -q --junitxml=../workbench-tests.xml
+        run: PYTHONPATH=. python -m pytest tests -vv --durations=10 -o faulthandler_timeout=60 --junitxml=../workbench-tests.xml
       - name: Screening contracts and portable real-data fixtures
         if: ${{ !cancelled() && steps.dependencies.outcome == 'success' }}
         working-directory: 03_virtual_screening
