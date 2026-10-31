@@ -128,4 +128,5 @@ $('moduleSelect').onchange=()=>{clearError();form();};$('refreshModules').onclic
 $('moduleJobSelect').onchange=()=>{selectionEpoch++;detailRequest++;clearError();const id=$('moduleJobSelect').value;current=null;$('moduleJobDetail').hidden=true;if(id){$('moduleReviewAck').checked=false;$('moduleReviewReason').value='';load(id);}renderAvailability();};
 $('moduleReviewAck').onchange=render;$('moduleReviewReason').oninput=render;$('moduleSystem').onchange=()=>{$('moduleReviewAck').checked=false;render();};
 renderAvailability();checkVersion();refresh();
-setInterval(()=>{if(busy)return;if(resourceStatus?.available===false)refresh({automatic:true});else if(current&&current.operations.some(x=>x.status==='running'))load(current.id);},3000);
+// Cancellation can be acknowledged before the worker saves the final system status.
+setInterval(()=>{if(busy)return;if(resourceStatus?.available===false)refresh({automatic:true});else if(current&&(current.operations.some(x=>x.status==='running')||current.systems.some(x=>x.status==='building')))load(current.id);},3000);
