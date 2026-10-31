@@ -6,6 +6,7 @@
 - Check dependency metadata separately from installed Python modules, and update administrator templates to the new version and a fresh runtime prefix.
 - Fix UI-observed independent-module handoffs: accept REINVENT SMILES CSV headers, locate the installed Conda RDKit SA scorer, collect reviewed redocking boxes, preserve live log/download elements, and correct interaction diagram labels and footers.
 - Preserve canonical scientific file bytes across checkouts and verify protocol sources before installation or task creation; recognize isolated Conda provenance and allow fractional research MD durations without unlocking frozen budgets.
+- Recompute strict pre-docking evidence for uploaded screening poses before redocking; keep rejected states blocked. Show final availability counts and exclude generated prediction caches from source-change reporting.
 - The first corrected installation passed readiness and exposed these UI defects. Re-deployment and affected-module UI acceptance remain pending; see docs/releases/0.11.0-dev.5.md.
 
 ## 0.11.0-dev.4 - 2026-10-30

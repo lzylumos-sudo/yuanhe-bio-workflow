@@ -50,7 +50,7 @@ MODULES = {
     'screening': dict(label='Post-docking virtual screening', environment='screen_python',
         files={'receptor': '.pdb', 'poses': '.sdf'},
         fields=COMMON+BOX+[field('review_reason', 'Receptor, poses and original docking box review rationale', '')],
-        description='Upload receptor and scored poses in the same coordinate frame, and provide the reviewed original docking box for redocking. Missing evidence stays missing.'),
+        description='Upload receptor and scored poses in the same coordinate frame, with the reviewed original docking box. Recomputes the existing risk, toxicity and synthesis-route gates before redocking; only accepted chemical states proceed.'),
     'interaction': dict(label='Interaction analysis', environment='chem_python', files={'complex': '.pdb', 'template': '.sdf?'},
         fields=[field('ligand', 'Ligand selector, e.g. BEN or A:BEN1', '')],
         description='Upload a complex and optional ligand chemical template. Calculates interactions without prior docking.'),
