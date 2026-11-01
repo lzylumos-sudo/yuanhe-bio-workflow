@@ -26,8 +26,14 @@ def compute(mol, output, settings=None):
         raise ValueError('Undefined ligand stereochemistry')
     net=Chem.GetFormalCharge(mol)
     if settings.get('net_charge',net)!=net: raise ValueError('Declared net charge differs from chemical structure')
-    request={'schema':'hf-resp/4','method':'HF/6-31G*','optimization':'HF/6-31G* gas phase',
-             'optimizer':{'opt_coordinates':'cartesian','dynamic_level':0,'full_hess_every':0,'geom_maxiter':50,'g_convergence':'gau_tight'},
+    request={'schema':'hf-resp/5','method':'HF/6-31G*','optimization':'HF/6-31G* gas phase',
+             'optimizer_engine':'geometric','geometry_gradient_budget':50,
+             'optimizer':{'coordsys':'tric','maxiter':49,'hessian':'never',
+                          'convergence_set':'GAU_TIGHT','convergence_energy':1e-6,
+                          'convergence_grms':1e-5,'convergence_gmax':1.5e-5,
+                          'convergence_drms':2.1167088e-5,'convergence_dmax':3.1750632e-5},
+             'optimizer_convergence_units':{'energy':'hartree','gradient':'hartree/bohr',
+                                             'displacement':'angstrom; aligned Cartesian per-atom norms'},
              'net_charge':net,'multiplicity':1,'protonation':'explicit supplied chemical state; no state inference',
              'conformer':'single independent optimized copy of selected pose',
              'grid':{'vdw_scale_factors':[1.4,1.6,1.8,2.0],'points_per_A2':1.0},
@@ -68,12 +74,13 @@ def worker(out):
     lines=[f"{req['net_charge']} {req['multiplicity']}"]+[f'{a.GetSymbol()} {p[0]:.12f} {p[1]:.12f} {p[2]:.12f}' for a,p in zip(mol.GetAtoms(),xyz)]
     qm=psi4.geometry('\n'.join(lines+['units angstrom','no_reorient','no_com','symmetry c1']))
     qm.set_name('ligand');psi4.set_options({'basis':'6-31G*','scf_type':'pk','e_convergence':1e-10,'d_convergence':1e-8,'g_convergence':'gau_tight'})
-    # Automatic recovery repeated the same failed internal-coordinate transform
-    # for the public UI fixture. Explicit Cartesian coordinates avoid that
-    # transform. Its generic diagonal Hessian did not converge the public
-    # fixture within 50 steps, so compute the initial full HF Hessian before
-    # subsequent BFGS updates. Tight convergence and the method are unchanged.
-    energy=psi4.optimize('hf/6-31G*',molecule=qm,optimizer_keywords=req['optimizer'])
+    # OptKing recovery and Cartesian optimization (including an initial exact
+    # Hessian) failed the public UI case. Use Psi4's native geomeTRIC adapter.
+    # Its initial gradient plus 49 iterations retain the 50-gradient budget.
+    # geomeTRIC measures displacement in angstrom, despite Psi4's printed au
+    # heading. The explicit limits above round down 4e-5 and 6e-5 bohr; force
+    # criteria stay tight and energy convergence is additionally required.
+    energy=psi4.optimize('hf/6-31G*',molecule=qm,engine=req['optimizer_engine'],optimizer_keywords=req['optimizer'])
     optimized=Chem.Mol(mol);points=np.asarray(qm.geometry())*psi4.constants.bohr2angstroms
     for i,p in enumerate(points):optimized.GetConformer().SetAtomPosition(i,p.tolist())
     with Chem.SDWriter('qm_optimized.sdf') as w:w.write(optimized)
@@ -98,7 +105,7 @@ def worker(out):
         'stage2_constraints':{'equivalent_hydrogens_1based':groups,'fixed_atom_indices_1based':[i+1 for i in range(len(first)) if i+1 not in free]},
         'stage2_status':'fitted' if free else 'all_atoms_fixed_to_stage1',
         'optimized_energy_hartree':float(energy),'charge_sum_e':float(sum(q)),
-        'versions':{'psi4':psi4.__version__,**{n:importlib.metadata.version(n) for n in ['resp','rdkit','numpy']}},
+        'versions':{'psi4':psi4.__version__,**{n:importlib.metadata.version(n) for n in ['geometric','resp','rdkit','numpy']}},
         'files':{n:sha(n) for n in ['bound_input.sdf','qm_optimized.sdf','1_ligand_grid.dat','1_ligand_grid_esp.dat','resp_charges.dat']}})
 
 def gaff_topology(mol, output, settings=None):

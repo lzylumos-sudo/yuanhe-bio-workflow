@@ -91,13 +91,14 @@ def collect(cfg, root, ui_python=None, publish=None):
        'ForceField("amber14-all.xml","amber14/tip3p.xml"); print(openmm.__version__)',
        'Install PDBFixer and OpenMM in prep_python.')
     py('membrane_and_analysis', md,
-       'import openmm,parmed,MDAnalysis,psi4,resp,rdkit,numpy,matplotlib,yaml; '
+       'import openmm,parmed,MDAnalysis,psi4,resp,geometric,rdkit,numpy,matplotlib,yaml; '
+       'from importlib.metadata import version; assert version("geometric")=="1.1.1"; '
        'from openff.toolkit import Molecule; from openff.units import unit; '
        'from openmmforcefields.generators import GAFFTemplateGenerator; '
        'from openmm.app import ForceField; ForceField("amber14-all.xml","amber14/tip3p.xml"); '
        'import shutil; tools=["antechamber","parmchk2","tleap","MMPBSA.py","sander","cpptraj"]; '
        'missing=[x for x in tools if not shutil.which(x)]; assert not missing, missing; print(openmm.__version__)',
-       'Install OpenMM/OpenFF, AmberTools, Psi4, RESP and analysis packages in md_python; '
+       'Install OpenMM/OpenFF, AmberTools, Psi4, geomeTRIC 1.1.1, RESP and analysis packages in md_python; '
        'its bin directory must contain the AmberTools analysis executables.')
     py('openmm_cuda', md,
        'import openmm as m; s=m.System();s.addParticle(1);i=m.VerletIntegrator(0.001); '

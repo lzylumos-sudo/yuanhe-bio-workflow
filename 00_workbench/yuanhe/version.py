@@ -68,7 +68,7 @@ def identity():
 def environment():
     packages = {}
     for name in ('rdkit', 'torch', 'openmm', 'parmed', 'openmmforcefields', 'openff-toolkit',
-                 'MDAnalysis', 'meeko', 'numpy', 'PyYAML', 'psi4'):
+                 'MDAnalysis', 'meeko', 'numpy', 'PyYAML', 'psi4', 'geometric'):
         try: packages[name] = metadata.version(name)
         except metadata.PackageNotFoundError: packages[name] = 'unknown'
     return {'os': platform.platform(), 'python': sys.version, 'executable': sys.executable,

@@ -4,11 +4,11 @@
     {
       "path": "05_molecular_dynamics/modules/parameterization/hf_resp.py",
       "scope": "optimizer_numerics",
-      "request_schema": "hf-resp/4",
+      "request_schema": "hf-resp/5",
       "baseline_sha256": "3ec5408021ad0bd7b0093af7138082adc50a31dcb59788e62def87fe76368bfd",
-      "revised_sha256": "671ba83ad28a9a6757fbed8250dcb009bc9a94f746d68a4b3062577dc036c10c",
-      "reason": "Public M2/IXO UI validation at 66802b2 exhausted the unchanged 50-gradient budget. Cartesian OptKing 0.5.0 starts from a uniform 0.1 diagonal Hessian. Compute the initial full HF Hessian (full_hess_every=0), then retain BFGS updates, Cartesian coordinates and strict convergence; no charge-model fallback.",
-      "reference": "https://psicode.org/psi4manual/master/optking.html",
+      "revised_sha256": "874765d818a01a8ef30df72729e64bd6c5f1e0d9fc39c7bf3434942ad3e708cd",
+      "reason": "The clean 1f1ae13 public M2/IXO UI build completed the initial exact HF Hessian but failed strict geometry convergence after all 50 gradients. Use Psi4 1.11 native geomeTRIC/TRIC with explicit displacement-unit conversion and bounded iterations. No unconverged charge export or charge-model fallback.",
+      "reference": "https://raw.githubusercontent.com/psi4/psi4/v1.11/psi4/driver/driver.py",
       "preserved": [
         "HF/6-31G* gas phase and PK SCF",
         "tight electronic and geometry convergence",
@@ -16,12 +16,43 @@
         "supplied chemical state and bound pose",
         "no charge-model fallback"
       ],
-      "acceptance": "Pending fresh original-flow deployment and actual UI revalidation.",
+      "acceptance": "Pending clean original-flow deployment and actual UI revalidation.",
       "previous_revision": {
-        "request_schema": "hf-resp/3",
-        "sha256": "d472a4650ce6feb48ebf6f92115d6571834212bd27310d7bb79dbfa1a822a1a8",
-        "tested_commit": "66802b25242abf5e97d4e5c70bc3a1b2ea68ec0e",
-        "ui_result": "Cartesian geometry reached all 50 steps without a backtransform reset but failed GAU_TIGHT convergence."
+        "request_schema": "hf-resp/4",
+        "revised_sha256": "671ba83ad28a9a6757fbed8250dcb009bc9a94f746d68a4b3062577dc036c10c",
+        "reason": "Public M2/IXO UI validation at 66802b2 exhausted the unchanged 50-gradient budget. Cartesian OptKing 0.5.0 starts from a uniform 0.1 diagonal Hessian. Compute the initial full HF Hessian (full_hess_every=0), then retain BFGS updates, Cartesian coordinates and strict convergence; no charge-model fallback.",
+        "reference": "https://psicode.org/psi4manual/master/optking.html",
+        "preserved": [
+          "HF/6-31G* gas phase and PK SCF",
+          "tight electronic and geometry convergence",
+          "two-stage RESP restraints and net charge",
+          "supplied chemical state and bound pose",
+          "no charge-model fallback"
+        ],
+        "acceptance": "Pending fresh original-flow deployment and actual UI revalidation.",
+        "previous_revision": {
+          "request_schema": "hf-resp/3",
+          "sha256": "d472a4650ce6feb48ebf6f92115d6571834212bd27310d7bb79dbfa1a822a1a8",
+          "tested_commit": "66802b25242abf5e97d4e5c70bc3a1b2ea68ec0e",
+          "ui_result": "Cartesian geometry reached all 50 steps without a backtransform reset but failed GAU_TIGHT convergence."
+        },
+        "tested_commit": "1f1ae13eb107c12abf219c4dd94db118260b4a75",
+        "ui_result": "Initial analytic HF Hessian completed; geometry optimization failed after 50 iterations. Final maximum force 4.06e-4, RMS force 1.16e-4, maximum displacement 4.12e-2, RMS displacement 1.35e-2 in atomic units."
+      },
+      "optimizer_dependency": {
+        "name": "geometric",
+        "version": "1.1.1",
+        "package": "geometric-1.1.1-pyhd8ed1ab_0.conda",
+        "sha256": "a598a35e19749a2ff0d8993a1bffe0dda3c056f2ed8f39517a55b3541bcbc7c0"
+      },
+      "numerical_contract": {
+        "initial_gradient": 1,
+        "maximum_geometry_iterations": 49,
+        "geometry_gradient_budget": 50,
+        "displacement_units": "angstrom",
+        "rms_displacement_limit_angstrom": 0.000021167088,
+        "max_displacement_limit_angstrom": 0.000031750632,
+        "note": "Pinned geomeTRIC uses aligned Cartesian per-atom displacement norms in angstrom. Limits round down the previous 4e-5 and 6e-5 bohr values. Gradient norms are per atom; energy convergence is additionally required."
       }
     }
   ]

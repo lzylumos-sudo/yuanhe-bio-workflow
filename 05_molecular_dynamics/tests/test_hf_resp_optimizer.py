@@ -31,13 +31,23 @@ def recorded_request(tmp_path, monkeypatch):
     return mol, json.loads((tmp_path/'request.json').read_text())
 
 
-def test_request_records_initial_hessian_and_unchanged_protocol(recorded_request):
+def test_request_records_bounded_optimizer_and_physical_thresholds(recorded_request):
     _, request = recorded_request
-    assert request['schema'] == 'hf-resp/4'
+    assert request['schema'] == 'hf-resp/5'
+    assert request['optimizer_engine'] == 'geometric'
+    assert request['geometry_gradient_budget'] == 50
     assert request['optimizer'] == {
-        'opt_coordinates': 'cartesian', 'dynamic_level': 0,
-        'full_hess_every': 0, 'geom_maxiter': 50, 'g_convergence': 'gau_tight',
+        'coordsys': 'tric', 'maxiter': 49, 'hessian': 'never',
+        'convergence_set': 'GAU_TIGHT', 'convergence_energy': 1e-6,
+        'convergence_grms': 1e-5, 'convergence_gmax': 1.5e-5,
+        'convergence_drms': 2.1167088e-5, 'convergence_dmax': 3.1750632e-5,
     }
+    # Displacement is measured in angstrom by the pinned optimizer; preserve
+    # the physical bohr limits, rounding down rather than loosening them.
+    bohr_to_angstrom = .529177210903
+    assert request['optimizer']['convergence_drms'] <= 4e-5 * bohr_to_angstrom
+    assert request['optimizer']['convergence_dmax'] <= 6e-5 * bohr_to_angstrom
+    assert 1 + request['optimizer']['maxiter'] == request['geometry_gradient_budget']
     assert request['method'] == 'HF/6-31G*'
     assert request['stages'] == [{'a': .0005, 'b': .1}, {'a': .001, 'b': .1}]
     assert request['grid']['vdw_scale_factors'] == [1.4, 1.6, 1.8, 2.0]
@@ -59,6 +69,7 @@ def test_worker_forwards_optimizer_and_stops_before_resp_on_failure(
     with pytest.raises(WorkerBoundary):
         hf_resp.worker(tmp_path)
     assert psi4.optimize.call_args.args == ('hf/6-31G*',)
+    assert psi4.optimize.call_args.kwargs['engine'] == 'geometric'
     assert psi4.optimize.call_args.kwargs['optimizer_keywords'] == request['optimizer']
     assert psi4.set_options.call_args.args[0]['scf_type'] == 'pk'
     resp.resp.assert_not_called()
@@ -67,8 +78,10 @@ def test_worker_forwards_optimizer_and_stops_before_resp_on_failure(
 
 def test_previous_optimizer_cache_is_rejected(tmp_path, recorded_request):
     mol, request = recorded_request
-    request['schema'] = 'hf-resp/3'
-    request['optimizer'].pop('full_hess_every')
+    request['schema'] = 'hf-resp/4'
+    request.pop('optimizer_engine')
+    request['optimizer'] = {'opt_coordinates':'cartesian','dynamic_level':0,
+                            'full_hess_every':0,'geom_maxiter':50,'g_convergence':'gau_tight'}
     (tmp_path/'charges.json').write_text(json.dumps({'request': request, 'files': {}}))
     with pytest.raises(ValueError, match='RESP cache parameters differ'):
         hf_resp.compute(mol, tmp_path)
