@@ -35,4 +35,9 @@ Peptide2Mol code: MIT; Pocket2Mol code: MIT; REINVENT4 code: Apache-2.0.
 The local GNINA license directory contains Apache and GNU notices; inspect both and its sources.json.
 Dependency packages (including RDKit, OpenMM, MDAnalysis, AmberTools, ParmEd, OpenFF Toolkit, GROMACS, PyTorch and CUDA) retain their own version-specific licenses.
 This inventory covers bundled license files, not a complete legal audit of a solved Windows/Linux runtime.
-No model weights, runtime images, binaries, or research output files are included in the code-update ZIP.
+No model weights, runtime images or research output files are included in the code-update ZIP.
+The unchanged official AutoDock Vina 1.2.7 Linux x86_64 executable is distributed in
+deployment/vendor/vina-1.2.7-linux-x86_64.gz under its upstream Apache-2.0 license.
+Its original license is retained above; deployment/vina-bundle.json records the
+official release, original executable hash and compressed-archive hash. CI compares
+the executable and license byte for byte against the official upstream release.

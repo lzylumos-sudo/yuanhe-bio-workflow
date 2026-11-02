@@ -26,6 +26,8 @@ jobs:
           python deployment/sync_platform_version.py --check
       - name: Verify bundled RESP equals original pinned upstream source
         run: python deployment/public_minimal/verify_resp_source.py --upstream
+      - name: Verify bundled Vina equals official pinned release
+        run: python deployment/verify_vina_bundle.py --upstream
       - name: Verify isolated module export dependency closure
         run: |
           python -m venv "$RUNNER_TEMP/module-exports"

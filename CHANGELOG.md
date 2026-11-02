@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Bundle the unchanged official Vina 1.2.7 Linux x86_64 release with its original hash and license; verify compressed and decompressed bytes during installation and compare against upstream in CI. Avoid an installation-time release-download TLS failure.
+- Expose the same explicit receptor hydrogen and pH controls in the project membrane builder as in independent MD.
 - Bundle the unchanged BSD-licensed RESP source at the existing pinned commit to remove an installation-time codeload dependency. Verify archive/license hashes locally and compare every file with the original hash-pinned upstream ZIP in CI; preserve both archive identities in the receipt.
 - Require explicit membrane-orientation and exploratory-MD acknowledgements in the independent MD UI; store the real booleans and reject pre-schema MD jobs instead of injecting `true`.
 - Reject external-TPR GROMACS completion unless `Finished mdrun`, final step/time, checkpoint, compressed trajectory and fatal/LINCS checks pass.

@@ -8,6 +8,13 @@ source files against the original SHA-256-pinned upstream archive. No separate
 RESP download or manual installation is required. See
 [RESP source provenance](deployment/public_minimal/resp-source.json).
 
+The unchanged official Vina 1.2.7 Linux x86_64 executable is also bundled in a
+compressed archive, with its original license and SHA-256. Installation verifies
+the archive, license and decompressed executable before atomic installation; CI
+compares the bytes against the official release. This removes a separate GitHub
+release download from installation. Other environments and models still require
+network access. See [Vina provenance](deployment/vina-bundle.json).
+
 ## 1. Select the current source and preserve the old installation
 
 For the latest merged fixes, clone **main** into a new directory and record its exact commit:
