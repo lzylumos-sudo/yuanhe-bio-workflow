@@ -14,7 +14,14 @@ PREFIXES=('01_molecule_generation/src/adapters/peptide2mol.py','01_molecule_gene
 
 def check():
     files=[f for f in BASELINE['files'] if f['path'].startswith(PREFIXES)]
-    errors=[f['path'] for f in files if not (ROOT/f['path']).is_file() or hashlib.sha256((ROOT/f['path']).read_bytes()).hexdigest()!=f['sha256']]
+    revisions=json.loads((ROOT/'docs/architecture/scientific_baseline_revisions.json').read_text())['revisions']
+    known={f['path']:f for f in files}
+    for path,row in revisions.items():
+        if path not in known or row['previous_sha256']!=known[path]['sha256'] or not row.get('reason'):
+            raise ValueError('Invalid explicit baseline revision: '+path)
+    errors=[f['path'] for f in files if not (ROOT/f['path']).is_file() or
+            hashlib.sha256((ROOT/f['path']).read_bytes()).hexdigest()!=revisions.get(f['path'],{}).get('sha256',f['sha256'])]
     if errors:raise ValueError('Scientific baseline drift: '+', '.join(errors))
-    return {'strictly_equal_files':len(files),'baseline_commit':BASELINE['baseline_commit']}
+    return {'strictly_equal_files':len(files)-len(revisions),'explicitly_revised_files':sorted(revisions),
+            'baseline_commit':BASELINE['baseline_commit']}
 if __name__=='__main__':print(json.dumps(check()))

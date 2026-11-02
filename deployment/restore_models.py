@@ -6,6 +6,7 @@ import json
 import shutil
 import subprocess
 from pathlib import Path
+from source_checkout import checked_checkout
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -30,10 +31,10 @@ def restore_source(source, destination, model):
         ['git', '-C', str(destination), 'config', 'core.autocrlf', 'false'],
         ['git', '-C', str(destination), 'remote', 'add', 'origin', model['source_url']],
         ['git', '-C', str(destination), 'fetch', '--depth=1', cache or 'origin', model['repo_commit']],
-        ['git', '-C', str(destination), 'checkout', '--detach', 'FETCH_HEAD'],
     ]
     for command in commands:
         subprocess.run(command, check=True, timeout=900)
+    checked_checkout(destination, 'FETCH_HEAD')
     actual = subprocess.check_output(['git', '-C', str(destination), 'rev-parse', 'HEAD'], text=True).strip()
     if actual != model['repo_commit'] or not (destination / 'LICENSE').is_file():
         raise ValueError('Restored source revision or upstream LICENSE mismatch: ' + destination.name)

@@ -6,12 +6,14 @@ HERE=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)
 [[ -d /opt/yuanhe && -w /opt/yuanhe ]] || { echo 'Complete the base installation first; /opt/yuanhe must be writable by your WSL user.'; exit 2; }
 mkdir -p /opt/yuanhe/bin /opt/yuanhe/cache /opt/yuanhe/evidence
 export MAMBA_ROOT_PREFIX=/opt/yuanhe/mamba
-MM=/opt/yuanhe/bin/micromamba
+MM=${MICROMAMBA:-/opt/yuanhe/bin/micromamba}
 if [[ ! -x "$MM" ]]; then
-  archive=/opt/yuanhe/cache/micromamba.tar.bz2
-  curl --fail --location --retry 3 'https://micro.mamba.pm/api/micromamba/linux-64/latest' --output "$archive"
-  sha256sum "$archive" > /opt/yuanhe/evidence/micromamba-download.sha256
-  tar -xjf "$archive" -C /opt/yuanhe bin/micromamba
+  MM=$(command -v "$MM" || true)
+fi
+if [[ ! -x "$MM" ]]; then
+  echo 'Install micromamba from its official installation guide or an administrator-approved mirror; set MICROMAMBA to the executable.' >&2
+  echo 'https://mamba.readthedocs.io/en/latest/installation/micromamba-installation.html' >&2
+  exit 2
 fi
 "$MM" --version > /opt/yuanhe/evidence/micromamba.version.txt
 ENV=/opt/yuanhe/envs/membrane

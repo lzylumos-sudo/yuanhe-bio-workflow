@@ -113,6 +113,35 @@ def test_diagnostic_cannot_accept_arbitrary_commands():
     with pytest.raises(ValueError,match='Unknown diagnostics setting'):studio.diagnostics_start({'command':'anything'})
 
 
+def test_probe_contains_import_and_exit_side_effects(tmp_path):
+    code = ('import atexit,os;from pathlib import Path;print(os.getcwd());'
+            'atexit.register(lambda: Path("timer.dat").write_text("exit hook"));'
+            'Path("import-side-effect").write_text("fixture")')
+    result = readiness.probe([sys.executable, '-c', code], tmp_path)
+    assert result['ok'], result
+    scratch = Path(result['output'].strip())
+    assert scratch != tmp_path and not scratch.exists()
+    assert list(tmp_path.iterdir()) == []
+
+
+def test_probe_cleans_scratch_after_timeout(tmp_path):
+    result = readiness.probe([sys.executable, '-c',
+        'from pathlib import Path;import time;Path("timer.dat").write_text("test");time.sleep(5)'], tmp_path, timeout=.1)
+    assert not result['ok'] and list(tmp_path.iterdir()) == []
+
+
+def test_readiness_checks_sa_data_and_configured_renderer(monkeypatch):
+    calls = []
+    def probe(argv, root, **kwargs):
+        calls.append(argv); return {'ok': False, 'error': 'fixture'}
+    monkeypatch.setattr(readiness, 'probe', probe)
+    cfg = workflow.defaults(); cfg['pymol_python'] = '/isolated/renderer/bin/python'
+    result = readiness.collect(cfg, ROOT)
+    assert {'sa_score', 'interaction_renderer'} <= result['checks'].keys()
+    assert any(a[0] == cfg['pymol_python'] and 'probe.png' in a[-1] for a in calls)
+    assert any('load_sascorer' in a[-1] and 'calculateScore' in a[-1] for a in calls)
+
+
 def test_checked_launcher_fails_early_without_rdkit(monkeypatch,capsys):
     spec=importlib.util.spec_from_file_location('checked_launcher',ROOT/'00_workbench/run_webui.py')
     mod=importlib.util.module_from_spec(spec);spec.loader.exec_module(mod)

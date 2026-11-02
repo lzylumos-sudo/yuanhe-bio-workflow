@@ -24,4 +24,5 @@ with tempfile.TemporaryDirectory() as tmp:
  ns['sample'](fake,SimpleNamespace(pos=SimpleNamespace(device='cpu')))
  audit=json.loads(Path(fake.log_dir+'_SDF/attempt_budget.json').read_text())
  assert fake.calls==2 and audit['started_attempts']==2 and audit['valid']==0
+ assert audit['failed']==2 and audit['status']=='finished'
 print('PASS: empty decoding stops after exact requested attempts; no model inference')

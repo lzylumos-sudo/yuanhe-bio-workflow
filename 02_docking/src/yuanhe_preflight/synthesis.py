@@ -12,7 +12,7 @@ from pathlib import Path
 import numpy as np
 from rdkit import Chem, rdBase
 from rdkit.Chem import rdFingerprintGenerator
-from rdkit.Contrib.SA_Score import sascorer
+from .sa_score import load_sascorer
 
 from .common import file_hash
 
@@ -47,6 +47,7 @@ class SCScore:
 
 
 def score_batch(rows, config):
+    sascorer = load_sascorer()
     error = None
     try:
         model = SCScore(config['scscore_path'], config['scscore_sha256'])

@@ -20,6 +20,9 @@ jobs:
           python -m pip install pytest==9.1.1 rdkit==2024.9.6 numpy==1.26.4 filelock==3.18.0 PyYAML==6.0.2
           python -m pip install meeko==0.8.0 gemmi==0.7.5 scipy==1.14.1 biopython==1.85 MDAnalysis==2.10.0 openmm==8.6.1 prolif==2.2.3
           python -m pip install -r deployment/module-runtime-requirements.txt
+          python -m venv "$RUNNER_TEMP/yuanhe-pymol"
+          "$RUNNER_TEMP/yuanhe-pymol/bin/python" -m pip install -r deployment/pymol-runtime-requirements.txt
+          "$RUNNER_TEMP/yuanhe-pymol/bin/python" -m pip check
           sudo apt-get update
           sudo apt-get install -y gromacs libcairo2
           npm install --prefix "$RUNNER_TEMP/yuanhe-ui" --no-save playwright@1.62.1
@@ -57,6 +60,7 @@ jobs:
           PYTHON_EXECUTABLE: python
           UI_TEST_TEMP: ${{ runner.temp }}
           MODULE_TEST_GMX: /usr/bin/gmx
+          ZLIS_PYMOL_PYTHON: ${{ runner.temp }}/yuanhe-pymol/bin/python
           UI_SCREENSHOT: module-ui.png
         run: node 00_workbench/tests/run_module_ui.cjs
       - uses: actions/upload-artifact@v7

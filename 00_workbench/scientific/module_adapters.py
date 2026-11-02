@@ -123,12 +123,18 @@ def execute(d, req, operation, out):
         from zlis.pipeline import analyze
         from zlis.tables import write_tables
         from zlis.diagram2d import write_diagrams
-        from zlis.pymol_scene import write_scene_files
+        from zlis.pymol_scene import write_scene_files, build_scene
         rows = []
         for result in analyze(str(files['complex']), str(out/'analysis'), ligand=p['ligand'],
                               template=str(files['template']) if 'template' in files else None, allow_network=False):
             target = Path(result['out_dir'])
             outputs = {**write_tables(result, target), **write_diagrams(result, target), **write_scene_files(result, target)}
+            scene = build_scene(target, executable=cfg.get('pymol_python') or None)
+            a.atomic(target / 'scene_build.json', scene)
+            if not scene['ok']:
+                raise RuntimeError('PyMOL scene/PNG export failed; tables and SVG are retained. '
+                                   'Inspect ' + str(target / 'scene_build.json') + ': ' + scene.get('stderr', ''))
+            outputs.update(pse=scene['pse'], png=scene['png'])
             rows.append({'ligand': result['ligand']['label'], 'n_events': len(result['events']),
                          'chemistry': result['chemistry']['status'], 'files': outputs})
         if not rows:

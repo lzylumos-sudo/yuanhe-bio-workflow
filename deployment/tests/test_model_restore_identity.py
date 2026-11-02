@@ -10,6 +10,7 @@ import pytest
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / 'deployment'))
 import restore_models
+import source_checkout
 
 
 def git(path, *args):
@@ -83,3 +84,15 @@ def test_all_weights_are_checked_before_any_source_restore(installation):
     with pytest.raises(SystemExit, match='mismatched source weights'):
         restore_models.restore(old.parent, root)
     assert not (root / '01_molecule_generation/vendor').exists()
+
+
+def test_case_collisions_are_rejected_before_lossy_checkout(tmp_path, monkeypatch):
+    repository = tmp_path / 'source'; repository.mkdir(); git(repository, 'init')
+    blob = subprocess.check_output(['git', '-C', str(repository), 'hash-object', '-w', '--stdin'], input=b'fixture').decode().strip()
+    for name in ['maps/1DB5.Br.map', 'maps/1DB5.BR.map']:
+        git(repository, 'update-index', '--add', '--cacheinfo', '100644', blob, name)
+    tree = git(repository, 'write-tree')
+    monkeypatch.setattr(source_checkout, 'case_sensitive_directory', lambda path: False)
+    with pytest.raises(ValueError, match='case-colliding'):
+        source_checkout.checked_checkout(repository, tree)
+    assert not (repository / 'maps').exists()

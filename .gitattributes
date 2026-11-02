@@ -5,3 +5,5 @@
 *.ps1 text eol=crlf
 02_docking/docs/licenses/* text eol=lf
 deployment/public_minimal/* text eol=lf
+# Unified patches retain upstream whitespace in removed/context lines.
+deployment/vendor_patches/*.patch whitespace=-blank-at-eol

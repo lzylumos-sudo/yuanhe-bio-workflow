@@ -44,7 +44,7 @@ def plan(prefix, model_source, gmx, host, port, root=ROOT):
     commit = source_identity(root)
     commands = [('restore_models', [sys.executable, str(root / 'deployment/restore_models.py'),
                                    '--source-root', str(model_source)])]
-    for step in ('runtime', 'peptide', 'reinvent', 'synthesis', 'vina', 'configure', 'check'):
+    for step in ('runtime', 'renderer', 'peptide', 'reinvent', 'synthesis', 'vina', 'configure', 'check'):
         commands.append((step, ['bash', str(root / 'deployment/install_workbench.sh'), step, str(prefix)]))
     return {'schema': 'yuanhe.deployment/1', 'software_version': software_version(),
             'source_commit': commit, 'root': str(root), 'prefix': str(prefix), 'gmx': str(gmx),
