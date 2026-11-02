@@ -1,5 +1,15 @@
 # Changelog
 
+## Unreleased
+
+- Require explicit membrane-orientation and exploratory-MD acknowledgements in the independent MD UI; store the real booleans and reject pre-schema MD jobs instead of injecting `true`.
+- Reject external-TPR GROMACS completion unless `Finished mdrun`, final step/time, checkpoint, compressed trajectory and fatal/LINCS checks pass.
+- Resolve formal docking poses by `job_id`, keep the authoritative docking JSON as the table source for large evidence, and use AutoDock Vina wording.
+- Reconcile orphaned `building` MD systems after a worker disappears, so the UI reaches a terminal state instead of polling forever.
+- Restore run-action buttons after a rejected start and show a concise failure summary while retaining the full traceback.
+- Clarify System & Versions installation/execution labels and distinguish stage-execution completion from scientific acceptance.
+- Add regression coverage for these independent-module, docking-pose, GROMACS-completion and status paths.
+
 ## 0.11.0-dev.5 - 2026-10-30
 
 - Retry transient pinned-asset download failures at most three times, with atomic publication after SHA-256 verification; certificate rejection, hash mismatch and permanent failures still stop installation immediately.
