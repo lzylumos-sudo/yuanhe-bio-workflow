@@ -82,7 +82,7 @@ function render(){
   const running=job.operations.some(x=>x.status==='running'),md=job.module==='md',last=job.operations[0];
   const failedBuild=md&&last?.action==='build'&&['failed','interrupted','cancelled'].includes(last.status);
   $('moduleStart').textContent=failedBuild?'Create a new job to rebuild':md?'Build membrane system':last?.status==='completed'?'Completed':job.module==='md_tpr'&&last?'Resume prepared MD':'Start module';
-  $('moduleStart').disabled=!versionCompatible||resourceStatus?.available===false||running||busy||(job.operations.length>0&&(md||job.module!=='md_tpr'||last.status==='completed'));
+  $('moduleStart').disabled=!versionCompatible||(md&&(!job.parameters.orientation_reviewed||!job.parameters.exploratory_ack))||resourceStatus?.available===false||running||busy||(job.operations.length>0&&(md||job.module!=='md_tpr'||last.status==='completed'));
   $('moduleCancel').disabled=!running||busy;
   $('moduleSystemReview').hidden=!md||!job.systems.length;
   const previous=$('moduleSystem').value;$('moduleSystem').replaceChildren();
@@ -97,7 +97,7 @@ function render(){
   for(const [index,op] of job.operations.entries()){
     const key=job.id+':'+(op.id??index),previous=operationRows.get(key),signature=JSON.stringify([op.action,op.status,op.error,op.result]);activeOperations.add(key);
     const logText=op.log||'Engine logs are available in the artifact list.';
-    if(previous?._signature===signature){const log=previous.querySelector('details pre');if(log.textContent!==logText)log.textContent=logText;if($('moduleOperations').children[index]!==previous)$('moduleOperations').insertBefore(previous,$('moduleOperations').children[index]||null);continue;}
+    if(previous?._signature===signature){const log=previous.querySelector('details[data-kind=execution-log] pre');if(log.textContent!==logText)log.textContent=logText;if($('moduleOperations').children[index]!==previous)$('moduleOperations').insertBefore(previous,$('moduleOperations').children[index]||null);continue;}
     const opened=previous?[...previous.querySelectorAll('details')].map(details=>details.open):null;
     const row=element('div');row.className='operation';row.dataset.operation=key;row._signature=signature;row.append(element('strong',op.action+': '+op.status));if(op.error){row.append(element('p',friendlyFailure(op.error)));const err=element('details');err.append(element('summary','Full error'),element('pre',op.error));row.append(err);}
     const result=op.result?.result;
@@ -108,8 +108,8 @@ function render(){
     else if(result?.report){const report=result.report;row.append(element('p','Actual sampling attempts: '+report.completed+' · Valid molecules: '+(report.valid??'unknown')+' · Unique molecules: '+(report.unique??'unknown')));if(report.valid===0)row.append(element('p','No usable molecules were produced. Execution finished; output acceptance has not passed.'));else row.append(element('p','Generated molecules require screening and review; execution completion does not establish candidate qualification.'));}
     else if(result?.availability){const availability=result.availability;row.append(element('p','Availability screening: '+availability.completed+' of '+availability.input+' records processed · Passed: '+availability.passed+' · Review required: '+availability.review+' · Excluded: '+availability.excluded));row.append(element('p','Screening completion does not establish candidate qualification. Inspect detailed decisions below.'));}
     else if(result?.risk)row.append(element('p','Risk screening finished for '+result.risk.input+' input records. Inspect detailed decisions below.'));
-    const details=element('details');details.open=opened?opened[0]:['running','failed','blocked'].includes(op.status);details.append(element('summary','Execution log'),element('pre',logText));row.append(details);
-    const proof=element('details');proof.open=opened?opened[1]:false;proof.append(element('summary','Detailed result and evidence'),element('pre',op.result?JSON.stringify(op.result,null,2):'No completed result'));row.append(proof);if(previous)previous.replaceWith(row);else $('moduleOperations').append(row);if($('moduleOperations').children[index]!==row)$('moduleOperations').insertBefore(row,$('moduleOperations').children[index]||null);}
+    const details=element('details');details.dataset.kind='execution-log';details.open=opened?opened[op.error?1:0]:['running','failed','blocked'].includes(op.status);details.append(element('summary','Execution log'),element('pre',logText));row.append(details);
+    const proof=element('details');proof.open=opened?opened[op.error?2:1]:false;proof.append(element('summary','Detailed result and evidence'),element('pre',op.result?JSON.stringify(op.result,null,2):'No completed result'));row.append(proof);if(previous)previous.replaceWith(row);else $('moduleOperations').append(row);if($('moduleOperations').children[index]!==row)$('moduleOperations').insertBefore(row,$('moduleOperations').children[index]||null);}
   for(const [key,row] of operationRows)if(!activeOperations.has(key))row.remove();
   const artifactLinks=new Map([...$('moduleArtifacts').children].map(link=>[link.getAttribute('href'),link])),activeArtifacts=new Set();
   for(const file of job.artifacts){const href='/module-artifacts/'+job.id+'/'+file.path.split('/').map(encodeURIComponent).join('/'),label=file.path+' ('+file.size+' bytes)';activeArtifacts.add(href);let link=artifactLinks.get(href);if(!link){link=element('a');link.href=href;link.setAttribute('download','');$('moduleArtifacts').append(link);}if(link.textContent!==label)link.textContent=label;}

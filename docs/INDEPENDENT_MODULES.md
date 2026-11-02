@@ -4,6 +4,19 @@ Open /modules.html from **Independent modules** in the main workbench.
 No research run or completed upstream stage is needed. Save an input snapshot,
 then start the module. A saved job is not a completed calculation.
 
+Independent membrane MD requires explicit orientation and exploratory-scope
+acknowledgements. The uploaded receptor is preserved by default. If it needs
+hydrogen completion, select **Add missing receptor hydrogens** and review the
+pH value before saving the snapshot (default 7.0). The system record retains
+the requested pH, selected residue variants, atom counts and a heavy-atom
+preservation check. Inspect the exported structure and this record before
+acknowledging the built system and starting MD. This option does not repair
+missing heavy atoms or establish the scientifically correct protonation state.
+
+The GROMACS export retains explicit pair parameters. An effective-parameter
+audit compares charges, LJ parameters, exclusions and exceptions against the
+source OpenMM system; the topology header alone is not a scaling audit.
+
 ## Inputs and execution
 
 | Entry | Independent input | Execution and evidence |

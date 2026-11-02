@@ -192,14 +192,8 @@ def build_prepared(d,c,p,out,row,ligand_path,receptor,source_revision=None):
   pdb=PDBFile(str(receptor));model=Modeller(pdb.topology,pdb.positions)
   coords=(np.asarray(pdb.positions.value_in_unit(unit.angstrom))-center)@rot.T
   model.positions=coords*unit.angstrom
-  # The reviewed receptor can still be missing hydrogens (the public M2/IXO
-  # fixture has an incomplete LYS). Add them before addMembrane; record the
-  # protonation action because it changes the prepared topology.
-  receptor_atoms_before=model.topology.getNumAtoms()
-  model.addHydrogens(ff, pH=7.0)
-  meta['receptor_protonation']={'method':'OpenMM Modeller.addHydrogens','pH':7.0,
-      'atoms_before':receptor_atoms_before,'atoms_after':model.topology.getNumAtoms(),
-      'note':'input heavy-atom coordinates retained; added hydrogens require review'}
+  from .receptor_hydrogens import prepare_hydrogens
+  meta['receptor_protonation']=prepare_hydrogens(model,ff,p,c['seed'])
   w.atomic(folder/'system.json',meta)
   # Receptor has already been explicitly prepared and reviewed by the UI.
   lt=off.to_topology().to_openmm()
@@ -247,20 +241,18 @@ def build_prepared(d,c,p,out,row,ligand_path,receptor,source_revision=None):
   with (folder/'system.pdb').open('w') as f:PDBFile.writeFile(model.topology,model.positions,f,keepIds=True)
   structure.save(str(folder/'system.prmtop'),overwrite=False)
   structure.save(str(folder/'system.top'),overwrite=False);structure.save(str(folder/'system.gro'),overwrite=False)
-  # ParmEd emits fudgeLJ=1 for this System, which silently disables Amber's 1-4
-  # LJ scaling. Write the Amber 14 defaults explicitly before reloading.
-  import re as _re
-  top_text=(folder/'system.top').read_text()
-  fixed,n=_re.subn(r'(?m)^1\s+2\s+no\s+1(?:\.0+)?\s+0\.83333333\s*$',
-                   '1               2               no              0.5            0.83333333',
-                   top_text,count=1)
-  if n!=1:raise RuntimeError('Could not set GROMACS fudgeLJ/fudgeQQ defaults')
-  (folder/'system.top').write_text(fixed)
-  meta['gromacs_nonbonded_rules']={'comb_rule':2,'fudgeLJ':0.5,'fudgeQQ':1/1.2,'source':'explicit Amber 14 1-4 scaling'}
-  w.atomic(folder/'system.json',meta)
   converted=parmed.load_file(str(folder/'system.top'),xyz=str(folder/'system.gro'))
   if not np.allclose([a.charge for a in converted.atoms],[a.charge for a in structure.atoms],atol=1e-6,rtol=0):raise ValueError('Topology conversion changed atom charges')
-  if converted.defaults.comb_rule != 2 or abs(converted.defaults.fudgeQQ-1/1.2)>1e-6 or abs(converted.defaults.fudgeLJ-.5)>1e-6:raise ValueError('Incompatible GROMACS nonbonded rules')
+  # Explicit [pairs] already contain their scaled LJ parameters. A default
+  # fudgeLJ of 1 is valid for gen-pairs=no; audit the effective parameters.
+  if converted.defaults.comb_rule != 2 or abs(converted.defaults.fudgeQQ-1/1.2)>1e-6:raise ValueError('Incompatible GROMACS nonbonded rules')
+  from .topology_conversion import verify_nonbonded_conversion
+  from openmm.app import NoCutoff
+  meta['gromacs_nonbonded_rules']={'comb_rule':converted.defaults.comb_rule,
+      'gen_pairs':converted.defaults.gen_pairs,'fudgeLJ':converted.defaults.fudgeLJ,
+      'fudgeQQ':converted.defaults.fudgeQQ,'effective_parameter_audit':verify_nonbonded_conversion(
+          system,converted.createSystem(nonbondedMethod=NoCutoff,constraints=None,rigidWater=False))}
+  w.atomic(folder/'system.json',meta)
   add_restraints(folder/'system.top')
   (folder/'system.xml').write_text(XmlSerializer.serialize(system))
   with (folder/'system.pdb').open('w') as f:PDBFile.writeFile(model.topology,model.positions,f,keepIds=True)

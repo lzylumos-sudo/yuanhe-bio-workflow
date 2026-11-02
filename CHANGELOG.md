@@ -9,8 +9,8 @@
 - Restore run-action buttons after a rejected start and show a concise failure summary while retaining the full traceback.
 - Clarify System & Versions installation/execution labels and distinguish stage-execution completion from scientific acceptance.
 - Add regression coverage for these independent-module, docking-pose, GROMACS-completion and status paths.
-- Add missing receptor hydrogens with OpenMM `Modeller.addHydrogens` before membrane insertion and record the protonation action; the reviewed M2/IXO fixture otherwise fails on an incomplete LYS.
-- Write Amber's 1-4 scaling (`fudgeLJ=0.5`, `fudgeQQ=1/1.2`, `comb-rule=2`) explicitly into the exported GROMACS topology instead of accepting ParmEd's `fudgeLJ=1`.
+- Offer explicit receptor hydrogen completion and a frozen pH choice in independent MD; record selected residue variants, preserve heavy atoms, and require review of the built system before MD.
+- Verify effective nonbonded particle and exception parameters after GROMACS export. Preserve ParmEd explicit pair parameters instead of rewriting fudgeLJ: gen-pairs=no may legitimately use fudgeLJ=1.
 
 ## 0.11.0-dev.5 - 2026-10-30
 

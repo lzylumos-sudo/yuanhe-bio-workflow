@@ -95,7 +95,7 @@ $('#systemVersions').onclick=async()=>{try{
  close.onclick=()=>{dialog.close();dialog.remove()};dialog.append(heading,close);
  dialog.append(el('p','AI-Driven Drug Discovery Platform'));
  dialog.append(el('pre',JSON.stringify(versions,null,2)));
- for(const backend of modules.backends){const state=backend.runnable?'Available':backend.installed?'Installed / probe passed; execution not validated':'Not installed';dialog.append(el('p',backend.backend_id+' · '+state+' · implemented: '+backend.implemented+' · installed: '+backend.installed+' · execution_validated: '+backend.runnable));}
+ for(const backend of modules.backends){const state=backend.runnable?'Available':backend.installed?'Installed; execution not validated':'Not installed';dialog.append(el('p',backend.backend_id+' · '+state+' · implemented: '+backend.implemented+' · installed: '+backend.installed+' · execution_validated: '+backend.runnable));}
  dialog.append(el('h3','Scientific protocols'));
  for(const p of protocols.protocols)dialog.append(el('p',p.protocol_id+'@'+p.protocol_version+' · '+p.scientific_validation));
  dialog.append(el('p',run?.manifest?'Selected run: '+run.manifest.software_version+' / '+run.manifest.protocol_id+'@'+run.manifest.protocol_version:'Select a run to see its original identities.'));

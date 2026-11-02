@@ -61,6 +61,8 @@ MODULES = {
             field('orientation_source', 'Membrane orientation source and review rationale', ''),
             field('orientation_reviewed', 'I reviewed membrane orientation, receptor construct and ligand pose', False, 'boolean'),
             field('exploratory_ack', 'I explicitly treat this unqualified system as exploratory MD', False, 'boolean'),
+            field('add_receptor_hydrogens', 'Add missing receptor hydrogens at the chosen pH; review the resulting structure before MD', False, 'boolean'),
+            field('receptor_pH', 'Receptor pH for explicitly requested hydrogen addition', 7.0, 'number', min=0, max=14),
             field('lipid', 'Lipid', 'POPE', 'choice', choices=['POPE', 'POPC', 'DPPC', 'DOPC']),
             field('production_ns', 'Production duration / ns (independent scope)', 500, 'number', min=.01, max=1000),
             field('equilibration_ns', 'Equilibration duration / ns', 2, 'number', min=.1, max=100),
