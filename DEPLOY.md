@@ -2,6 +2,12 @@
 
 This page is sufficient for a new administrator with access to a suitable machine. No old project directory, private model transfer, separate patch or conversation history is required. It covers generation, toxicity and synthesis screening, docking, ZVSS and membrane MD. Commands run inside Linux as the installation owner. A source download alone does not install the dependencies. After startup, researchers follow the [UI workflow guide](docs/18_UI_RESEARCH_WORKFLOW.md).
 
+The small BSD-licensed RESP source is bundled at the original pinned upstream
+commit. The installer verifies its archive and license hashes; CI compares all
+source files against the original SHA-256-pinned upstream archive. No separate
+RESP download or manual installation is required. See
+[RESP source provenance](deployment/public_minimal/resp-source.json).
+
 ## 1. Select the current source and preserve the old installation
 
 For the latest merged fixes, clone **main** into a new directory and record its exact commit:

@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Bundle the unchanged BSD-licensed RESP source at the existing pinned commit to remove an installation-time codeload dependency. Verify archive/license hashes locally and compare every file with the original hash-pinned upstream ZIP in CI; preserve both archive identities in the receipt.
 - Require explicit membrane-orientation and exploratory-MD acknowledgements in the independent MD UI; store the real booleans and reject pre-schema MD jobs instead of injecting `true`.
 - Reject external-TPR GROMACS completion unless `Finished mdrun`, final step/time, checkpoint, compressed trajectory and fatal/LINCS checks pass.
 - Resolve formal docking poses by `job_id`, keep the authoritative docking JSON as the table source for large evidence, and use AutoDock Vina wording.

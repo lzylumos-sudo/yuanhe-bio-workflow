@@ -14,6 +14,8 @@ unset PYTHONPATH PYTHONHOME
 export PYTHONNOUSERSITE=1
 "$mamba" create --no-rc -y -p "$prefix" --file "$package_dir/linux-64.lock"
 "$prefix/bin/python" -m pip --isolated install --no-deps --no-build-isolation -r "$package_dir/pip-requirements.txt"
+resp_archive=$("$prefix/bin/python" "$package_dir/verify_resp_source.py" --path)
+"$prefix/bin/python" -m pip --isolated install --no-deps --no-build-isolation "$resp_archive"
 "$prefix/bin/python" -m pip check
 echo "Installed independent environment: $prefix"
 echo 'Next: run_public.sh ENV_PREFIX NEW_OUTPUT_DIRECTORY'

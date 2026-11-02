@@ -24,6 +24,8 @@ jobs:
           python deployment/check_governance.py
           python deployment/check_scientific_baseline.py
           python deployment/sync_platform_version.py --check
+      - name: Verify bundled RESP equals original pinned upstream source
+        run: python deployment/public_minimal/verify_resp_source.py --upstream
       - name: Verify isolated module export dependency closure
         run: |
           python -m venv "$RUNNER_TEMP/module-exports"
