@@ -42,10 +42,12 @@ function form(){
     label.append(file);$('moduleFiles').append(label);
   }
   for(const f of spec.fields){
-    const label=element('label',f.label),input=element(f.type==='choice'?'select':'input');input.dataset.key=f.key;input.required=true;
-    if(f.type==='choice')for(const choice of f.choices){const option=element('option',choice);option.value=choice;input.append(option);}
+    const label=element('label',f.label),input=element(f.type==='boolean'?'input':f.type==='choice'?'select':'input');input.dataset.key=f.key;input.required=f.type!=='boolean';
+    if(f.type==='boolean'){input.type='checkbox';input.checked=!!f.default;}
+    else if(f.type==='choice')for(const choice of f.choices){const option=element('option',choice);option.value=choice;input.append(option);}
     else{input.type=['integer','number'].includes(f.type)?'number':'text';if(input.type==='number'){input.min=f.min;input.max=f.max;input.step=f.type==='integer'?'1':'any';}}
-    input.value=f.type==='vector'?f.default.join(', '):f.default;input.setAttribute('aria-label',f.label);label.append(input);$('moduleFields').append(label);
+    if(f.type==='vector')input.value=f.default.join(', ');else if(f.type!=='boolean')input.value=f.default;
+    input.setAttribute('aria-label',f.label);label.append(input);$('moduleFields').append(label);
   }
 }
 async function refresh({automatic=false}={}){
@@ -64,6 +66,13 @@ async function load(id,{clearFailure=true}={}){
   try{const job=await api('/api/modules/jobs/'+id);if(epoch!==selectionEpoch||request!==detailRequest||$('moduleJobSelect').value!==id)return;current=job;render();if(clearFailure)clearError(previousError);}
   catch(e){if(request===detailRequest)fail(e,epoch,previousError);}
 }
+function friendlyFailure(text){
+  const raw=String(text||'');
+  if(/OptimizationConvergenceError/i.test(raw))return 'HF/RESP geometry optimization did not converge within the 50-step budget. The build is blocked; inspect the full error and logs, then create a new job to rebuild.';
+  if(/CalledProcessError|non-zero exit/i.test(raw))return 'An external calculation program failed. Inspect the attached log and retained partial artifacts; do not retry blindly.';
+  if(/cancelled|SIGTERM|exit code 143/i.test(raw))return 'The calculation was stopped before completion. Retained logs and checkpoints are preserved.';
+  return raw.split('\n')[0].slice(0,500);
+}
 function render(){
   renderAvailability();
   const job=current;if(!job)return;$('moduleJobDetail').hidden=false;
@@ -71,7 +80,8 @@ function render(){
   $('moduleJobState').textContent=job.operations[0]?job.operations[0].action+': '+job.operations[0].status:'Input saved; computation has not started';
   $('moduleInputs').textContent=JSON.stringify({parameters:job.parameters,inputs:job.inputs,scope:job.scope},null,2);
   const running=job.operations.some(x=>x.status==='running'),md=job.module==='md',last=job.operations[0];
-  $('moduleStart').textContent=md?'Build membrane system':last?.status==='completed'?'Completed':job.module==='md_tpr'&&last?'Resume prepared MD':'Start module';
+  const failedBuild=md&&last?.action==='build'&&['failed','interrupted','cancelled'].includes(last.status);
+  $('moduleStart').textContent=failedBuild?'Create a new job to rebuild':md?'Build membrane system':last?.status==='completed'?'Completed':job.module==='md_tpr'&&last?'Resume prepared MD':'Start module';
   $('moduleStart').disabled=!versionCompatible||resourceStatus?.available===false||running||busy||(job.operations.length>0&&(md||job.module!=='md_tpr'||last.status==='completed'));
   $('moduleCancel').disabled=!running||busy;
   $('moduleSystemReview').hidden=!md||!job.systems.length;
@@ -89,7 +99,7 @@ function render(){
     const logText=op.log||'Engine logs are available in the artifact list.';
     if(previous?._signature===signature){const log=previous.querySelector('details pre');if(log.textContent!==logText)log.textContent=logText;if($('moduleOperations').children[index]!==previous)$('moduleOperations').insertBefore(previous,$('moduleOperations').children[index]||null);continue;}
     const opened=previous?[...previous.querySelectorAll('details')].map(details=>details.open):null;
-    const row=element('div');row.className='operation';row.dataset.operation=key;row._signature=signature;row.append(element('strong',op.action+': '+op.status));if(op.error)row.append(element('p',op.error));
+    const row=element('div');row.className='operation';row.dataset.operation=key;row._signature=signature;row.append(element('strong',op.action+': '+op.status));if(op.error){row.append(element('p',friendlyFailure(op.error)));const err=element('details');err.append(element('summary','Full error'),element('pre',op.error));row.append(err);}
     const result=op.result?.result;
     if(result?.plan)row.append(element('p','Final step: '+result.plan.final_step+' · Final time: '+result.plan.final_time_ps+' ps · Checkpoint and trajectory verified'));
     else if(result?.runs)row.append(element('p',result.runs.length+' reference runs · Top-1 pose recovery: '+Math.round(result.top1_recovery_fraction*100)+'%'));
@@ -110,8 +120,9 @@ $('moduleForm').onsubmit=async event=>{
   event.preventDefault();if(busy||!versionCompatible)return;busy=true;clearError();const epoch=selectionEpoch,previousError=errorVersion;renderAvailability();
   try{
     const kind=$('moduleSelect').value,spec=catalog[kind],parameters={},files={};
-    for(const f of spec.fields){const value=$('moduleFields').querySelector('[data-key="'+f.key+'"]').value;
-      parameters[f.key]=f.type==='vector'?value.split(',').map(x=>Number(x.trim())):['number','integer'].includes(f.type)?Number(value):value;}
+    for(const f of spec.fields){const input=$('moduleFields').querySelector('[data-key="'+f.key+'"]');
+      const value=input.value;
+      parameters[f.key]=f.type==='boolean'?input.checked:f.type==='vector'?value.split(',').map(x=>Number(x.trim())):['number','integer'].includes(f.type)?Number(value):value;}
     for(const input of $('moduleFiles').querySelectorAll('input')){const file=input.files[0];if(!file)continue;if(file.size>64*1024*1024)throw Error('Each file must be <= 64 MiB');files[input.dataset.role]={name:file.name,base64:await encoded(file)};}
     const saved=await api('/api/modules/jobs',{module:kind,parameters,files,acknowledged:$('scopeAck').checked});if(epoch!==selectionEpoch)return;selectionEpoch++;current=saved;await refresh();
   }catch(e){fail(e,epoch,previousError);}finally{busy=false;render();}

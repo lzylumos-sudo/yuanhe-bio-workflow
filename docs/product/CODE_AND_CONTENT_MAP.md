@@ -6,7 +6,7 @@ This pass preserves all existing paths, public interfaces, scripts, historical d
 |---|---|---|
 | Workbench | `00_workbench/run_webui.py`, `webui/workflow.py`, `pipeline_bridge.py` | Review, scheduling and stage handoff |
 | Generation | `01_molecule_generation/murj_pipeline.py`, `src/` | Preparation, model adapters, core and chemical checks |
-| Docking | `02_docking/` module guide and protocols | Receptor/ligand handling and GNINA execution |
+| Docking | `02_docking/` module guide and protocols | Receptor/ligand handling and AutoDock Vina 1.2.7 execution; historical GNINA results are read-only |
 | Screening | `03_virtual_screening/src/zvss/` | Evidence, qualification, diversity, selection and reports |
 | Interaction analysis | `04_interaction_analysis/src/zlis/` | Interaction tables and structure-based visual outputs |
 | Dynamics | Workbench `scientific/`; separate `05_molecular_dynamics/` | GROMACS membrane workflow versus independent OpenMM path |

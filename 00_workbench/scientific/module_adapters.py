@@ -178,7 +178,8 @@ def execute(d, req, operation, out):
             ident = 'INPUT_'+a.digest(files['ligand'])[:20]
             row = {'molecule_id': ident, 'compound_id': ident, 'pose_id': ident+'_pose',
                    'qualification': 'independent', 'smiles': smiles}
-            parameters = {**p, 'exploratory_ack': True, 'orientation_reviewed': True,
+            parameters = {**p, 'exploratory_ack': p.get('exploratory_ack') is True,
+                          'orientation_reviewed': p.get('orientation_reviewed') is True,
                           'replica_seed': p['seed'], 'output_interval_ps': min(10, p['production_ns']*1000/10)}
             return membrane.build_prepared(d, cfg, parameters, out, row, files['ligand'], files['receptor'])
         return getattr(membrane, action)(d, cfg, {'system_id': operation['system_id'],
