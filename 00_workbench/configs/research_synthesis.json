@@ -74,7 +74,7 @@
         "PAINS": "review",
         "BRENK": "review"
       },
-      "catalog_rule_actions": {},
+      "catalog_rule_actions": {"BRENK:quaternary_nitrogen_2": "warn", "BRENK:triple_bond": "warn"},
       "toxicity": {
         "python": "",
         "device": "cpu",
