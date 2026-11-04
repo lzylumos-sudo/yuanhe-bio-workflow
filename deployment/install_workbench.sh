@@ -21,7 +21,8 @@ RUNTIME="$PREFIX/envs/runtime"
 TOOLS="$PREFIX/tools"
 UV="$TOOLS/bin/uv"
 GEN="$ROOT/01_molecule_generation"
-export UV_PYTHON_INSTALL_DIR="$PREFIX/python" UV_CACHE_DIR="$PREFIX/cache" UV_LINK_MODE=copy
+export UV_PYTHON_INSTALL_DIR="$PREFIX/python" UV_CACHE_DIR="${YUANHE_UV_CACHE:-$PREFIX/cache}" UV_LINK_MODE=copy
+[[ "$UV_CACHE_DIR" == /* ]] || { echo 'YUANHE_UV_CACHE must be an absolute download-cache path.' >&2; exit 2; }
 # Large CUDA downloads can contend with build-dependency metadata requests.
 # Keep the pinned indexes/locks and TLS validation; bound network concurrency
 # and allow transient slow connections to recover within uv itself.

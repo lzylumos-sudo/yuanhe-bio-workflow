@@ -75,6 +75,27 @@ YUANHE_CC=gcc-12 YUANHE_CXX=g++-12 bash deployment/build_gromacs.sh \
 
 This downloads official GROMACS 2026.4 with a fixed SHA-256, builds CUDA support and FFTW into the new prefix, runs upstream checks and retains logs. Use `/srv/yuanhe/gromacs-NEW/install/bin/gmx` below. Unlike the historical helper, it has no machine-specific project registration or fixed `/opt` prefix.
 
+### Optional download-cache reuse on the same machine
+
+When rebuilding into a new prefix after a network failure, the original installer
+can reuse downloaded packages and official model files. It still creates new
+environments and restores the selected source; it does not copy old installed
+environments or research configuration. Set these optional variables before the
+normal preflight and installation commands, using actual existing directories:
+
+```bash
+export YUANHE_PACKAGE_CACHE=/srv/yuanhe/runtime-OLD/envs/runtime-packages
+export YUANHE_UV_CACHE=/srv/yuanhe/runtime-OLD/cache
+export YUANHE_ASSET_CACHE=/srv/yuanhe/runtime-OLD/predocking-assets
+```
+
+The package managers retain their locked resolution and integrity checks.
+Official pre-docking assets are copied into the new prefix only after matching
+the current repository's original byte count and SHA-256. Missing cached assets
+use the original official download URL; mismatching cached files fail closed
+and remain untouched. The new asset receipt records how each file was obtained.
+These settings are optional: first installations keep the existing download flow.
+
 ## 3. Plan, then install the complete stack
 
 All research defaults, model pins and runtime locks are already in GitHub. Only five machine settings are needed. Copy [site.example.json](deployment/site.example.json) outside the clean source tree:

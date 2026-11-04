@@ -48,19 +48,45 @@ def download_verified(item, path):
             temp.unlink(missing_ok=True)
 
 
+def install_asset(item, path, cache=None):
+    """Reuse bytes only after checking the current repository's original pin."""
+    if path.exists():
+        if digest(path) != item['sha256']:
+            raise ValueError('Existing asset differs; preserve and choose another destination: '+str(path))
+        return 'existing_verified'
+    cached = cache / item['filename'] if cache is not None else None
+    if cached is not None and cached.is_file():
+        temp = path.with_suffix(path.suffix + '.part')
+        try:
+            shutil.copyfile(cached, temp)
+            if (temp.stat().st_size != item['bytes'] or
+                    digest(temp) != item['sha256']):
+                raise ValueError('Cached asset differs from pinned official asset: '+item['name'])
+            os.replace(temp, path)
+        finally:
+            temp.unlink(missing_ok=True)
+        print('Reused hash-verified official asset '+item['name'], flush=True)
+        return 'verified_local_cache'
+    download_verified(item, path)
+    return 'official_download'
+
+
 def main():
     ap=argparse.ArgumentParser(description=__doc__);ap.add_argument('--output',type=Path,required=True)
     ap.add_argument('--with-retro',action='store_true');ap.add_argument('--tox-python',default=sys.executable)
-    ap.add_argument('--retro-python',default='python');args=ap.parse_args()
+    ap.add_argument('--retro-python',default='python')
+    ap.add_argument('--cache',type=Path,default=os.environ.get('YUANHE_ASSET_CACHE'),
+                    help='Optional directory of official asset files; every reused file is checked against the current size and SHA-256 pins')
+    args=ap.parse_args()
+    if args.cache is not None and not args.cache.is_dir():
+        ap.error('Asset cache must be an existing directory')
     dest=args.output.resolve();dest.mkdir(parents=True,exist_ok=True)
     specs=json.loads((ROOT/'deployment/predocking-assets.json').read_text())['assets'];installed={}
     for item in specs:
         if item['name']!='scscore' and not args.with_retro:continue
         path=dest/item['filename']
-        if path.exists() and digest(path)!=item['sha256']:raise ValueError('Existing asset differs; preserve and choose another destination: '+str(path))
-        if not path.exists():
-            download_verified(item, path)
-        installed[item['name']]={**item,'path':str(path)}
+        delivery=install_asset(item, path, args.cache)
+        installed[item['name']]={**item,'path':str(path),'delivery':delivery}
     cfg=defaults(ROOT);cfg['engine']['toxicity']['python']=args.tox_python
     sc=installed['scscore'];cfg['engine']['synthesis'].update(scscore_path=sc['path'],scscore_sha256=sc['sha256'])
     if args.with_retro:
