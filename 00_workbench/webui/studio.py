@@ -18,6 +18,23 @@ def within(d,p):
 
 def upload(payload):
  name=Path(payload.get('name','')).name
+ if payload.get('kind') == 'candidates':
+  import csv, io
+  text = payload.get('text')
+  if not isinstance(text, str) or not text or len(text.encode()) > 8*1024*1024:
+   raise ValueError('Upload a nonempty candidate file of at most 8 MB')
+  suffix = Path(name).suffix.lower()
+  if suffix == '.csv':
+   rows = csv.DictReader(io.StringIO(text.lstrip('\ufeff')))
+   if not rows.fieldnames or rows.fieldnames.count('smiles') != 1 or not any(row.get('smiles','').strip() for row in rows):
+    raise ValueError('Candidate CSV requires a smiles column and at least one molecule')
+   text = text.lstrip('\ufeff')
+  elif suffix != '.sdf' or '$$$$' not in text.splitlines():
+   raise ValueError('Choose a candidate CSV or SDF file')
+  dest = w.ROOT/'inputs'/(uuid.uuid4().hex+suffix)
+  dest.parent.mkdir(exist_ok=True)
+  dest.write_text(text,encoding='utf-8')
+  return {'library':str(dest.relative_to(w.ROOT)), 'name':name, 'sha256':w.digest(dest)}
  if not name.lower().endswith('.pdb'):raise ValueError('Structure uploads currently accept PDB; Please export PDB format')
  content=payload.get('text','')
  if not isinstance(content,str) or len(content.encode())>8*1024*1024:raise ValueError('Maximum structure file size 8 MB')

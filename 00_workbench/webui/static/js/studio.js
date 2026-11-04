@@ -101,3 +101,20 @@ $('#systemVersions').onclick=async()=>{try{
  dialog.append(el('p',run?.manifest?'Selected run: '+run.manifest.software_version+' / '+run.manifest.protocol_id+'@'+run.manifest.protocol_version:'Select a run to see its original identities.'));
  document.body.append(dialog);dialog.showModal();
 }catch(e){message(e)}};
+
+document.querySelector('#candidateUpload').onchange = async event => {
+  const file = event.target.files[0];
+  if (!file) return;
+  try {
+    if (file.size > 8 * 1024 * 1024) throw Error('Candidate file exceeds 8 MB');
+    const saved = await api('/api/studio/upload', {kind:'candidates', name:file.name, text:await file.text()});
+    const config = JSON.parse(document.querySelector('#config').value);
+    config.imported_candidates = saved.library;
+    document.querySelector('#config').value = JSON.stringify(config, null, 2);
+    const field = document.querySelector('[data-key="research.external_library"]');
+    if (field) field.value = saved.library;
+    document.querySelector('#candidateUploadStatus').textContent = file.name + ' · Candidate input saved';
+  } catch (error) {
+    document.querySelector('#formError').textContent = error.message;
+  }
+};
