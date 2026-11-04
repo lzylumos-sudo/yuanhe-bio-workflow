@@ -7,6 +7,9 @@ from pathlib import Path
 import shutil
 import subprocess
 import sys
+import time
+from http.client import IncompleteRead
+from urllib.error import HTTPError, URLError
 import urllib.request
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -37,8 +40,30 @@ def download(entry, target):
     partial = target.with_name(target.name + '.part')
     if target.exists() or target.is_symlink():
         raise ValueError('Refusing to overwrite model weights: ' + str(target))
+    if partial.exists() or partial.is_symlink():
+        raise FileExistsError(partial)
+    for attempt in range(4):
+        url = entry['url']
+        if attempt % 2 and url == DOWNLOADS['reinvent4'][2]:
+            url = 'https://zenodo.org/records/20701824/files/libinvent.prior?download=1'
+        try:
+            download_once(entry, partial, url)
+            break
+        except (HTTPError, URLError, TimeoutError, ConnectionError, IncompleteRead) as exc:
+            reason = getattr(exc, 'reason', exc)
+            retry = (exc.code in (408, 429, 500, 502, 503, 504) if isinstance(exc, HTTPError)
+                     else isinstance(reason, (TimeoutError, ConnectionError, IncompleteRead)))
+            if not retry or attempt == 3:
+                raise
+            partial.unlink(missing_ok=True)
+            print(f"Transient download failure for {entry['name']}: {exc}; retrying", flush=True)
+            time.sleep(2 ** attempt)
+    partial.replace(target)
+
+
+def download_once(entry, partial, url):
     digest, size = hashlib.sha256(), 0
-    request = urllib.request.Request(entry['url'], headers={'User-Agent': 'Yuanhe-model-bootstrap/1'})
+    request = urllib.request.Request(url, headers={'User-Agent': 'Yuanhe-model-bootstrap/1'})
     with urllib.request.urlopen(request, timeout=120) as response, partial.open('xb') as output:
         while chunk := response.read(1 << 20):
             size += len(chunk)
@@ -48,7 +73,6 @@ def download(entry, target):
             output.write(chunk)
     if size != entry['bytes'] or digest.hexdigest() != entry['sha256']:
         raise ValueError('Model size or SHA-256 mismatch: ' + entry['name'])
-    partial.replace(target)
 
 
 def execute(record):
