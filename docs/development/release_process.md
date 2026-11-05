@@ -6,7 +6,11 @@ Do not upgrade a protocol for a UI-only release. Do not reuse a protocol ID afte
 
 Heavy GPU validation is manual/target-specific and separate from pull-request CI. The original 0.11.0-dev.1 governance branch was not a public Release. Publish current administrator builds only after protected merge and verification of the merged main commit. Never move an existing tag or rewrite historical run identities.
 
-## Administrator publication
+## Current source deployment
+
+The current administrator entrypoint is `/blob/main/DEPLOY.md`. It uses a clean main checkout and records its exact commit, current site template, installer receipts and target-machine UI acceptance. `current_release.json` describes this source channel, not a historical ZIP. A merged repair may retain the development version label; the exact Git commit distinguishes it from older tags with that label. Never present an old release archive as containing subsequent main fixes.
+
+## Optional immutable packaged publication
 
 1. Advance root `VERSION` for the build; run `deployment/sync_platform_version.py`. The generator updates package metadata, the README current-download block and `deployment/current_release.json` together. CI rejects stale generated copies.
 2. Preserve former identities in `docs/releases/HISTORY.md`; keep original evidence documents unchanged. Merge through protected PR checks and verify the distinct post-merge main run.

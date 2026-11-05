@@ -25,7 +25,7 @@ cd yuanhe-bio-workflow
 git rev-parse HEAD
 ```
 
-Alternatively, reproduce a published snapshot using the **current administrator build** in [README](README.md). That immutable release can predate fixes on main. Download its named ZIP and `SHA256SUMS.txt`, verify and extract into a **new** directory:
+For the campus installation, follow the [validated checkout and port cutover procedure](deployment/UPGRADE_RUNTIME.md). For historical release reproduction only, download that release's named ZIP and `SHA256SUMS.txt`, verify and extract into a **new** directory:
 
 ```bash
 sha256sum -c SHA256SUMS.txt
@@ -35,7 +35,7 @@ python3 deployment/verify_release.py
 
 Verification reports the exact source commit and checks every packaged file. Compare the extracted `VERSION` with the current README. Do not reuse an old ZIP because it was previously called current. GitHub's automatic source ZIP lacks `SOURCE_MANIFEST.json`; use the named administrator asset or a clean Git checkout.
 
-For a reproducible tagged checkout instead of latest main, select the immutable tag in [current_release.json](deployment/current_release.json). Never run `git pull` or edit tracked settings inside an active deployment. For upgrades, preserve the old installation, `runtime.json`, model bundle, tasks and checkpoints. Do not copy old frozen research configuration over new defaults: the old purchase/catalog schema is incompatible with the current synthesis-only schema. Historical tasks remain in their original deployment.
+The [current deployment record](deployment/current_release.json) points to main and these instructions. Historical immutable tags are listed in [release history](docs/releases/HISTORY.md); they are for reproducing old versions and do not include later main fixes. Never run `git pull` or edit tracked settings inside an active deployment. For upgrades, preserve the old installation, `runtime.json`, model bundle, tasks and checkpoints. Do not copy old frozen research configuration over new defaults: the old purchase/catalog schema is incompatible with the current synthesis-only schema. Historical tasks remain in their original deployment.
 
 ## 2. Confirm four site-specific inputs
 
@@ -175,7 +175,9 @@ The read-only check rejects a wrong version, same-version/wrong-commit deploymen
 
 ## 5. Deliver the URL with real acceptance evidence
 
-Open **Environment and diagnostics -> Check saved environment before creating a run** and save the report. Create a separate small run and record its ID. Execute preparation, Peptide2Mol, core review, REINVENT4, structure/toxicity/complete-route screening, receptor/box review, Vina and ZVSS. Keep zero-qualified outcomes explicit; never relax gates to force downstream execution.
+Open **Environment and diagnostics -> Check saved environment before creating a run** and save the report. Follow the [public same-compound UI acceptance](deployment/UI_MAIN_FLOW_ACCEPTANCE.md) for the minimum imported-positive main flow, including screening, receptor/box review, docking, membrane MD, analysis and export. Record the new run ID and exact served source. Repeat from a separate clean deployment before claiming reproducibility.
+
+Generation is a separate UI check: execute Peptide2Mol, core review and REINVENT4 with small budgets. A completed model invocation may return zero valid molecules; it does not replace the imported-positive main-flow evidence. Keep zero-qualified outcomes explicit and do not relabel skipped stages as passed.
 
 MD requires reviewed candidate and membrane inputs. A short engineering trajectory, explicitly configured as a separate custom test, is not the formal 500 ns protocol. Verify actual CUDA mdrun, checkpoint recovery and analysis. Completion requires `Finished mdrun`, final step/time, valid final checkpoint, required outputs/analysis and the workflow completion record. A process or trajectory file alone is insufficient. Do not label skipped stages passed. Preserve force fields, gates, default protocols, historical records and requested research durations.
 

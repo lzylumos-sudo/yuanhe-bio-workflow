@@ -1,10 +1,18 @@
 # Runtime and configuration upgrade
 
-Use one immutable administrator release and its matching source manifest, frontend and configuration templates. The current development build is 0.11.0-dev.5; historical tags and research tasks retain their original versions and configurations.
+Use the latest merged main source in a new directory under the installation owner's account. Historical release ZIPs and earlier local-module acceptance commits do not contain subsequent main-flow repairs:
+
+```bash
+git clone --branch main https://github.com/lzylumos-sudo/yuanhe-bio-workflow.git yuanhe-bio-workflow-accepted
+cd yuanhe-bio-workflow-accepted
+git rev-parse HEAD
+```
+
+Record the full printed commit in the administrator's deployment record and use it as `--expected-commit` below. Use [the campus settings](site.campus-upgrade.json) and the original installer. Follow [the same-compound UI protocol](UI_MAIN_FLOW_ACCEPTANCE.md) for a minimum engineering test. Installation readiness and historical independent-module tests do not establish same-compound main-flow completion; retain the new deployment's own real UI execution evidence before handoff.
 
 ## Administrator settings
 
-For a generic machine, copy `deployment/site.example.json` outside the source directory. For the previously inspected campus machine, copy `deployment/site.campus-upgrade.json`. It selects a new `/home/user/yuanhe-runtime-0.11.0-dev.5` prefix, reuses the existing public model bundle and CUDA GROMACS executable, binds `10.71.121.57`, and uses **8778** for validation while the existing service keeps **8777**.
+For a generic machine, copy `deployment/site.example.json` outside the source directory. For the previously inspected campus machine, copy `deployment/site.campus-upgrade.json`. It selects a new `/home/user/yuanhe-runtime-main-20261105` prefix, reuses the existing public model bundle and CUDA GROMACS executable, binds `10.71.121.57`, and uses **8778** for validation while the existing service keeps **8777**.
 
 The campus template contains observed paths, not a guarantee that they still exist. Preflight checks them and refuses an existing destination. If the destination already exists from a failed attempt, preserve its logs and choose another new prefix. Do not overwrite it or reuse its evidence as a successful install.
 
@@ -20,7 +28,7 @@ Keep the installation host running until the original readiness step finishes. A
 
 ## Install without changing the running service
 
-1. Download the named administrator ZIP and SHA256SUMS from the release linked by `deployment/current_release.json`, verify checksums, and extract into a new source directory. Run `python3 deployment/verify_release.py`. Alternatively, clone the exact new release tag into a new directory and record `git rev-parse HEAD`. Do not update a source directory used by running workers.
+1. Use the verified checkout above and keep the existing workers in their own installation.
 2. Copy and review the chosen site JSON outside that directory. Run `python3 deployment/setup_workbench.py --config /home/user/yuanhe-site-0.11.0-dev.5.json`. This is a read-only plan; fix any failed checks before proceeding. Source configuration hashes must match the recorded protocol; a cross-platform checkout must preserve the repository's line endings.
 3. Repeat with `--execute`. The installer creates new environments and runtime settings from current defaults, validates dependencies and records its source identity. It does not switch the service or copy old frozen scientific settings into new runs.
 4. Start the exact launch script printed in the new prefix's `evidence/deployment.json`. The campus template uses port 8778. Keep old job/checkpoint directories separate.

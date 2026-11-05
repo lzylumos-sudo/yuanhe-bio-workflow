@@ -1,5 +1,5 @@
 {
-  "prefix": "/srv/yuanhe/runtime-0.11.0-dev.5",
+  "prefix": "/srv/yuanhe/runtime-main-20261105",
   "model_source": "/srv/yuanhe/models-NEW",
   "gmx": "/srv/yuanhe/gromacs-NEW/install/bin/gmx",
   "host": "127.0.0.1",

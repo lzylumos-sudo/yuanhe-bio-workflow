@@ -16,7 +16,7 @@
         "supplied chemical state and bound pose",
         "no charge-model fallback"
       ],
-      "acceptance": "Pending source35 real UI validation and independent fresh-deployment reproduction.",
+      "acceptance": "Passed two real-UI public acetylcholine main flows on 2026-11-05, including independent fresh deployment at 7e0c66c; see deployment/public_minimal/mainflow-ui-acceptance.json. HF/RESP converged without fallback; engineering-only short MD, no scientific convergence claim.",
       "previous_revision": {
         "path": "05_molecular_dynamics/modules/parameterization/hf_resp.py",
         "scope": "optimizer_numerics",
