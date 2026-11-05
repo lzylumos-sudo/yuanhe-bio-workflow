@@ -93,7 +93,11 @@ jobs:
       - name: Historical geometry regression in a separate interpreter
         if: ${{ !cancelled() && steps.dependencies.outcome == 'success' }}
         working-directory: 00_workbench
-        run: PYTHONPATH=. python -m pytest tests/test_smoke.py -vv --durations=10 -o faulthandler_timeout=60 --junitxml=../historical-geometry-tests.xml
+        # This real geometry calculation legitimately runs longer than 60 s.
+        # Repeated failures occurred while the asynchronous 60 s stack dump was
+        # traversing native/Python frames. Keep crash handling and the job time
+        # limit, but do not interrupt this calculation with a timed stack dump.
+        run: PYTHONPATH=. python -m pytest tests/test_smoke.py -vv --durations=10 -o faulthandler_timeout=0 --junitxml=../historical-geometry-tests.xml
       - name: Screening contracts and portable real-data fixtures
         if: ${{ !cancelled() && steps.dependencies.outcome == 'success' }}
         working-directory: 03_virtual_screening
