@@ -326,9 +326,13 @@ def stage_screening(d,cfg,out):
  atomic(out/'candidates.json',rows)
  csv_write(out/'molecules.csv',rows,list(dict.fromkeys(k for row in rows for k in row)))
  if rows:
-  from scientific.peptide_contacts import calculate
+  from scientific.peptide_contacts import compare
   evidence_dir=out/'peptide_evidence';evidence_dir.mkdir()
-  calculate(d,cfg,{},evidence_dir)
+  # Each receptor is screened in its own workspace before the parent candidate
+  # list exists. Compare the actual selected poses and receptor from this child.
+  compare(screen_receptor,d/'prepare/receptor_full.pdb',d/'prepare/peptide_reference.pdb',
+          [{**row,'sdf':str(d/row['sdf'])} for row in rows],
+          read(workspace/'runs/screen/stages/selection/summary.json'),evidence_dir)
  return {'input':read(d/'docking/stage.json')['counts']['remaining'],'remaining':len({x.get('compound_id') for x in rows if x.get('compound_id')}),'formal':len({x.get('compound_id') for x in rows if x.get('qualification')=='formal'}),'preliminary':len({x.get('compound_id') for x in rows if x.get('qualification')!='formal'})}
 
 def stage_gromacs(d,cfg,out):
