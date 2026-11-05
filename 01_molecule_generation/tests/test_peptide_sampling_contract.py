@@ -122,10 +122,13 @@ def test_unpatched_model_rejected_before_any_prepare_or_inference(tmp_path, monk
 def test_verified_patch_is_required_by_readiness(source, tmp_path, monkeypatch):
     repo = tmp_path / 'vendor'; (repo / 'notebooks').mkdir(parents=True); (repo / 'src').mkdir()
     (repo / 'notebooks/deal_with_mol_test_from_pdb_pal_5A.py').write_text('')
-    (repo / 'src/eval.py').write_text('')
+    (repo / 'src/eval.py').write_bytes((source.parents[3] / 'eval.py').read_bytes())
     path = repo / 'src/models/components/moldiff_test/model.py'
     path.parent.mkdir(parents=True); path.write_bytes(source.read_bytes())
     monkeypatch.setattr(peptide2mol.platform, 'system', lambda: 'Linux')
     assert peptide2mol.platform_readiness(repo, sys.executable)['ready']
     path.write_text(path.read_text() + '# changed\n')
+    assert not peptide2mol.platform_readiness(repo, sys.executable)['ready']
+    path.write_bytes(source.read_bytes())
+    (repo / 'src/eval.py').write_text('# unverified seed entrypoint\n')
     assert not peptide2mol.platform_readiness(repo, sys.executable)['ready']
