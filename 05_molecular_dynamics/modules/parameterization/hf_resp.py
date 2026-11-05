@@ -26,7 +26,9 @@ def compute(mol, output, settings=None):
         raise ValueError('Undefined ligand stereochemistry')
     net=Chem.GetFormalCharge(mol)
     if settings.get('net_charge',net)!=net: raise ValueError('Declared net charge differs from chemical structure')
-    request={'schema':'hf-resp/5','method':'HF/6-31G*','optimization':'HF/6-31G* gas phase',
+    request={'schema':'hf-resp/6','method':'HF/6-31G*','optimization':'HF/6-31G* gas phase',
+             'scf':{'scf_type':'direct','df_scf_guess':True,'ints_tolerance':1e-12,
+                    'e_convergence':1e-10,'d_convergence':1e-8},
              'optimizer_engine':'geometric','geometry_gradient_budget':50,
              'optimizer':{'coordsys':'tric','maxiter':49,'hessian':'never',
                           'convergence_set':'GAU_TIGHT','convergence_energy':1e-6,
@@ -73,7 +75,10 @@ def worker(out):
     xyz=mol.GetConformer().GetPositions()
     lines=[f"{req['net_charge']} {req['multiplicity']}"]+[f'{a.GetSymbol()} {p[0]:.12f} {p[1]:.12f} {p[2]:.12f}' for a,p in zip(mol.GetAtoms(),xyz)]
     qm=psi4.geometry('\n'.join(lines+['units angstrom','no_reorient','no_com','symmetry c1']))
-    qm.set_name('ligand');psi4.set_options({'basis':'6-31G*','scf_type':'pk','e_convergence':1e-10,'d_convergence':1e-8,'g_convergence':'gau_tight'})
+    # Integral-direct HF avoids the serial, disk-heavy PK reordering observed
+    # in the public UI workflow. DF supplies only an initial guess; final SCF
+    # iterations use conventional integrals at the recorded tight thresholds.
+    qm.set_name('ligand');psi4.set_options({'basis':'6-31G*',**req['scf'],'g_convergence':'gau_tight'})
     # OptKing recovery and Cartesian optimization (including an initial exact
     # Hessian) failed the public UI case. Use Psi4's native geomeTRIC adapter.
     # Its initial gradient plus 49 iterations retain the 50-gradient budget.

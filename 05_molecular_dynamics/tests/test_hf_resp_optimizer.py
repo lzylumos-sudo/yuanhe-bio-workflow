@@ -33,7 +33,9 @@ def recorded_request(tmp_path, monkeypatch):
 
 def test_request_records_bounded_optimizer_and_physical_thresholds(recorded_request):
     _, request = recorded_request
-    assert request['schema'] == 'hf-resp/5'
+    assert request['schema'] == 'hf-resp/6'
+    assert request['scf'] == {'scf_type':'direct','df_scf_guess':True,
+                              'ints_tolerance':1e-12,'e_convergence':1e-10,'d_convergence':1e-8}
     assert request['optimizer_engine'] == 'geometric'
     assert request['geometry_gradient_budget'] == 50
     assert request['optimizer'] == {
@@ -71,17 +73,21 @@ def test_worker_forwards_optimizer_and_stops_before_resp_on_failure(
     assert psi4.optimize.call_args.args == ('hf/6-31G*',)
     assert psi4.optimize.call_args.kwargs['engine'] == 'geometric'
     assert psi4.optimize.call_args.kwargs['optimizer_keywords'] == request['optimizer']
-    assert psi4.set_options.call_args.args[0]['scf_type'] == 'pk'
+    for key, value in request['scf'].items():
+        assert psi4.set_options.call_args.args[0][key] == value
     resp.resp.assert_not_called()
     assert not (tmp_path/'charges.json').exists()
 
 
-def test_previous_optimizer_cache_is_rejected(tmp_path, recorded_request):
+@pytest.mark.parametrize('schema', ['hf-resp/4', 'hf-resp/5'])
+def test_previous_optimizer_cache_is_rejected(tmp_path, recorded_request, schema):
     mol, request = recorded_request
-    request['schema'] = 'hf-resp/4'
-    request.pop('optimizer_engine')
-    request['optimizer'] = {'opt_coordinates':'cartesian','dynamic_level':0,
-                            'full_hess_every':0,'geom_maxiter':50,'g_convergence':'gau_tight'}
+    request['schema'] = schema
+    request.pop('scf')
+    if schema == 'hf-resp/4':
+        request.pop('optimizer_engine')
+        request['optimizer'] = {'opt_coordinates':'cartesian','dynamic_level':0,
+                                'full_hess_every':0,'geom_maxiter':50,'g_convergence':'gau_tight'}
     (tmp_path/'charges.json').write_text(json.dumps({'request': request, 'files': {}}))
     with pytest.raises(ValueError, match='RESP cache parameters differ'):
         hf_resp.compute(mol, tmp_path)
