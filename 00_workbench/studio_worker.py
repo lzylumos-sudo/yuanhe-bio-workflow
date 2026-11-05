@@ -7,8 +7,8 @@ from webui.studio import within
 
 def receptor(d,c,p,out):
  from pdbfixer import PDBFixer
- from openmm import Platform,unit
- from openmm.app import PDBFile,Modeller
+ from openmm import Platform,unit,Context,VerletIntegrator,LocalEnergyMinimizer
+ from openmm.app import PDBFile,ForceField,NoCutoff
  w.require(d,'prepare');src=d/'prepare/receptor_full.pdb'
  ph=float(p.get('pH',7.4))
  if not math.isfinite(ph) or not 0<=ph<=14:raise ValueError('pH Invalid')
@@ -20,7 +20,28 @@ def receptor(d,c,p,out):
  if fixer.missingResidues or fixer.nonstandardResidues:raise ValueError('Missing or nonstandard residues require review; no automatic rebuilding or deletion')
  if fixer.missingAtoms and not p.get('repair_sidechains'):raise ValueError('Missing side-chain heavy atoms; review the report and explicitly allow completion')
  before={(a.residue.chain.id,a.residue.id,a.name):v.value_in_unit(unit.nanometer) for a,v in zip(fixer.topology.atoms(),fixer.positions) if a.element and a.element.symbol!='H'}
- fixer.addMissingAtoms(seed=c['seed']);fixer.addMissingHydrogens(ph)
+ fixer.addMissingAtoms(seed=c['seed'])
+ forcefield=ForceField('amber14-all.xml')
+ fixer.addMissingHydrogens(ph,forcefield=forcefield)
+ # PDBFixer's soft placement can leave intramolecular side-chain contacts
+ # that distance-based receptor readers interpret as spurious covalent bonds.
+ # Relax only added atoms with the same physical protein force field used by MD.
+ system=forcefield.createSystem(fixer.topology,nonbondedMethod=NoCutoff,constraints=None)
+ movable=0
+ for atom in fixer.topology.atoms():
+  key=(atom.residue.chain.id,atom.residue.id,atom.name)
+  if key in before:system.setParticleMass(atom.index,0)
+  else:movable+=1
+ integrator=VerletIntegrator(.001*unit.picoseconds)
+ context=Context(system,integrator,Platform.getPlatformByName('Reference'))
+ context.setPositions(fixer.positions)
+ LocalEnergyMinimizer.minimize(context,tolerance=10*unit.kilojoule_per_mole/unit.nanometer,maxIterations=2000)
+ state=context.getState(getPositions=True,getEnergy=True)
+ if not math.isfinite(state.getPotentialEnergy().value_in_unit(unit.kilojoule_per_mole)):
+  raise ValueError('Nonfinite receptor completion energy; inspect the retained preparation report')
+ fixer.positions=state.getPositions()
+ del context,integrator
+ report['added_atom_relaxation']={'forcefield':'amber14-all.xml','fixed_atoms':'all existing heavy atoms','movable_atoms':movable,'max_iterations':2000,'tolerance_kJ_mol_nm':10,'purpose':'repair new side-chain and hydrogen geometry; not whole-receptor equilibration'}
  pos=fixer.positions.value_in_unit(unit.nanometer)
  for a in fixer.topology.atoms():
   key=(a.residue.chain.id,a.residue.id,a.name)
