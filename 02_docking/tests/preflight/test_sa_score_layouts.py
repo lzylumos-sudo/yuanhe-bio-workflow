@@ -50,3 +50,11 @@ def test_internal_missing_dependency_is_not_disguised(monkeypatch):
     with pytest.raises(ModuleNotFoundError) as error:
         load_sascorer()
     assert error.value.name == 'unexpected_dependency'
+
+
+def test_original_readiness_scorer_import_remains_compatible():
+    from yuanhe_preflight.synthesis import sascorer
+    from rdkit import Chem
+    import math
+    score = sascorer.calculateScore(Chem.MolFromSmiles('CCO'))
+    assert math.isfinite(score) and 1 <= score <= 10

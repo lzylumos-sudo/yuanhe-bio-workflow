@@ -18,6 +18,8 @@ from .common import file_hash
 
 
 # One cached loader covers both wheel and Conda layouts.
+# Retain the public scorer export consumed by original deployment readiness.
+sascorer = load_sascorer()
 
 
 class SCScore:
