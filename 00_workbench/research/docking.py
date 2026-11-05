@@ -113,10 +113,12 @@ def run(root,d,cfg,out,executable):
                 entry.update(min(result['poses'],key=lambda p:p['vina_affinity_kcal_mol']))
                 from yuanhe.contracts import docking_scores
                 docking_scores(engine='vina',vina_score=entry['vina_affinity_kcal_mol'],cnn_score=entry.get('cnn_pose_score'),cnn_affinity=entry.get('cnn_affinity_pK'))
+            else:
+                entry['error']=result.get('error','Docking job did not complete')
             return entry,len(result.get('poses',[]))
         tasks=((row,state,receptor,cfg['seed']+i) for row in rows for state in row['states'][:settings['states']] for receptor in targets for i in range(settings['seeds']))
         actual_states=sum(min(len(row['states']),settings['states']) for row in rows)
-        results=[];poses=0;processed=0
+        results=[];failures=[];poses=0;processed=0
         with (phase_out/'results.jsonl').open('w') as journal, concurrent.futures.ThreadPoolExecutor(max_workers=workers) as pool:
             pending=set()
             for _ in range(workers*2):
@@ -128,6 +130,7 @@ def run(root,d,cfg,out,executable):
                     entry,nposes=future.result();poses+=nposes;processed+=1
                     journal.write(json.dumps(entry)+'\n');journal.flush()
                     if entry['status']=='ok':results.append(entry)
+                    elif len(failures)<3:failures.append(entry.get('error','Unknown docking error'))
                     atomic(out/'progress.json',{'input':actual_states*len(targets)*settings['seeds'],'processed':processed,'successful':len(results),'phase':phase})
                     task=next(tasks,None)
                     if task is not None:pending.add(pool.submit(job,task))
@@ -139,7 +142,7 @@ def run(root,d,cfg,out,executable):
         atomic(phase_out/'selection.json',selected)
         atomic(phase_out/'score_selection.json',select(results,limit,'score'))
         all_results=results;rows=[{**r,'smiles':r.get('parent_smiles',r['smiles'])} for r in selected]
-        if not rows:raise ValueError('No successful Vina results in '+phase)
+        if not rows:raise ValueError('No successful Vina results in '+phase+': '+'; '.join(failures))
     selected_ids={r['compound_id'] for r in rows}
     handoff_results=[r for r in all_results if r['compound_id'] in selected_ids]
     atomic(out/'counts.json',actual);atomic(out/'results.json',handoff_results)

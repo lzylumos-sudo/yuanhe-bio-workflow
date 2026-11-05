@@ -12,7 +12,8 @@ def receptor(d,c,p,out):
  w.require(d,'prepare');src=d/'prepare/receptor_full.pdb'
  ph=float(p.get('pH',7.4))
  if not math.isfinite(ph) or not 0<=ph<=14:raise ValueError('pH Invalid')
- fixer=PDBFixer(filename=str(src),platform=Platform.getPlatformByName('CPU'))
+ # Use the same double-precision placement backend as the membrane workflow.
+ fixer=PDBFixer(filename=str(src),platform=Platform.getPlatformByName('Reference'))
  fixer.findMissingResidues();fixer.findNonstandardResidues();fixer.findMissingAtoms()
  report={'pH':ph,'input_sha256':w.digest(src),'missing_residues':str(fixer.missingResidues),'nonstandard_residues':str(fixer.nonstandardResidues),'missing_heavy_atoms':{r.id:[x.name for x in a] for r,a in fixer.missingAtoms.items()},'missing_terminal_atoms':{r.id:a for r,a in fixer.missingTerminals.items()},'mutations':'preserved','scientific_review_required':True}
  w.atomic(out/'result.json',report)
@@ -26,7 +27,7 @@ def receptor(d,c,p,out):
   if key in before:pos[a.index]=before[key]
  target=out/'receptor.pdb'
  with target.open('w') as f:PDBFile.writeFile(fixer.topology,pos*unit.nanometer,f,keepIds=True)
- report.update(receptor=str(target.relative_to(d)),sha256=w.digest(target),note='Construct and existing heavy-atom coordinates preserved; new side chains and termini require review; no WT reversion to wild type')
+ report.update(receptor=str(target.relative_to(d)),sha256=w.digest(target),placement_platform='Reference',note='Construct and existing heavy-atom coordinates preserved; new side chains and termini require review; no WT reversion to wild type')
  return report
 
 def environment(d,c,p,out):

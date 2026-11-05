@@ -55,3 +55,6 @@ dist/
 
 # Independent UI jobs contain local inputs and execution evidence.
 00_workbench/module_jobs/
+
+# UI uploads are runtime inputs, not modifications to deployed source.
+/inputs/
