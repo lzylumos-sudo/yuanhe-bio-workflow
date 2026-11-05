@@ -73,7 +73,7 @@ $('#closeSettings').onclick=()=>$('#stageDialog').close();$('#stageForm').onsubm
 
 import {mountStudio} from './studio-tools.js';
 mountStudio({api,getRun:()=>runReady()?run:null,getInventory:()=>inventory,reload:()=>run?load(run.id,false):init(),refresh:init,showScene:(a,b,caption)=>{atoms=a;boxOverlay=b||null;zoom=1;draw();$('#structureCaption').textContent=caption},message});
-$('#structureUpload').onchange=async e=>{const f=e.target.files[0];if(!f)return;try{if(f.size>8*1024*1024)throw Error('PDB Maximum 8 MB');const saved=await api('/api/studio/upload',{name:f.name,text:await f.text()});$('#basicFields input[data-key="structure"]').value=saved.structure;$('#uploadStatus').textContent=f.name+' · Input snapshot saved'}catch(e){$('#formError').textContent=e.message}};
+$('#structureUpload').onchange=async e=>{const f=e.target.files[0];if(!f)return;try{if(f.size>8*1024*1024)throw Error('PDB Maximum 8 MB');const saved=await api('/api/studio/upload',{name:f.name,text:await f.text()});const config=JSON.parse($('#config').value);config.structure=saved.structure;$('#config').value=JSON.stringify(config,null,2);$('#basicFields input[data-key="structure"]').value=saved.structure;$('#uploadStatus').textContent=f.name+' · Input snapshot saved'}catch(e){$('#formError').textContent=e.message}};
 
 $('#rescreen').onclick=async()=>{if(!runReady())return;try{$('#rescreen').disabled=true;await api(`/api/project/run/${run.id}/rescreen`,{});await load(run.id,false)}catch(e){message(e);await load(run.id,false).catch(()=>{})}};
 
@@ -110,6 +110,7 @@ document.querySelector('#candidateUpload').onchange = async event => {
     const saved = await api('/api/studio/upload', {kind:'candidates', name:file.name, text:await file.text()});
     const config = JSON.parse(document.querySelector('#config').value);
     config.imported_candidates = saved.library;
+    if (config.research) config.research.external_library = saved.library;
     document.querySelector('#config').value = JSON.stringify(config, null, 2);
     const field = document.querySelector('[data-key="research.external_library"]');
     if (field) field.value = saved.library;
