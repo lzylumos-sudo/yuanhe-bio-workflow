@@ -239,7 +239,7 @@ def status(rid):
    rec={**rec,'counts':read(d/key/'progress.json',{})}
   if rec.get('status')=='running' and key=='docking':
    prog=read(d/key/'progress.json',{})
-   if prog:rec={**rec,'counts':{'input':prog['input'],'processed':prog['processed'],'remaining':prog['successful'],'failed':prog['failed']}}
+   if prog:rec={**rec,'counts':{'input':prog['input'],'processed':prog['processed'],'remaining':prog['successful'],'failed':prog.get('failed',max(0,prog['processed']-prog['successful']))}}
   if rec.get('status')=='running' and key=='screening':
    prog=read(d/key/'workspace/runs/screen/live_progress.json',{})
    if prog:rec={**rec,'counts':prog.get('counts',{}),'substage':prog.get('current_stage')}
