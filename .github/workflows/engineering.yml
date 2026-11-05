@@ -14,7 +14,8 @@ jobs:
       - uses: actions/checkout@v7
       - uses: actions/setup-python@v7
         with:
-          python-version: '3.12'
+          # Match the deployed workbench interpreter; ADMET/retro have their own checks.
+          python-version: '3.11'
           cache: pip
           cache-dependency-path: deployment/validation_5090/pip-freeze.txt
       - name: English content and source integrity
@@ -88,7 +89,11 @@ jobs:
           PY
           memory_monitor=$!
           trap 'kill "$memory_monitor" 2>/dev/null || true' EXIT
-          PYTHONPATH=. python -m pytest tests -vv --durations=10 -o faulthandler_timeout=60 --junitxml=../workbench-tests.xml
+          PYTHONPATH=. python -m pytest tests --ignore=tests/test_smoke.py -vv --durations=10 -o faulthandler_timeout=60 --junitxml=../workbench-tests.xml
+      - name: Historical geometry regression in a separate interpreter
+        if: ${{ !cancelled() && steps.dependencies.outcome == 'success' }}
+        working-directory: 00_workbench
+        run: PYTHONPATH=. python -m pytest tests/test_smoke.py -vv --durations=10 -o faulthandler_timeout=60 --junitxml=../historical-geometry-tests.xml
       - name: Screening contracts and portable real-data fixtures
         if: ${{ !cancelled() && steps.dependencies.outcome == 'success' }}
         working-directory: 03_virtual_screening
