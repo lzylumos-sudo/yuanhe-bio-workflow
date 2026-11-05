@@ -112,6 +112,8 @@ def test_no_md_or_receptor_work_before_prerequisite(case):
 def test_environment_rejects_arbitrary_keys(case):
  with pytest.raises(ValueError):studio.environment_save({'shell_command':'rm'})
  assert studio.environment_save({'md_python':'/opt/example/python'})['saved']
+ assert studio.environment_save({'pymol_python':'/opt/renderer/bin/python'})['saved']
+ assert w.read(w.ROOT/'deployment/runtime.json')['pymol_python']=='/opt/renderer/bin/python'
 
 def test_resumed_tpr_tamper_is_rejected(case,monkeypatch):
  _,rid,d=case;folder=d/'md_systems/MD_test';folder.mkdir(parents=True)

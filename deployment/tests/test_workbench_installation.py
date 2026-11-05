@@ -38,6 +38,7 @@ def test_fresh_install_uses_current_schema_and_preserves_science(tmp_path):
     for key in ('md_production_ns', 'md_replicas', 'initial', 'refine', 'peptide_attempts'):
         assert result['research'][key] == initial[key]
     assert result['chem_python'] == result['screen_python'] == str(tmp_path / 'envs/runtime/bin/python')
+    assert result['pymol_python'] == str(tmp_path / 'envs/pymol/bin/python')
 
 
 def test_asset_binding_does_not_reset_existing_thresholds_or_search_budget(tmp_path):
@@ -113,6 +114,7 @@ def test_plan_is_read_only_and_includes_synthesis_before_configuration(tmp_path,
     result = deployment.plan(prefix, models, gmx, '127.0.0.1', 8777, root)
     steps = [name for name, argv in result['commands']]
     assert steps.index('synthesis') < steps.index('configure') < steps.index('check')
+    assert steps.index('runtime') < steps.index('renderer') < steps.index('configure')
     assert not prefix.exists()
     prefix.mkdir()
     with pytest.raises(ValueError, match='NEW'):

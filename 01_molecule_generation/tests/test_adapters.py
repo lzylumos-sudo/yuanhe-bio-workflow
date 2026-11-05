@@ -38,6 +38,7 @@ def test_peptide2mol_contract_runs_official_prepare_and_inference(tmp_path, monk
     (repo / "src" / "eval.py").write_text(
         "import pathlib,sys,json\n"
         "arg=lambda p: next(x.split('=',1)[1] for x in sys.argv if x.startswith(p+'='))\n"
+        "pathlib.Path(json.loads(arg('++model.net.loss_filename'))).write_text('synthetic loss output')\n"
         "out=pathlib.Path(json.loads(arg('++model.net.sample.log_dir'))+'_SDF'); out.mkdir(parents=True)\n"
         "(out/'attempt_budget.json').write_text(json.dumps({'requested_attempts':2,'started_attempts':2,'valid':1,'failed':1,'status':'finished'}))\n"
         "(out/'generated_0.sdf').write_text('generated\\n  contract\\n\\n  1  0  0  0  0  0  0  0  0  0999 V2000\\n    0.0000    0.0000    0.0000 C   0  0  0  0  0  0  0  0  0  0  0  0\\nM  END\\n$$$$\\n')\n",
@@ -47,6 +48,9 @@ def test_peptide2mol_contract_runs_official_prepare_and_inference(tmp_path, monk
     pocket = tmp_path / "target.pdb"
     pocket.write_text("ATOM      1  CA  ALA A   1       0.000   0.000   0.000  1.00 20.00           C  \n", encoding="utf-8")
     monkeypatch.setattr(peptide2mol.platform, "system", lambda: "Linux")
+    # This test's synthetic executable exercises orchestration only. Real patch
+    # identity and loop execution are covered by test_peptide_sampling_contract.py.
+    monkeypatch.setattr(peptide2mol, "platform_readiness", lambda *a: {'ready': True, 'issues': []})
 
     result = peptide2mol.run(
         pocket_pdb=pocket, checkpoint=checkpoint, checkpoint_sha256=sha(checkpoint),
@@ -60,8 +64,10 @@ def test_peptide2mol_contract_runs_official_prepare_and_inference(tmp_path, monk
     assert result["commands"][1]["command"][1].endswith("src/eval.py")
     assert "++model.net.sample.num_mols=2" in result["commands"][1]["command"]
     assert "++seed=19" in result["commands"][1]["command"]
+    assert '++model.net.loss_filename=' + peptide2mol.hydra_string(tmp_path / 'run/losses.txt') in result['commands'][1]['command']
     assert result["report"] == {"requested": 2, "completed": 2, "sdf_outputs": 1, "valid": 1, "unique": 1, "failure_reasons": {"model_reconstruction_rejected": 1}}
     assert list((tmp_path / "run" / "raw_sdf").glob("*.sdf"))
+    assert (tmp_path / 'run/losses.txt').is_file() and not (repo / 'losses.txt').exists()
 
 
 def test_peptide2mol_wrong_hash_is_nonzero_and_never_executes(tmp_path):

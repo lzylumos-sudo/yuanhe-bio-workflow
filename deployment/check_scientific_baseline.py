@@ -34,8 +34,16 @@ def check():
             raise ValueError('Invalid optimizer revision: '+path)
         if revision['baseline_sha256']!=original.get(path):raise ValueError('Optimizer revision does not match preserved baseline: '+path)
         revised[path]=revision['revised_sha256']
+    optimizer_count=len(revised)-presentation_count
+    runtime_revisions=json.loads((ROOT/'docs/architecture/scientific_baseline_revisions.json').read_text())
+    if runtime_revisions['schema']!='yuanhe.scientific-baseline-revisions/1':raise ValueError('Unknown runtime revision schema')
+    runtime_allowed={'01_molecule_generation/src/adapters/peptide2mol.py','04_interaction_analysis/src/zlis/pymol_scene.py'}
+    for path,row in runtime_revisions['revisions'].items():
+        if path not in runtime_allowed or path in revised or row['previous_sha256']!=original.get(path) or not row.get('reason'):
+            raise ValueError('Invalid explicit baseline revision: '+path)
+        revised[path]=row['sha256']
     errors=[f['path'] for f in files if not (ROOT/f['path']).is_file() or hashlib.sha256((ROOT/f['path']).read_bytes()).hexdigest()!=revised.get(f['path'],f['sha256'])]
     if errors:raise ValueError('Scientific baseline drift: '+', '.join(errors))
     return {'strictly_equal_files':len(files)-len(revised),'versioned_presentation_files':presentation_count,
-            'versioned_optimizer_files':len(revised)-presentation_count,'baseline_commit':BASELINE['baseline_commit']}
+            'versioned_optimizer_files':optimizer_count,'explicitly_revised_files':sorted(runtime_revisions['revisions']),'baseline_commit':BASELINE['baseline_commit']}
 if __name__=='__main__':print(json.dumps(check()))

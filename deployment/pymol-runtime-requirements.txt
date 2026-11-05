@@ -1,0 +1,3 @@
+# Isolated renderer: avoid changing the scientific runtime's NumPy ABI.
+numpy==2.2.6
+pymol-open-source==3.2.0a0

@@ -46,6 +46,7 @@ def configured(existing, prefix, gmx, assets, root=ROOT):
     cfg['predocking'] = copy.deepcopy(cfg['research']['predocking'])
     runtime = str(prefix / 'envs/runtime/bin/python')
     cfg.update(chem_python=runtime, screen_python=runtime, prep_python=runtime, md_python=runtime,
+               pymol_python=str(prefix / 'envs/pymol/bin/python'),
                peptide_python=str(prefix / 'envs/peptide2mol/bin/python'),
                reinvent_python=str(prefix / 'envs/reinvent4/bin/python'),
                reinvent_executable=str(prefix / 'envs/reinvent4/bin/reinvent'),

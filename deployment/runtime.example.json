@@ -5,6 +5,7 @@
   "peptide_python": "/opt/yuanhe/envs/peptide2mol/bin/python",
   "reinvent_executable": "/opt/yuanhe/envs/reinvent4/bin/reinvent",
   "reinvent_python": "/opt/yuanhe/envs/reinvent4/bin/python",
+  "pymol_python": "/opt/yuanhe/envs/pymol/bin/python",
   "vina": "vina",
   "gmx": "gmx",
   "prep_python": "/opt/yuanhe/envs/prep/bin/python",

@@ -1,5 +1,7 @@
 # Administrator deployment: complete research workbench
 
+For the November 2 runtime fixes, renderer setup, verified download resume and WSL storage requirements, see [UI runtime corrections](UI_RUNTIME_FIXES.md).
+
 Start with the [self-contained installation entrypoint](../DEPLOY.md). It covers first installation without an old project, configuration, preflight, startup and upgrades. This reference expands individual installation steps. Use a complete clean Git checkout or the verified named administrator ZIP. The public minimal CLI test, historical 5070 notes, and `Dockerfile.research` alone do **not** install or validate the full workbench.
 
 The administrator performs installation and service management. Researchers operate only the supplied UI URL; they do not need SSH or a local compute installation. A code update requires the administrator to deploy the updated revision and restart the service. Merely refreshing the browser cannot change server dependencies or its running Python.

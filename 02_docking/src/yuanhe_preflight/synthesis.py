@@ -5,8 +5,6 @@ official 1024-bit boolean model is accepted; never unpickle downloaded files.
 Both scores increase with difficulty, but are thresholded independently.
 """
 import gzip
-import importlib
-import importlib.util
 import json
 import math
 from pathlib import Path
@@ -14,29 +12,12 @@ from pathlib import Path
 import numpy as np
 from rdkit import Chem, rdBase
 from rdkit.Chem import rdFingerprintGenerator
+from .sa_score import load_sascorer
 
 from .common import file_hash
 
 
-def _load_sa_scorer():
-    """Use the installed RDKit scorer in either wheel or Conda layout."""
-    try:
-        return importlib.import_module('rdkit.Contrib.SA_Score.sascorer')
-    except ModuleNotFoundError as exc:
-        if exc.name not in {'rdkit.Contrib', 'rdkit.Contrib.SA_Score',
-                            'rdkit.Contrib.SA_Score.sascorer'}:
-            raise
-    from rdkit import RDConfig
-    source=Path(RDConfig.RDContribDir)/'SA_Score'/'sascorer.py'
-    if not source.is_file() or not source.with_name('fpscores.pkl.gz').is_file():
-        raise ModuleNotFoundError('Installed RDKit SA_Score implementation or fragment data is missing')
-    spec=importlib.util.spec_from_file_location('yuanhe_preflight._rdkit_sascorer',source)
-    module=importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(module)
-    return module
-
-
-sascorer = _load_sa_scorer()
+# One cached loader covers both wheel and Conda layouts.
 
 
 class SCScore:
@@ -69,6 +50,7 @@ class SCScore:
 
 
 def score_batch(rows, config):
+    sascorer = load_sascorer()
     error = None
     try:
         model = SCScore(config['scscore_path'], config['scscore_sha256'])

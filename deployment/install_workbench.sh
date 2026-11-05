@@ -2,7 +2,7 @@
 # Administrator-only installation into a dedicated prefix. No driver/system changes.
 set -Eeuo pipefail
 if [[ $# -ne 2 ]]; then
-  echo 'Usage: bash deployment/install_workbench.sh runtime|peptide|reinvent|synthesis|vina|configure|check /absolute/prefix' >&2
+  echo 'Usage: bash deployment/install_workbench.sh runtime|renderer|peptide|reinvent|synthesis|vina|configure|check /absolute/prefix' >&2
   exit 2
 fi
 STEP=$1
@@ -52,6 +52,14 @@ runtime)
   "$TOOLS/bin/python" -m pip install 'uv==0.13.1'
   cp "$HERE/public_minimal/linux-64.lock" "$PREFIX/evidence/runtime-linux-64.lock"
   cp "$HERE/public_minimal/pip-requirements.txt" "$PREFIX/evidence/runtime-pip-requirements.txt"
+  ;;
+renderer)
+  [[ -x "$UV" ]] || { echo 'Install runtime first.' >&2; exit 2; }
+  P="$PREFIX/envs/pymol"
+  [[ ! -e "$P" ]] || { echo 'Renderer environment exists; refusing an implicit upgrade.' >&2; exit 2; }
+  "$UV" venv --seed --python 3.11 "$P"
+  "$P/bin/python" -m pip install -r "$HERE/pymol-runtime-requirements.txt"
+  freeze "$P" pymol
   ;;
 peptide)
   [[ -x "$UV" ]] || { echo 'Install runtime first.' >&2; exit 2; }

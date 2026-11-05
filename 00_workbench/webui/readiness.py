@@ -13,6 +13,7 @@ import platform
 import shutil
 import subprocess
 import sys
+import tempfile
 import time
 from yuanhe.runtime import runtime_env, resolve_python, resolve_executable, vina_version, reinvent_environment_check
 
@@ -21,8 +22,16 @@ def probe(argv, root, timeout=90):
     try:
         if not argv[0]:
             raise ValueError('Executable is not configured')
-        p = subprocess.run(list(map(str, argv)), cwd=root, env=runtime_env(argv[0]),
-                           capture_output=True, text=True, timeout=timeout)
+        command = list(map(str, argv))
+        environment = runtime_env(argv[0])
+        if not Path(command[0]).is_absolute():
+            command[0] = (shutil.which(command[0], path=environment['PATH']) or
+                          str((Path(root) / command[0]).resolve()))
+        # Psi4 writes timer.dat at interpreter exit. Keep every diagnostic's
+        # lifetime (including exit hooks) inside an automatically removed directory.
+        with tempfile.TemporaryDirectory(prefix='yuanhe-doctor-') as scratch:
+            p = subprocess.run(command, cwd=scratch, env=environment,
+                               capture_output=True, text=True, timeout=timeout)
         return {'ok': p.returncode == 0, 'returncode': p.returncode,
                 'output': (p.stdout + p.stderr)[-6000:], 'executable': str(argv[0])}
     except (OSError, ValueError, subprocess.SubprocessError) as exc:
@@ -83,6 +92,21 @@ def collect(cfg, root, ui_python=None, publish=None):
     py('interaction', chem,
        'import Bio,openmm,openpyxl,cairosvg,lxml; print("interaction imports OK")',
        'Install deployment/module-runtime-requirements.txt in the chemistry runtime.')
+    py('interaction_renderer', cfg.get('pymol_python') or os.environ.get('ZLIS_PYMOL_PYTHON') or chem,
+       'import pymol; from pathlib import Path; pymol.finish_launching(["pymol","-qc"]); '
+       'pymol.cmd.pseudoatom("probe");pymol.cmd.save("probe.pse");'
+       'pymol.cmd.png("probe.png",width=32,height=32,ray=1);'
+       'assert Path("probe.pse").stat().st_size > 0;'
+       'assert Path("probe.png").read_bytes().startswith(b"\\x89PNG");print("PyMOL scene/PNG OK")',
+       'Install the isolated renderer with install_workbench.sh renderer PREFIX; '
+       'configure pymol_python and install system OpenGL libraries if the loader reports them missing.')
+    py('sa_score', chem,
+       'import sys;sys.path.insert(0,' + repr(str(root / '02_docking/src')) + ');'
+       'from yuanhe_preflight.sa_score import load_sascorer;from rdkit import Chem;'
+       'import math;s=load_sascorer();v=s.calculateScore(Chem.MolFromSmiles("CCO"));'
+       'assert math.isfinite(v) and 1 <= v <= 10;print(s.__file__,v)',
+       'Install the complete RDKit SA_Score code and fpscores.pkl.gz in chem_python; '
+       'both PyPI and Conda layouts are supported.')
     py('screening', screen,
        'import MDAnalysis,prolif,posebusters,fastapi,scipy,pandas,yaml,gemmi; print("screening imports OK")',
        'Install screening dependencies in screen_python, not just chem_python.')
@@ -104,7 +128,10 @@ def collect(cfg, root, ui_python=None, publish=None):
        'import openmm as m; s=m.System();s.addParticle(1);i=m.VerletIntegrator(0.001); '
        'c=m.Context(s,i,m.Platform.getPlatformByName("CUDA")); '
        'c.setPositions([[0,0,0]]);i.step(1);print(c.getPlatform().getName())',
-       'Provide a compatible NVIDIA driver and CUDA OpenMM runtime; no CPU fallback.')
+       'Provide a compatible NVIDIA driver and CUDA OpenMM runtime; no CPU fallback. '
+       'CUDA_ERROR_UNSUPPORTED_PTX_VERSION means the loaded driver cannot compile the emitted PTX. '
+       'On WSL update the Windows NVIDIA driver, restart WSL and repeat this actual CUDA probe; '
+       'do not install a Linux display driver or infer success from nvidia-smi/GROMACS versions.')
     vina = probe([resolve_executable(cfg, 'vina', chem) or cfg.get('vina', ''), '--version'], root)
     vina['ok'] = vina['ok'] and vina_version(vina.get('output', '')) == '1.2.7'
     add('vina', vina, 'Configure the official Vina 1.2.7 executable.')

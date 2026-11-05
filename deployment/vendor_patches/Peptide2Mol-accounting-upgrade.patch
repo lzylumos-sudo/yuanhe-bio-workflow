@@ -1,0 +1,178 @@
+--- a/src/models/components/moldiff_test/model.py
++++ b/src/models/components/moldiff_test/model.py
+@@ -58,93 +58,96 @@
+         return node_for_loss, pred_node_for_loss, pos_for_loss, pred_pos_for_loss, halfedge_for_loss, pred_halfedge_for_loss
+ 
+     def sample(self, batch):
+-        pool = EasyDict({
+-            'failed': [],
+-            'finished': [],
+-        })
+-        batch_size = self.sample_batch_size
+-        n_graphs = min(batch_size, (self.num_mols - len(pool.finished))*2)
+-        batch_holder = self.make_mydata_placeholder(n_graphs=n_graphs, ref_data = batch, device=batch.pos.device, max_size=self.sample_max)
++        pool = EasyDict({'failed': [], 'finished': []})
++        if self.num_mols <= 0 or self.sample_batch_size <= 0:
++            raise ValueError('Sampling attempts and batch size must be positive')
++        n_graphs = min(self.sample_batch_size, self.num_mols)
++        batch_holder = self.make_mydata_placeholder(n_graphs=n_graphs, ref_data=batch,
++                                                   device=batch.pos.device, max_size=self.sample_max)
+         sdf_dir = self.log_dir + '_SDF'
+         os.makedirs(sdf_dir, exist_ok=True)
+         attempts = 0
+-        while attempts + n_graphs <= self.num_mols:
+-            attempts += n_graphs
+-            with open(os.path.join(sdf_dir, 'attempt_budget.json'), 'w') as audit:
++        status = 'running'
++
++        def audit():
++            path = os.path.join(sdf_dir, 'attempt_budget.json')
++            with open(path + '.tmp', 'w') as handle:
+                 json.dump({'requested_attempts': self.num_mols, 'started_attempts': attempts,
+-                           'valid': len(pool.finished), 'failed': len(pool.failed)}, audit)
+-            print(f'SAMPLING_ATTEMPT {attempts}/{self.num_mols}', flush=True)
+-            batch_node, halfedge_index, batch_halfedge, ref_data, n_nodes_list = batch_holder['batch_node'], batch_holder['halfedge_index'], batch_holder['batch_halfedge'], batch_holder['ref_data'], batch_holder['n_nodes_list']
+-            name_use = ref_data.name[0]
+-            outputs = self.model.sample(
+-                n_graphs=n_graphs,
+-                batch_node=batch_node,
+-                halfedge_index=halfedge_index,
+-                batch_halfedge=batch_halfedge,
+-                ref_data=ref_data,
+-                traj_fn=f'{sdf_dir}/{name_use}_{len(pool.finished)+len(pool.failed)}.xyz',
+-                bond_predictor=None,
+-                guidance=self.guidance,
+-                
+-            )
+-            outputs = {key:[v.cpu().numpy() for v in value] for key, value in outputs.items()}
+-            batch_node, halfedge_index, batch_halfedge = batch_node.cpu().numpy(), halfedge_index.cpu().numpy(), batch_halfedge.cpu().numpy()
+-            if not os.path.exists(os.path.join(sdf_dir, f'{name_use}_origin.pdb')):
++                           'valid': len(pool.finished), 'failed': attempts - len(pool.finished),
++                           'status': status}, handle)
++            os.replace(path + '.tmp', path)
++
++        try:
++            while attempts < self.num_mols:
++                remaining = self.num_mols - attempts
++                if n_graphs > remaining:
++                    n_graphs = remaining
++                    batch_holder = self.make_mydata_placeholder(n_graphs=n_graphs, ref_data=batch,
++                                                               device=batch.pos.device, max_size=self.sample_max)
++                offset = attempts
++                attempts += n_graphs
++                audit()
++                print(f'SAMPLING_ATTEMPT {attempts}/{self.num_mols}', flush=True)
++                batch_node, halfedge_index, batch_halfedge, ref_data, n_nodes_list = (
++                    batch_holder['batch_node'], batch_holder['halfedge_index'], batch_holder['batch_halfedge'],
++                    batch_holder['ref_data'], batch_holder['n_nodes_list'])
++                name_use = ref_data.name[0]
++                # Device/model failures abort the run, rather than masquerading as rejected chemistry.
++                outputs = self.model.sample(n_graphs=n_graphs, batch_node=batch_node,
++                    halfedge_index=halfedge_index, batch_halfedge=batch_halfedge, ref_data=ref_data,
++                    traj_fn=f'{sdf_dir}/{name_use}_{offset}.xyz', bond_predictor=None, guidance=self.guidance)
++                outputs = {key: [v.cpu().numpy() for v in value] for key, value in outputs.items()}
++                batch_node, halfedge_index, batch_halfedge = batch_node.cpu().numpy(), halfedge_index.cpu().numpy(), batch_halfedge.cpu().numpy()
++                if not os.path.exists(os.path.join(sdf_dir, f'{name_use}_origin.pdb')):
++                    try:
++                        origins = self.seperate_outputs_origin(outputs, n_graphs, batch_node,
++                                                              halfedge_index, batch_halfedge, n_nodes_list)
++                        if not origins:
++                            raise ValueError('Empty origin decoding')
++                        for origin in origins:
++                            mol_info = self.decode_output(pred_node=origin['pred'][0], pred_pos=origin['pred'][1],
++                                pred_halfedge=origin['pred'][2], halfedge_index=origin['halfedge_index'])
++                            self.write_pdb_file(f'{self.pdb_dir}/{name_use}.pdb', mol_info['atom_pos'],
++                                                os.path.join(sdf_dir, f'{name_use}_origin.pdb'))
++                    except Exception:
++                        traceback.print_exc()
++                        audit()
++                        continue
+                 try:
+-                    output_list = self.seperate_outputs_origin(outputs, n_graphs, batch_node, halfedge_index, batch_halfedge, n_nodes_list)
+-                    # print(output_list, 'output_list')
+-                except:
++                    output_list = self.seperate_outputs(outputs, n_graphs, batch_node,
++                                                        halfedge_index, batch_halfedge, n_nodes_list)
++                except Exception:
+                     traceback.print_exc()
++                    audit()
+                     continue
+-                gen_list = []
+-                print(output_list)
+-                # exit()
+-                for i_mol, output_mol in enumerate(output_list):
+-                    mol_info = self.decode_output(
+-                        pred_node=output_mol['pred'][0],
+-                        pred_pos=output_mol['pred'][1],
+-                        pred_halfedge=output_mol['pred'][2],
+-                        halfedge_index=output_mol['halfedge_index'],
+-                    ) 
+-                    pos_use = mol_info['atom_pos']
+-                    self.write_pdb_file(f'{self.pdb_dir}/{name_use}.pdb', pos_use, os.path.join(sdf_dir, f'{name_use}_origin.pdb'))
+-
+-            try:
+-                output_list = self.seperate_outputs(outputs, n_graphs, batch_node, halfedge_index, batch_halfedge, n_nodes_list)
+-            except:
+-                traceback.print_exc()
+-                continue
+-            gen_list = []
+-            for i_mol, output_mol in enumerate(output_list):
+-                mol_info = self.decode_output(
+-                    pred_node=output_mol['pred'][0],
+-                    pred_pos=output_mol['pred'][1],
+-                    pred_halfedge=output_mol['pred'][2],
+-                    halfedge_index=output_mol['halfedge_index'],
+-                )
+-                try:
+-                    rdmol = self.reconstruct_from_generated_with_edges(mol_info)
+-                except:
+-                    traceback.print_exc()
+-                    pool.failed.append(mol_info)
+-                    print('Reconstruction error encountered.')
+-                    continue
+-                mol_info['rdmol'] = rdmol
+-                smiles = Chem.MolToSmiles(rdmol)
+-                mol_info['smiles'] = smiles
+-                if '.' in smiles:
+-                    print('Incomplete molecule: %s' % smiles)
+-                    pool.failed.append(mol_info)
+-                else:   # Pass checks!
+-                    print('Success: %s' % smiles)
+-                    rdmol = mol_info['rdmol']
+-                    Chem.MolToMolFile(rdmol, os.path.join(sdf_dir, f'{name_use}_{len(pool.finished)+len(pool.failed)}.sdf'))
++                if len(output_list) > n_graphs:
++                    raise ValueError('Decoder returned more molecules than sampling attempts')
++                for index, output_mol in enumerate(output_list):
++                    try:
++                        mol_info = self.decode_output(pred_node=output_mol['pred'][0], pred_pos=output_mol['pred'][1],
++                            pred_halfedge=output_mol['pred'][2], halfedge_index=output_mol['halfedge_index'])
++                        rdmol = self.reconstruct_from_generated_with_edges(mol_info)
++                        smiles = Chem.MolToSmiles(rdmol)
++                    except Exception:
++                        traceback.print_exc()
++                        continue
++                    if '.' in smiles:
++                        print('Incomplete molecule: %s' % smiles, flush=True)
++                        continue
++                    # Output I/O failures are fatal and retain an incomplete audit.
++                    Chem.MolToMolFile(rdmol, os.path.join(sdf_dir, f'{name_use}_{offset + index}.sdf'))
++                    mol_info.update(rdmol=rdmol, smiles=smiles)
+                     pool.finished.append(mol_info)
+-        
+-
+-        with open(os.path.join(sdf_dir, 'attempt_budget.json'), 'w') as audit:
+-            json.dump({'requested_attempts': self.num_mols, 'started_attempts': attempts,
+-                       'valid': len(pool.finished), 'failed': len(pool.failed), 'status':'finished'}, audit)
++                    print('Success: %s' % smiles, flush=True)
++                audit()
++                print(f'SAMPLING_PROGRESS {attempts}/{self.num_mols} valid={len(pool.finished)} '
++                      f'failed={attempts - len(pool.finished)}', flush=True)
++            status = 'finished'
++        finally:
++            if status != 'finished':
++                status = 'failed'
++            audit()
++
+ 
+     def idx_for_edge(self, additional_node_number, edge_tuple):
+         return_tuple = []

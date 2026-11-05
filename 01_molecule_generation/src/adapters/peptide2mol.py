@@ -62,6 +62,18 @@ def platform_readiness(repo: str | Path, executable: str | Path) -> dict[str, An
         issues.append(f"official inference entry point missing: {inference}")
     if not exe_path.is_file() or not os.access(exe_path, os.X_OK):
         issues.append(f"Python executable missing or not executable: {exe_path}")
+    patch_manifest = Path(__file__).resolve().parents[3] / 'deployment/vendor_patches/manifest.json'
+    try:
+        patches = [p for p in json.loads(patch_manifest.read_text()) if p['vendor'] == 'Peptide2Mol']
+        if not patches:
+            raise ValueError('Peptide2Mol patch specification missing')
+        for patch in patches:
+            source = repo_path / patch['file']
+            if not source.is_file() or _sha256(source) != patch['after_sha256']:
+                issues.append('Required bounded-sampling patch missing or changed: ' + str(source) +
+                              '; run deployment/apply_vendor_patches.py --vendor Peptide2Mol before inference')
+    except (OSError, ValueError, KeyError) as exc:
+        issues.append('Cannot verify model patch manifest: ' + str(exc))
     return {
         "ready": not issues,
         "platform": platform.platform(),
@@ -237,6 +249,7 @@ def run(
             "+data.lmdb_fn=" + hydra_string(pt.name), "data=mol_test_true", "model=Moldiff_test",
             f"data.infer_batch_size={batch_size}", "trainer.devices=1", "++paths.log_dir=" + hydra_string(out / "logs"),
             "++model.net.sample.log_dir=" + hydra_string(raw_root), "++model.net.sample.pdb_dir=" + hydra_string(input_dir),
+            "++model.net.loss_filename=" + hydra_string(out / "losses.txt"),
             "++model.net.sample.batch_size=1", f"++model.net.sample.num_mols={budget}", f"++seed={seed}",
         ]
         env = {**os.environ, **(environment or {})}

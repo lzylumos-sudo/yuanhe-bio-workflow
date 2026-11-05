@@ -78,17 +78,30 @@ def pymol_python() -> str:
     return os.environ.get("ZLIS_PYMOL_PYTHON") or sys.executable
 
 
-def build_scene(out_dir: Path, no_png: bool = False, timeout: int = 600) -> dict:
+def build_scene(out_dir: Path, no_png: bool = False, timeout: int = 600,
+                executable: str | None = None) -> dict:
     """Run the recorded scene in a fresh headless PyMOL interpreter."""
     import os
-    out_dir = Path(out_dir)
+    out_dir = Path(out_dir).resolve()
     env = dict(os.environ)
+    python = executable or pymol_python()
+    env.pop('PYTHONHOME', None)
+    env.pop('PYTHONPATH', None)
+    env['PYTHONNOUSERSITE'] = '1'
+    env['PATH'] = str(Path(python).absolute().parent) + os.pathsep + env.get('PATH', '')
+    env.pop('ZLIS_NO_PNG', None)
     if no_png:
         env["ZLIS_NO_PNG"] = "1"
     code = (f"import pymol,sys,os; pymol.finish_launching(['pymol','-qc']); os.chdir({str(out_dir)!r}); "
             f"exec(compile(open('rebuild_scene.py').read(),'rebuild_scene.py','exec'))")
-    proc = subprocess.run([pymol_python(), "-c", code], capture_output=True, text=True, timeout=timeout,
-                          env=env, cwd=str(out_dir))
-    ok = (out_dir / "scene.pse").exists() and proc.returncode == 0
+    try:
+        proc = subprocess.run([python, "-c", code], capture_output=True, text=True, timeout=timeout,
+                              env=env, cwd=str(out_dir))
+    except (OSError, subprocess.SubprocessError) as exc:
+        return {'ok': False, 'stdout': '', 'stderr': str(exc),
+                'pse': str(out_dir / 'scene.pse'), 'png': str(out_dir / 'binding_site_main.png')}
+    pse, png = out_dir / "scene.pse", out_dir / "binding_site_main.png"
+    ok = (proc.returncode == 0 and pse.is_file() and pse.stat().st_size > 0
+          and (no_png or (png.is_file() and png.stat().st_size > 0)))
     return {"ok": ok, "stdout": proc.stdout[-400:], "stderr": proc.stderr[-1200:],
             "pse": str(out_dir / "scene.pse"), "png": str(out_dir / "binding_site_main.png")}

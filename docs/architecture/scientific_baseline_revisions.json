@@ -1,0 +1,16 @@
+{
+  "schema": "yuanhe.scientific-baseline-revisions/1",
+  "review_base_commit": "baf29bcfb72d4c2d2bb2173b735b5dadfa4719f3",
+  "revisions": {
+    "01_molecule_generation/src/adapters/peptide2mol.py": {
+      "previous_sha256": "3916b1eaea6a2b9bfe500003c2d7647359f9e2f8b45515820da4f62815ed557c",
+      "sha256": "1f7e404737305c0cc475deb5e98aaf375be70963c724566c844fedef007ee322",
+      "reason": "Require the recorded bounded-sampling patch before inference; redirect losses.txt into the run output. Model weights and diffusion parameters are unchanged."
+    },
+    "04_interaction_analysis/src/zlis/pymol_scene.py": {
+      "previous_sha256": "b1829ecde91fd410cedad0203b2a0797f380d0937113d5ad233dea9da63e08c1",
+      "sha256": "d66c3129a19bd41635df94aba4a524e560c9ca11fa93dbd044543d7f00013e20",
+      "reason": "Bind an isolated PyMOL interpreter, sanitize its environment and require the requested scene/PNG artifacts; interaction calculations are unchanged."
+    }
+  }
+}
