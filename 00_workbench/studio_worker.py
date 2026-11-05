@@ -70,10 +70,28 @@ def main():
   if c.get('research') and kind=='md_build':
    from research.resources import detect,gpu_lease,disk_guard
    disk_guard(d,c['research'])
-   available=[g for g in detect(d)['gpus'] if g['allocatable']]
-   if not available:raise ValueError('No allocatable GPU for operation')
-   lease_context=gpu_lease(available[0]);lease_context.__enter__()
-   os.environ['CUDA_VISIBLE_DEVICES']=available[0]['uuid'];os.environ['YUANHE_GPU_INDEX']='0'
+   # Desktop redraws can briefly cross the idle threshold during the UI click.
+   # Recheck for a bounded interval without relaxing memory/utilization limits
+   # or preempting another process. A busy device is never silently selected.
+   deadline=time.monotonic()+10
+   while True:
+    snapshot=detect(d)
+    available=[g for g in snapshot['gpus'] if g['allocatable']]
+    selected=None
+    for gpu in available:
+     try:
+      lease_context=gpu_lease(gpu);lease_context.__enter__()
+      selected=gpu
+      break
+     except BlockingIOError:
+      lease_context=None
+    if selected is not None:break
+    if time.monotonic()>=deadline:
+     detail=snapshot.get('gpu_detection_error') or [{k:g[k] for k in ('index','free_mib','total_mib','utilization')} for g in snapshot['gpus']]
+     raise ValueError(f'No idle GPU after 10-second availability check; task was not queued. Retry from the UI when resources are free. Observed: {detail}')
+    print('MD_BUILD: checking GPU availability; existing workloads are preserved',flush=True)
+    time.sleep(1)
+   os.environ['CUDA_VISIBLE_DEVICES']=selected['uuid'];os.environ['YUANHE_GPU_INDEX']='0'
    p={**p,'gpu_id':'0'}
   if kind=='receptor':result=receptor(d,c,p,out)
   elif kind=='environment':result=environment(d,c,p,out)

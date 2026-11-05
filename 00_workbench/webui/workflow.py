@@ -77,7 +77,14 @@ def continue_md(rid):
   if _active:raise RuntimeError('A calculation is still active')
   lease=acquire_compute()
   try:
-   upstream={k:require(d,k) for k in ('prepare','peptide2mol','reinvent4','docking','screening')}
+   cfg=read(d/'config.json',{})
+   supplied=cfg.get('imported_candidates') or read(d/'reviews/risk.json',{}).get('imported_candidates') or (cfg.get('research') or {}).get('external_library')
+   keys=[k for k,_,_ in stages_for(cfg) if k!='gromacs']
+   if supplied:
+    # An imported positive control legitimately bypasses generation. Preserve
+    # and verify any generation outputs that did run, plus both screening gates.
+    keys=[k for k in keys if k not in {'peptide2mol','reinvent4'} or (d/k/'stage.json').is_file()]
+   upstream={k:require(d,k) for k in keys}
    initial=read(d/'source_snapshot.json');current=source_snapshot()
    previous=read(d/'active_source_revision.json')
    if previous:
