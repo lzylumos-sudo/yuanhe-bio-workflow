@@ -67,6 +67,14 @@ def test_md_continuation_rejects_tampered_screening(stopped):
  w.atomic(d/'screening/stage.json',{'status':'completed','config_sha256':'changed'})
  with pytest.raises(RuntimeError):w.continue_md('case')
 
+def test_md_scheduler_revision_preserves_upstream(stopped):
+ d,current=stopped
+ current['00_workbench/research/md_queue.py']='repaired scheduler'
+ assert w.continue_md('case')['status']=='verified'
+ w.verify_source(d)
+ current['00_workbench/research/generation.py']='changed generation'
+ with pytest.raises(ValueError,match='Upstream'):w.continue_md('case')
+
 @pytest.mark.parametrize('tamper_gate', [None, 'risk', 'availability'])
 def test_imported_candidate_continuation_verifies_actual_gates(stopped, tamper_gate):
  d,_=stopped
