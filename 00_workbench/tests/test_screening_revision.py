@@ -67,6 +67,33 @@ def test_md_continuation_rejects_tampered_screening(stopped):
  w.atomic(d/'screening/stage.json',{'status':'completed','config_sha256':'changed'})
  with pytest.raises(RuntimeError):w.continue_md('case')
 
+def test_md_scheduler_revision_preserves_upstream(stopped):
+ d,current=stopped
+ current['00_workbench/research/md_queue.py']='repaired scheduler'
+ assert w.continue_md('case')['status']=='verified'
+ w.verify_source(d)
+ current['00_workbench/research/generation.py']='changed generation'
+ with pytest.raises(ValueError,match='Upstream'):w.continue_md('case')
+
+@pytest.mark.parametrize('tamper_gate', [None, 'risk', 'availability'])
+def test_imported_candidate_continuation_verifies_actual_gates(stopped, tamper_gate):
+ d,_=stopped
+ w.atomic(d/'config.json',{'research':{},'predocking':{'enabled':True},'imported_candidates':'inputs/public.csv'})
+ for name in ('peptide2mol','reinvent4'):
+  (d/name/'stage.json').unlink()
+ keys=('prepare','risk','availability','docking','screening')
+ for name in keys:
+  w.atomic(d/name/'stage.json',{'status':'completed','config_sha256':w.digest(d/'config.json'),'artifacts':{}})
+ before={name:w.digest(d/name/'stage.json') for name in keys}
+ if tamper_gate:
+  w.atomic(d/tamper_gate/'stage.json',{'status':'completed','config_sha256':'tampered','artifacts':{}})
+  with pytest.raises(RuntimeError):w.continue_md('case')
+  assert not (d/'active_source_revision.json').exists()
+ else:
+  assert w.continue_md('case')['upstream_stages']==list(keys)
+  assert before=={name:w.digest(d/name/'stage.json') for name in keys}
+  w.verify_source(d)
+
 
 def test_revision_before_first_screen_preserves_upstream(stopped):
  import shutil

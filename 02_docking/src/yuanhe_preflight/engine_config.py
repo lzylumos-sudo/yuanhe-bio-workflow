@@ -5,7 +5,7 @@ import math
 DEFAULT = {
     'version': '3.0.0', 'mode': 'balanced', 'keep': 2000, 'missing_policy': 'review',
     'structure_enabled': True, 'catalog_actions': {'PAINS': 'review', 'BRENK': 'review'},
-    'catalog_rule_actions': {},
+    'catalog_rule_actions': {'BRENK:quaternary_nitrogen_2': 'warn', 'BRENK:triple_bond': 'warn'},
     'toxicity': {'python': '', 'device': 'cpu', 'batch_size': 128, 'cpu_threads': 4,
                  'timeout_seconds': 1800, 'model_version': '2.0.1',
                  'endpoints': ['AMES', 'hERG', 'DILI', 'LD50_Zhu'],

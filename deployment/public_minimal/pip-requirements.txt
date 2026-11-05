@@ -14,4 +14,5 @@ prolif==2.2.3
 python-multipart==0.0.32
 starlette==1.9.0
 uvicorn==0.54.0
-resp @ https://codeload.github.com/cdsgroup/resp/zip/e0da367e9bef96eb469b5696ff7d6ea58e45d638#sha256=560ec2efe287c695d6a0ad132e96c953664e51611a344fdda7b29332266ebfd6
+# RESP is installed from the unchanged, hash-verified bundled source by install.sh.
+# The original archive pin is preserved in resp-source.json and compared in CI.

@@ -1,5 +1,36 @@
 # Changelog
 
+## Unreleased
+
+- Bundle the unchanged official Vina 1.2.7 Linux x86_64 release with its original hash and license; verify compressed and decompressed bytes during installation and compare against upstream in CI. Avoid an installation-time release-download TLS failure.
+- Expose the same explicit receptor hydrogen and pH controls in the project membrane builder as in independent MD.
+- Bundle the unchanged BSD-licensed RESP source at the existing pinned commit to remove an installation-time codeload dependency. Verify archive/license hashes locally and compare every file with the original hash-pinned upstream ZIP in CI; preserve both archive identities in the receipt.
+- Require explicit membrane-orientation and exploratory-MD acknowledgements in the independent MD UI; store the real booleans and reject pre-schema MD jobs instead of injecting `true`.
+- Reject external-TPR GROMACS completion unless `Finished mdrun`, final step/time, checkpoint, compressed trajectory and fatal/LINCS checks pass.
+- Resolve formal docking poses by `job_id`, keep the authoritative docking JSON as the table source for large evidence, and use AutoDock Vina wording.
+- Reconcile orphaned `building` MD systems after a worker disappears, so the UI reaches a terminal state instead of polling forever.
+- Restore run-action buttons after a rejected start and show a concise failure summary while retaining the full traceback.
+- Clarify System & Versions installation/execution labels and distinguish stage-execution completion from scientific acceptance.
+- Add regression coverage for these independent-module, docking-pose, GROMACS-completion and status paths.
+- Offer explicit receptor hydrogen completion and a frozen pH choice in independent MD; record selected residue variants, preserve heavy atoms, and require review of the built system before MD.
+- Verify effective nonbonded particle and exception parameters after GROMACS export. Preserve ParmEd explicit pair parameters instead of rewriting fudgeLJ: gen-pairs=no may legitimately use fudgeLJ=1.
+
+## 0.11.0-dev.5 - 2026-10-30
+
+- Retry transient pinned-asset download failures at most three times, with atomic publication after SHA-256 verification; certificate rejection, hash mismatch and permanent failures still stop installation immediately.
+- Correct the REINVENT4 CUDA build for Blackwell using hash-verified dependency patches and a frozen cu130 lock; retain unrelated package versions and scientific defaults.
+- Check dependency metadata separately from installed Python modules, and update administrator templates to the new version and a fresh runtime prefix.
+- Fix UI-observed independent-module handoffs: accept REINVENT SMILES CSV headers, locate the installed Conda RDKit SA scorer, collect reviewed redocking boxes, preserve live log/download elements, and correct interaction diagram labels and footers.
+- Preserve canonical scientific file bytes across checkouts and verify protocol sources before installation or task creation; recognize isolated Conda provenance and allow fractional research MD durations without unlocking frozen budgets.
+- Recompute strict pre-docking evidence for uploaded screening poses before redocking; keep rejected states blocked. Show final availability counts and exclude generated prediction caches from source-change reporting.
+- Record HF/RESP optimizer settings under request schema hf-resp/5 after public UI runs exhausted 50 gradients with both diagonal and exact-Hessian Cartesian OptKing. Pin geomeTRIC 1.1.1, use its native Psi4/TRIC adapter, explicitly convert tight displacement limits to angstrom, and retain the 50-gradient budget and original charge model. Version numerical-source hashes, reject older charge caches and require the dependency during readiness; actual convergence remains subject to fresh UI acceptance.
+- Mark membrane systems failed or cancelled when construction exits early, preserving their input identity and partial evidence instead of leaving a stale building state.
+- Keep refreshing a building system after cancellation is acknowledged so its final worker metadata appears without a manual refresh.
+- Apply the requested Peptide2Mol seed before data and model initialization through a hash-pinned vendor patch. The prior single-device path only recorded the seed in configuration and an environment variable; it did not initialize the random generators. Preserve weights, sampling budgets, precision and molecular validity checks; seeded inference does not promise valid molecules or deterministic GPU kernels.
+- Bound uv download concurrency and increase connection/read timeouts and HTTP retries after an original-flow REINVENT install failed fetching build-dependency metadata. Preserve official indexes, frozen locks, hashes, TLS validation and failure evidence.
+- Bound legacy pocket distance temporaries by splitting point rows after CI recorded approximately 7.1 GiB process RSS and nearly exhausted host memory and swap. Preserve geometry formulas, all cutoffs, row order and nearest-atom tie behavior; retain the full public geometry regressions.
+- The first corrected installation passed readiness and exposed these UI defects. Re-deployment and affected-module UI acceptance remain pending; see docs/releases/0.11.0-dev.5.md.
+
 ## 0.11.0-dev.4 - 2026-10-30
 
 - Unify runtime resolution across registry probes, diagnostics and workers; retain schema-checked compatibility with legacy environment settings.

@@ -52,3 +52,35 @@ def test_mirror_changes_location_only_and_retains_artifact_identity():
     result = mirrored_lock(lock, 'https://example.invalid/conda-forge')
     assert result == lock.replace('https://conda.anaconda.org/conda-forge', 'https://example.invalid/conda-forge')
     with pytest.raises(ValueError): mirrored_lock(lock, 'http://example.invalid')
+
+
+def test_transient_official_download_switches_endpoint_and_keeps_hash(tmp_path, monkeypatch):
+    from urllib.error import URLError
+    content = b'public-fixture'
+    entry = dict(name='REINVENT4', url=fetch.DOWNLOADS['reinvent4'][2],
+                 bytes=len(content), sha256=hashlib.sha256(content).hexdigest())
+    urls = []
+    def request(req, **kwargs):
+        urls.append(req.full_url)
+        if len(urls) == 1:
+            raise URLError(TimeoutError('transient timeout'))
+        return io.BytesIO(content)
+    monkeypatch.setattr(fetch.urllib.request, 'urlopen', request)
+    monkeypatch.setattr(fetch.time, 'sleep', lambda seconds: None)
+    target = tmp_path / 'model'
+    fetch.download(entry, target)
+    assert target.read_bytes() == content
+    assert urls == [entry['url'], 'https://zenodo.org/records/20701824/files/libinvent.prior?download=1']
+
+
+def test_certificate_failure_is_not_retried(tmp_path, monkeypatch):
+    import ssl
+    from urllib.error import URLError
+    calls = []
+    def request(*args, **kwargs):
+        calls.append(1)
+        raise URLError(ssl.SSLCertVerificationError('untrusted certificate'))
+    monkeypatch.setattr(fetch.urllib.request, 'urlopen', request)
+    with pytest.raises(URLError):
+        fetch.download(dict(name='fixture', url='https://example.invalid', bytes=6, sha256='0'*64), tmp_path/'model')
+    assert len(calls) == 1

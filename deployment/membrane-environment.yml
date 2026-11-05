@@ -17,5 +17,6 @@ dependencies:
   - pyyaml
   - matplotlib
   - psi4=1.11
+  - geometric=1.1.1
   - resp=1.0.0
   - pip

@@ -2,7 +2,7 @@
 
 | Identity | Authority | Meaning |
 |---|---|---|
-| Platform software | root `VERSION` | SemVer; current channel and download are recorded in `deployment/current_release.json` |
+| Platform software | root `VERSION` | SemVer; current source channel and deployment entrypoint are recorded in `deployment/current_release.json` |
 | Git revision | execution checkout | Full 40-character SHA, branch, dirty flag; unknown for archives without Git |
 | Scientific protocol | `configs/protocol_registry.yaml` | Immutable scientific recipe independent of UI/software version |
 | Model/data/tool | actual run evidence | Declared sources kept separate from measured hashes and executable versions |

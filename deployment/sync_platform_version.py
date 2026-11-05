@@ -30,19 +30,18 @@ def generated():
     files[path] = json.dumps(value, indent=2) + '\n'
     files[path.parent / 'src/platform-version.json'] = json.dumps({'product': 'Yuanhe Bio Platform', 'software_version': version, 'mode': 'static_demo'}, indent=2) + '\n'
     base = 'https://github.com/lzylumos-sudo/yuanhe-bio-workflow'
-    tag = 'v' + version
-    archive = 'yuanhe-bio-platform-' + version + '.zip'
-    release = {'software_version': version, 'tag': tag, 'channel': 'development' if '-' in version else 'release',
-               'release_url': base + '/releases/tag/' + tag,
-               'download_url': base + '/releases/download/' + tag + '/' + archive,
-               'checksums_url': base + '/releases/download/' + tag + '/SHA256SUMS.txt'}
+    release = {'software_version': version, 'channel': 'main',
+               'source_ref': 'main', 'repository_url': base + '.git',
+               'deployment_url': base + '/blob/main/DEPLOY.md',
+               'site_configuration_url': base + '/blob/main/deployment/site.campus-upgrade.json',
+               'historical_releases_url': base + '/releases',
+               'note': 'Clone main into a new directory and record git rev-parse HEAD. Historical release assets are not the current administrator deployment.'}
     files[ROOT / 'deployment/current_release.json'] = json.dumps(release, indent=2) + '\n'
     block = ('<!-- current-release:start -->\n'
-             '**Current administrator build: ' + version + ' (' + release['channel'] + ')**\n\n'
-             '[Download current package](' + release['download_url'] + ') · '
-             '[Install and verify](DEPLOY.md) · [Release notes](' + release['release_url'] + ') · '
-             '[Historical versions](docs/releases/HISTORY.md)\n\n'
-             'The package includes version and source-hash records. Target-machine acceptance remains required.\n'
+             '**Current administrator deployment**\n\n'
+             '[Campus installation and cutover](deployment/UPGRADE_RUNTIME.md) · '
+             '[Campus site configuration](deployment/site.campus-upgrade.json) · '
+             '[First installation](DEPLOY.md) · [Historical versions](docs/releases/HISTORY.md)\n'
              '<!-- current-release:end -->')
     readme = ROOT / 'README.md'
     text, count = re.subn(r'<!-- current-release:start -->.*?<!-- current-release:end -->', block, readme.read_text(), flags=re.S)

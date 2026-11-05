@@ -25,6 +25,42 @@ def value(text, name, cast=float):
     return cast(m[1])
 
 
+def inspect_tpr(gmx, folder, source='production.tpr'):
+    """Return the frozen execution plan after checking the TPR is real dynamics."""
+    dump = capture([gmx, 'dump', '-s', source], folder, 'tpr_dump.txt')
+    steps = value(dump, 'nsteps', int); initial = value(dump, 'init-step', int)
+    dt = value(dump, 'dt'); tinit = value(dump, 'tinit')
+    if steps <= 0 or initial < 0 or not math.isfinite(dt) or dt <= 0 or not math.isfinite(tinit):
+        raise ValueError('A finite, bounded dynamics TPR is required')
+    if value(dump, 'integrator', str) not in {'md', 'md-vv', 'md-vv-avek', 'sd', 'bd'}:
+        raise ValueError('Upload a production dynamics TPR, not an energy minimization input')
+    if value(dump, 'nstxout-compressed', int) <= 0:
+        raise ValueError('TPR must record a compressed trajectory')
+    return {'initial_step': initial, 'final_step': initial+steps, 'dt_ps': dt,
+            'final_time_ps': tinit+(initial+steps)*dt, 'duration_ns': steps*dt/1000}
+
+
+def verify_completion(folder, gmx, plan):
+    """Reject partial/failed mdrun output; never infer completion from files alone."""
+    log_path = folder/'production.log'
+    if not log_path.is_file():
+        raise RuntimeError('MD log is missing')
+    log = log_path.read_text(errors='replace')
+    observed = re.findall(r'^\s*Step\s+Time\s*\n\s*(\d+)\s+([\d.eE+-]+)', log, re.M)
+    if 'Finished mdrun' not in log or not observed or int(observed[-1][0]) != plan['final_step']:
+        raise RuntimeError('MD did not finish its planned final step')
+    if abs(float(observed[-1][1])-plan['final_time_ps']) > max(plan['dt_ps'], .001):
+        raise RuntimeError('Final simulation time differs from the TPR plan')
+    if re.search(r'Fatal error|LINCS WARNING|constraint failure|not finite|nan detected', log, re.I):
+        raise RuntimeError('MD log contains a fatal or constraint warning; acceptance blocked')
+    if not (folder/'production.xtc').is_file() or (folder/'production.xtc').stat().st_size == 0:
+        raise RuntimeError('Production trajectory is missing')
+    checkpoint = capture([gmx, 'dump', '-cp', 'production.cpt'], folder, 'checkpoint_audit.txt')
+    if value(checkpoint, 'step', int) != plan['final_step']:
+        raise RuntimeError('Final checkpoint does not match planned completion')
+    capture([gmx, 'check', '-f', 'production.xtc'], folder, 'trajectory_check.txt')
+
+
 def run(d, cfg, params, source):
     folder = d/'prepared_md'; folder.mkdir(exist_ok=True)
     gmx = shutil.which(cfg.get('gmx', '')) or cfg.get('gmx', '')
@@ -41,17 +77,7 @@ def run(d, cfg, params, source):
         raise ValueError('Staged TPR changed')
     capture([gmx, '--version'], folder, 'engine.txt')
     print('Inspecting the uploaded production input', flush=True)
-    dump = capture([gmx, 'dump', '-s', 'production.tpr'], folder, 'tpr_dump.txt')
-    steps = value(dump, 'nsteps', int); initial = value(dump, 'init-step', int)
-    dt = value(dump, 'dt'); tinit = value(dump, 'tinit')
-    if steps <= 0 or initial < 0 or not math.isfinite(dt) or dt <= 0 or not math.isfinite(tinit):
-        raise ValueError('A finite, bounded dynamics TPR is required')
-    if value(dump, 'integrator', str) not in {'md', 'md-vv', 'md-vv-avek', 'sd', 'bd'}:
-        raise ValueError('Upload a production dynamics TPR, not an energy minimization input')
-    if value(dump, 'nstxout-compressed', int) <= 0:
-        raise ValueError('TPR must record a compressed trajectory')
-    plan = {'initial_step': initial, 'final_step': initial+steps, 'dt_ps': dt,
-            'final_time_ps': tinit+(initial+steps)*dt, 'duration_ns': steps*dt/1000}
+    plan = inspect_tpr(gmx, folder)
     a.atomic(folder/'plan.json', plan)
     if (folder/'completion.json').exists():
         done = a.read(folder/'completion.json')
@@ -72,18 +98,7 @@ def run(d, cfg, params, source):
                               env={**os.environ, 'OMP_NUM_THREADS': str(params['threads'])})
     if proc.returncode:
         raise RuntimeError('MD execution failed; inspect execution.log and retained checkpoint')
-    log = (folder/'production.log').read_text(errors='replace')
-    observed = re.findall(r'^\s*Step\s+Time\s*\n\s*(\d+)\s+([\d.eE+-]+)', log, re.M)
-    if 'Finished mdrun' not in log or not observed or int(observed[-1][0]) != plan['final_step']:
-        raise RuntimeError('MD did not finish its planned final step')
-    if abs(float(observed[-1][1])-plan['final_time_ps']) > max(dt, .001):
-        raise RuntimeError('Final simulation time differs from the TPR plan')
-    if re.search(r'Fatal error|LINCS WARNING|constraint failure|not finite|nan detected', log, re.I):
-        raise RuntimeError('MD log contains a fatal or constraint warning; acceptance blocked')
-    checkpoint = capture([gmx, 'dump', '-cp', 'production.cpt'], folder, 'checkpoint_audit.txt')
-    if value(checkpoint, 'step', int) != plan['final_step']:
-        raise RuntimeError('Final checkpoint does not match planned completion')
-    capture([gmx, 'check', '-f', 'production.xtc'], folder, 'trajectory_check.txt')
+    verify_completion(folder, gmx, plan)
     required = ['production.tpr', 'production.log', 'production.gro', 'production.cpt',
                 'production.xtc', 'production.edr', 'checkpoint_audit.txt', 'trajectory_check.txt', 'plan.json']
     done = {'status': 'completed', 'scope': 'prepared-input MD execution acceptance',

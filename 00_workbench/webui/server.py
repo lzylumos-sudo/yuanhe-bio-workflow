@@ -322,6 +322,10 @@ def api_project_rows(q, rid, key):
         # Read the authoritative JSON directly instead of parsing an export
         # that would immediately be discarded below.
         rows=workflow.read(run/key/'records.json',[])
+    elif key=='docking':
+        # qualification_evidence is nested and can exceed csv.field_size_limit.
+        # The JSON result is authoritative; CSV remains an export format.
+        rows=workflow.read(run/'docking/results.json',[])
     else:
         path=run/key/'molecules.csv'
         if not path.exists():return _json({'rows':[],'total':0})
@@ -346,10 +350,20 @@ def api_project_pose(q, rid, key):
         rows=workflow.read(d/key/'records.json',[])
         row=next((x for x in rows if x.get('id')==ident),None)
         if row and row.get('source_sdf'):path=Path(row['source_sdf'])
-    elif key in ('reinvent4','docking'):
+    elif key=='reinvent4':
         rows=workflow.read(d/'reinvent4/candidates.json',[])
         row=next((x for x in rows if x['id']==ident),None)
-        if row:path=d/row['sdf'] if key=='reinvent4' else d/'docking/jobs'/ident/'poses.sdf'
+        if row:path=d/row['sdf']
+    elif key=='docking':
+        rows=workflow.read(d/'docking/results.json',[])
+        row=next((x for x in rows if x.get('job_id')==ident),None)
+        if row is None:
+            # Compatibility with pre-job_id CSV/UI links.
+            row=next((x for x in rows if x.get('id')==ident and x.get('status')=='ok'),None)
+            if row:
+                ident=str(row.get('job_id') or (row['id']+'_seed'+str(row.get('seed'))))
+        if row and (d/'docking/jobs'/ident/'poses.sdf').is_file():
+            path=d/'docking/jobs'/ident/'poses.sdf'
     elif key=='screening':
         rows=workflow.read(d/'screening/candidates.json',[])
         row=next((x for x in rows if x.get('pose_id')==ident or x.get('compound_id')==ident),None)
@@ -360,7 +374,7 @@ def api_project_pose(q, rid, key):
     if mol is None or not mol.GetNumConformers():return _json({'atoms':[],'caption':'SDF Unreadable coordinates'})
     atoms=[{'p':list(mol.GetConformer().GetAtomPosition(a.GetIdx())),'chain':'LIG','name':'CA','element':a.GetSymbol()} for a in mol.GetAtoms()]
     if key in ('docking','screening'):
-        caption='GNINA Original first pose and actual docking receptor; not automatically the best pose'
+        caption='AutoDock Vina first pose and actual docking receptor; not automatically the best pose'
         if key=='screening':caption='Screening-selected pose and actual docking receptor; see candidate table for qualification'
         receptor=d/'docking/receptor.pdb'
         for line in receptor.read_text().splitlines():

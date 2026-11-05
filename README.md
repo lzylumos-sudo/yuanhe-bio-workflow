@@ -16,8 +16,7 @@ Open **Independent modules** in the workbench (/modules.html) to upload inputs a
 first-install and upgrade procedure: machine requirements, public model downloads,
 site configuration, preflight, installation, service startup, verification and
 failure recovery. No old project directory or conversation history is required.
-Use a clean checkout of `main` for the latest merged fixes; the published package
-below is an immutable release snapshot and may predate those fixes.
+For the campus deployment, use the [current source and site settings](deployment/UPGRADE_RUNTIME.md).
 
 ```bash
 git clone --branch main https://github.com/lzylumos-sudo/yuanhe-bio-workflow.git
@@ -26,17 +25,15 @@ cd yuanhe-bio-workflow
 ```
 
 Deployment settings: [site.example.json](deployment/site.example.json).
-Verified checks and remaining target acceptance: [first-install validation](deployment/FIRST_INSTALL_VALIDATION.txt).
+Current deployment verification: [same-compound UI acceptance](deployment/UI_MAIN_FLOW_ACCEPTANCE.md). Earlier bootstrap-only checks remain in the [historical first-install record](deployment/FIRST_INSTALL_VALIDATION.txt).
 Researcher instructions after startup: [UI workflow](docs/18_UI_RESEARCH_WORKFLOW.md).
 Installation success does not imply that a candidate passes the scientific gates
 or that a molecular dynamics run has completed.
 
 <!-- current-release:start -->
-**Current administrator build: 0.11.0-dev.4 (development)**
+**Current administrator deployment**
 
-[Download current package](https://github.com/lzylumos-sudo/yuanhe-bio-workflow/releases/download/v0.11.0-dev.4/yuanhe-bio-platform-0.11.0-dev.4.zip) · [Install and verify](DEPLOY.md) · [Release notes](https://github.com/lzylumos-sudo/yuanhe-bio-workflow/releases/tag/v0.11.0-dev.4) · [Historical versions](docs/releases/HISTORY.md)
-
-The package includes version and source-hash records. Target-machine acceptance remains required.
+[Campus installation and cutover](deployment/UPGRADE_RUNTIME.md) · [Campus site configuration](deployment/site.campus-upgrade.json) · [First installation](DEPLOY.md) · [Historical versions](docs/releases/HISTORY.md)
 <!-- current-release:end -->
 
 Yuanhe Bio brings molecular generation, docking and evidence-led candidate review into a traceable AIDD research workflow. Its current product focus is helping researchers decide which computational hypotheses merit further review and testing.
@@ -197,7 +194,7 @@ The screening decision layer is project-authored engineering built around establ
 2. Target-specific screening protocols: validate beyond MurJ with independent targets and controls.
 3. Experimental-feedback optimization: design and evaluate multi-objective active learning before product claims.
 
-See the [18-month, evidence-gated roadmap](docs/product/ROADMAP.md). The local screening-policy revision has not completed release acceptance; it does not revise historical results.
+See the [18-month, evidence-gated roadmap](docs/product/ROADMAP.md). The [same-compound main-flow UI acceptance](deployment/UI_MAIN_FLOW_ACCEPTANCE.md) passed twice, including an independent fresh deployment. This minimum engineering acceptance does not revise historical scientific results.
 
 ## Collaboration & commercial use
 

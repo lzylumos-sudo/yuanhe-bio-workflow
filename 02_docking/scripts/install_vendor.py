@@ -1,6 +1,8 @@
-"""Resumable official downloads, atomically installed after validation."""
+"""Install the unchanged bundled official executable after hash validation."""
 import hashlib,json,os,subprocess,sys,time,platform
 from pathlib import Path
+sys.path.insert(0,str(Path(__file__).resolve().parents[2]/'deployment'))
+from verify_vina_bundle import verified_binary
 ROOT=Path(os.environ['SBVS_PROJECT_ROOT'])
 if platform.system()!='Linux' or platform.machine() not in {'x86_64','amd64'}:raise SystemExit('This official download installer is Linux x86-64 only; use the pinned platform environment otherwise')
 SPECS={
@@ -14,16 +16,18 @@ def sha(p):
  return h.hexdigest()
 for name in sys.argv[1:]:
  version,url,expected=SPECS[name]; dst=Path(os.environ.get('YUANHE_VENDOR_DIR','/opt/sbvs/vendor'))/name; dst.parent.mkdir(parents=True,exist_ok=True); partial=dst.with_suffix('.part')
+ delivery='existing_verified' if dst.exists() else 'verified_repository_bundle'
  if not dst.exists():
-  if not (partial.exists() and expected and sha(partial)==expected):
-   subprocess.run(['curl','-fL','--retry','3','--connect-timeout','20','--max-time','3600','-C','-',url,'-o',str(partial)],check=True)
+  binary,bundle=verified_binary()
+  if bundle['version']!=version or bundle['binary_sha256']!=expected:raise RuntimeError('Vina bundle differs from original executable pin')
+  partial.write_bytes(binary)
   digest=sha(partial)
   if partial.stat().st_size<1000000 or (expected and digest!=expected):raise RuntimeError('Size/hash mismatch '+name)
   partial.replace(dst)
  digest=sha(dst)
  if expected and digest!=expected:raise RuntimeError('Installed hash mismatch')
  dst.chmod(0o755)
- info={'version':version,'url':url,'sha256':digest,'repository_sha256_verified':bool(expected),'path':str(dst),'installed_at':time.time()}
+ info={'version':version,'url':url,'sha256':digest,'repository_sha256_verified':bool(expected),'path':str(dst),'installed_at':time.time(),'delivery':delivery,'bundle_manifest':'deployment/vina-bundle.json'}
  (ROOT/'logs/install').mkdir(parents=True,exist_ok=True)
  for flag in ['--version','--help']:
   env=os.environ.copy()

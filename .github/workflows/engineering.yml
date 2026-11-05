@@ -8,12 +8,14 @@ concurrency:
 jobs:
   contracts-and-workbench:
     runs-on: ubuntu-24.04
-    timeout-minutes: 20
+    # Full geometry, reference docking and frontend checks exceed 20 minutes.
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-python@v7
         with:
-          python-version: '3.12'
+          # Match the deployed workbench interpreter; ADMET/retro have their own checks.
+          python-version: '3.11'
           cache: pip
           cache-dependency-path: deployment/validation_5090/pip-freeze.txt
       - name: English content and source integrity
@@ -23,6 +25,10 @@ jobs:
           python deployment/check_governance.py
           python deployment/check_scientific_baseline.py
           python deployment/sync_platform_version.py --check
+      - name: Verify bundled RESP equals original pinned upstream source
+        run: python deployment/public_minimal/verify_resp_source.py --upstream
+      - name: Verify bundled Vina equals official pinned release
+        run: python deployment/verify_vina_bundle.py --upstream
       - name: Verify isolated module export dependency closure
         run: |
           python -m venv "$RUNNER_TEMP/module-exports"
@@ -55,7 +61,45 @@ jobs:
       - name: Full workbench and scientific handoff regressions
         if: ${{ !cancelled() && steps.dependencies.outcome == 'success' }}
         working-directory: 00_workbench
-        run: PYTHONPATH=. python -m pytest tests -q --junitxml=../workbench-tests.xml
+        run: |
+          # Stream resource evidence: a runner shutdown can prevent artifact upload.
+          python -u - <<'PY' &
+          import json, os, time
+          from pathlib import Path
+          parent = os.getppid()
+          while os.getppid() == parent:
+              memory = {}
+              for line in Path('/proc/meminfo').read_text().splitlines():
+                  key, value = line.split(':', 1)
+                  if key in ('MemTotal', 'MemAvailable', 'SwapTotal', 'SwapFree'):
+                      memory[key + '_kB'] = int(value.split()[0])
+              processes = []
+              for entry in Path('/proc').iterdir():
+                  if not entry.name.isdigit():
+                      continue
+                  try:
+                      values = dict(line.split(':', 1) for line in (entry / 'status').read_text().splitlines())
+                      processes.append({'pid': int(entry.name), 'name': values['Name'].strip(),
+                                        'rss_kB': int(values.get('VmRSS', '0 kB').split()[0])})
+                  except (OSError, ValueError, KeyError):
+                      pass
+              events = Path('/sys/fs/cgroup/memory.events')
+              print('[ci-memory] ' + json.dumps({'time': time.time(), 'memory': memory,
+                    'largest_processes': sorted(processes, key=lambda item: item['rss_kB'], reverse=True)[:4],
+                    'cgroup_events': events.read_text().strip() if events.exists() else None}), flush=True)
+              time.sleep(5)
+          PY
+          memory_monitor=$!
+          trap 'kill "$memory_monitor" 2>/dev/null || true' EXIT
+          PYTHONPATH=. python -m pytest tests --ignore=tests/test_smoke.py -vv --durations=10 -o faulthandler_timeout=60 --junitxml=../workbench-tests.xml
+      - name: Historical geometry regression in a separate interpreter
+        if: ${{ !cancelled() && steps.dependencies.outcome == 'success' }}
+        working-directory: 00_workbench
+        # This real geometry calculation legitimately runs longer than 60 s.
+        # Repeated failures occurred while the asynchronous 60 s stack dump was
+        # traversing native/Python frames. Keep crash handling and the job time
+        # limit, but do not interrupt this calculation with a timed stack dump.
+        run: PYTHONPATH=. python -m pytest tests/test_smoke.py -vv --durations=10 -o faulthandler_timeout=0 --junitxml=../historical-geometry-tests.xml
       - name: Screening contracts and portable real-data fixtures
         if: ${{ !cancelled() && steps.dependencies.outcome == 'success' }}
         working-directory: 03_virtual_screening

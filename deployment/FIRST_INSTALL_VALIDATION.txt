@@ -1,5 +1,9 @@
 First-install and UI repair validation - 2026-10-28
 
+HISTORICAL RECORD: this is not the current administrator deployment or the
+same-compound main-flow acceptance. Use DEPLOY.md and
+deployment/UI_MAIN_FLOW_ACCEPTANCE.md for the current deployment and UI protocol.
+
 Implementation tested: a7e5c2b701aab38f37cb5eee9df1de656b5426d0
 Base main: 6fdf74b4bab0a956f9663c2eab2ead014d47fa8b
 Platform: Linux x86_64 under WSL2, isolated CPython 3.12.16.

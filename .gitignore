@@ -23,6 +23,10 @@ exports/
 logs/
 cache/
 installation_evidence/
+# Psi4 writes this timing report during the original runtime readiness check.
+/timer.dat
+# Generated prediction and synthesis caches are runtime state, not source edits.
+/data/predocking_cache/
 *.ckpt
 *.prior
 *.pt
@@ -51,3 +55,6 @@ dist/
 
 # Independent UI jobs contain local inputs and execution evidence.
 00_workbench/module_jobs/
+
+# UI uploads are runtime inputs, not modifications to deployed source.
+/inputs/

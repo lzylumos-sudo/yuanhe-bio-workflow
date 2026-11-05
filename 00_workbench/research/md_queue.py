@@ -1,7 +1,19 @@
 """Two independent membrane jobs. Existing scientific engine and checkpoints are unchanged."""
-import concurrent.futures,os,queue,shutil,subprocess,sys,threading
+import concurrent.futures,os,queue,shutil,subprocess,sys,threading,time
 from pathlib import Path
 from .resources import detect,disk_guard,gpu_lease
+
+def available_gpus(path,limit):
+    deadline=time.monotonic()+10
+    while True:
+        snapshot=detect(path)
+        gpus=[g for g in snapshot['gpus'] if g['allocatable']][:limit]
+        if gpus:return gpus
+        if time.monotonic()>=deadline:
+            detail={k:snapshot.get(k) for k in ('gpus','gpu_detection_error','scheduler_gpu_allocation')}
+            raise ValueError(f'No authorized idle GPU after 10-second availability check; task was not queued. Retry from the UI when resources are free. Observed: {detail}')
+        print('MD: checking GPU availability; existing workloads are preserved',flush=True)
+        time.sleep(1)
 
 def run(d,c,out):
     from webui import workflow as w
@@ -19,8 +31,7 @@ def run(d,c,out):
         compounds.add(meta['compound_id'])
         if meta['parameters']['production_ns']!=rc['md_production_ns']:raise ValueError('Prepared production length differs from frozen research configuration')
     disk_guard(d,rc)
-    gpus=[g for g in detect(d)['gpus'] if g['allocatable']][:rc['md_concurrency']]
-    if not gpus and any(ident not in inherited for ident in ids):raise ValueError('No authorized allocatable GPU; MD remains queued')
+    gpus=available_gpus(d,rc['md_concurrency']) if any(ident not in inherited for ident in ids) else []
     tasks=queue.Queue()
     for ident in ids:
         if ident not in inherited:tasks.put(ident)
@@ -66,5 +77,7 @@ def run(d,c,out):
     with concurrent.futures.ThreadPoolExecutor(max_workers=max(1,len(gpus))) as pool:
         futures=[pool.submit(worker,gpu) for gpu in gpus]
         for future in futures:future.result()
-    if len(records)!=len(ids):raise RuntimeError('Some MD jobs remain incomplete; checkpoints retained')
+    if len(records)!=len(ids):
+        failures={ident:rec.get('error',rec['status']) for ident,rec in state.items() if rec['status']!='md_completed'}
+        raise RuntimeError(f'Some MD jobs remain incomplete; checkpoints retained. Details: {failures}')
     return 0

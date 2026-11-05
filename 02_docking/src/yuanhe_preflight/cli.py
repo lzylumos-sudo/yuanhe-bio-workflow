@@ -14,11 +14,20 @@ def import_candidates(path,out):
             entries.append(({'id':'import_'+str(n),'smiles':canonical(mol) if mol else '', 'source_library':str(path)},mol))
     else:
         with path.open(newline='',encoding='utf-8-sig') as f:
-            values=list(csv.DictReader(f,delimiter=',' if path.suffix.lower()=='.csv' else '\t'))
-        entries=[(dict(r,id=r.get('id') or 'import_'+str(n),source_library=str(path)),Chem.MolFromSmiles(r.get('smiles',''))) for n,r in enumerate(values)]
+            reader=csv.DictReader(f,delimiter=',' if path.suffix.lower()=='.csv' else '\t')
+            smiles_columns=[name for name in (reader.fieldnames or [])
+                            if name is not None and name.strip().casefold()=='smiles']
+            if len(smiles_columns)!=1:
+                raise ValueError('Molecule tables require exactly one smiles column (case insensitive)')
+            values=list(reader)
+        entries=[]
+        for n,r in enumerate(values):
+            smiles=(r.get(smiles_columns[0]) or '').strip()
+            row=dict(r,id=r.get('id') or 'import_'+str(n),smiles=smiles,source_library=str(path))
+            entries.append((row,Chem.MolFromSmiles(smiles) if smiles else None))
     rows=[]
     for n,(row,mol) in enumerate(entries):
-        if mol is not None:
+        if mol is not None and mol.GetNumAtoms():
             # Retain a structure record; only selected docking inputs receive 3D conformers.
             mol=Chem.AddHs(mol)
             sdf=out/f'{n:08d}.sdf'

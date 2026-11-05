@@ -7,6 +7,10 @@ from pathlib import Path
 import shutil
 import subprocess
 import sys
+import ssl
+import time
+from http.client import IncompleteRead
+from urllib.error import HTTPError, URLError
 import urllib.request
 import urllib.error
 from source_checkout import checked_checkout
@@ -43,7 +47,7 @@ def plan(destination, root=ROOT, *, resume=False, urls=None):
                 status='planned', inference='not_run')
 
 
-def download(entry, target, retries=3):
+def download(entry, target, retries=4):
     target.parent.mkdir(parents=True, exist_ok=True)
     partial = target.with_name(target.name + '.part')
     if target.exists() or target.is_symlink():
@@ -59,7 +63,10 @@ def download(entry, target, retries=3):
                 headers = {'User-Agent': 'Yuanhe-model-bootstrap/1'}
                 if offset:
                     headers['Range'] = f'bytes={offset}-'
-                request = urllib.request.Request(entry['url'], headers=headers)
+                url = entry['url']
+                if attempt % 2 and url == DOWNLOADS['reinvent4'][2]:
+                    url = 'https://zenodo.org/records/20701824/files/libinvent.prior?download=1'
+                request = urllib.request.Request(url, headers=headers)
                 with urllib.request.urlopen(request, timeout=120) as response:
                     status = getattr(response, 'status', 200)
                     if status == 206:
@@ -89,9 +96,14 @@ def download(entry, target, retries=3):
                 raise ValueError('Model size or SHA-256 mismatch: ' + entry['name'])
             partial.replace(target)
             return
-        except (OSError, urllib.error.URLError):
-            if attempt + 1 == retries:
+        except (OSError, urllib.error.URLError, IncompleteRead) as exc:
+            reason = getattr(exc, 'reason', exc)
+            transient = (exc.code in (408, 429, 500, 502, 503, 504) if isinstance(exc, HTTPError)
+                         else isinstance(reason, (OSError, IncompleteRead)))
+            if isinstance(reason, ssl.SSLCertVerificationError) or not transient or attempt + 1 == retries:
                 raise
+            print(f"Transient download failure for {entry['name']}: {exc}; partial bytes retained", flush=True)
+            time.sleep(2 ** attempt)
 
 
 def execute(record, *, resume=False):

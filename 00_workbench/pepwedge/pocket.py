@@ -23,6 +23,17 @@ SUBPOCKETS = {
     'S4_TM7_floor':        [237, 238, 240, 241, 245, 247, 248, 251, 252, 255],
 }
 
+# Execution budget only: keep the same distances, cutoffs and point ordering.
+# Account conservatively for vector temporaries and the previous reduction.
+_DISTANCE_WORK_BYTES = 64 * 1024 * 1024
+
+
+def _distance_rows(reference_atoms, requested=200000):
+    if requested <= 0:
+        raise ValueError('Distance chunk size must be positive')
+    bytes_per_row = max(1, reference_atoms) * np.dtype(np.float64).itemsize * 10
+    return min(requested, max(1, _DISTANCE_WORK_BYTES // bytes_per_row))
+
 
 @dataclass
 class Pocket:
@@ -51,14 +62,19 @@ def pocket_voxels(cx: Complex, step=0.8, clearance=3.0, envelope=7.0, chunk=2000
     # keep only voxels inside the peptide envelope
     keep = np.zeros(len(grid), bool)
     for s in range(0, len(la), 200):
-        d = np.linalg.norm(grid[:, None, :] - la[None, s:s + 200, :], axis=2)
-        keep |= d.min(1) <= envelope
+        atoms = la[s:s + 200]
+        rows = _distance_rows(len(atoms))
+        for start in range(0, len(grid), rows):
+            g = grid[start:start + rows]
+            d = np.linalg.norm(g[:, None, :] - atoms[None, :, :], axis=2)
+            keep[start:start + rows] |= d.min(1) <= envelope
         if keep.all():
             break
     grid = grid[keep]
 
     # remove voxels clashing with the receptor
     clash = np.zeros(len(grid), bool)
+    chunk = _distance_rows(len(ra), chunk)
     for s in range(0, len(grid), chunk):
         g = grid[s:s + chunk]
         d2 = ((g[:, None, :] - ra[None, :, :]) ** 2).sum(-1)
@@ -115,8 +131,9 @@ def label_chemistry(cx: Complex, points):
         for _ in r.atoms:
             owner_res.append(rid)
     owner_res = np.array(owner_res)
-    for s in range(0, len(points), 20000):
-        g = points[s:s + 20000]
+    rows = _distance_rows(len(ra), 20000)
+    for s in range(0, len(points), rows):
+        g = points[s:s + rows]
         d2 = ((g[:, None, :] - ra[None, :, :]) ** 2).sum(-1)
         idx = d2.argmin(1)
         for j in idx:

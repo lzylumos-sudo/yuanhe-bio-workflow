@@ -48,8 +48,9 @@ MODULES = {
     'docking_control': dict(label='Public 1DRF docking control', environment='chem_python', files={},
         fields=[], description='Fixed public 1DRF/FOL reference with three seeds. Produces reference evidence, never candidate qualification.'),
     'screening': dict(label='Post-docking virtual screening', environment='screen_python',
-        files={'receptor': '.pdb', 'poses': '.sdf'}, fields=COMMON,
-        description='Upload receptor and scored poses in the same coordinate frame. Runs the generic screening protocol; missing evidence stays missing.'),
+        files={'receptor': '.pdb', 'poses': '.sdf'},
+        fields=COMMON+BOX+[field('review_reason', 'Receptor, poses and original docking box review rationale', '')],
+        description='Upload receptor and scored poses in the same coordinate frame, with the reviewed original docking box. Recomputes the existing risk, toxicity and synthesis-route gates before redocking; only accepted chemical states proceed.'),
     'interaction': dict(label='Interaction analysis', environment='chem_python', files={'complex': '.pdb', 'template': '.sdf?'},
         fields=[field('ligand', 'Ligand selector, e.g. BEN or A:BEN1', '')],
         description='Upload a complex and optional ligand chemical template. Calculates interactions without prior docking.'),
@@ -58,6 +59,10 @@ MODULES = {
         fields=COMMON+[field('center', 'Membrane center / angstrom (x, y, z)', [0, 0, 0], 'vector'),
             field('normal', 'Membrane normal (x, y, z)', [0, 0, 1], 'vector'),
             field('orientation_source', 'Membrane orientation source and review rationale', ''),
+            field('orientation_reviewed', 'I reviewed membrane orientation, receptor construct and ligand pose', False, 'boolean'),
+            field('exploratory_ack', 'I explicitly treat this unqualified system as exploratory MD', False, 'boolean'),
+            field('add_receptor_hydrogens', 'Add missing receptor hydrogens at the chosen pH; review the resulting structure before MD', False, 'boolean'),
+            field('receptor_pH', 'Receptor pH for explicitly requested hydrogen addition', 7.0, 'number', min=0, max=14),
             field('lipid', 'Lipid', 'POPE', 'choice', choices=['POPE', 'POPC', 'DPPC', 'DOPC']),
             field('production_ns', 'Production duration / ns (independent scope)', 500, 'number', min=.01, max=1000),
             field('equilibration_ns', 'Equilibration duration / ns', 2, 'number', min=.1, max=100),
@@ -107,6 +112,9 @@ def parameters(kind, supplied):
                 raise ValueError('Box dimensions must be positive and <= 100 angstrom')
             if key == 'normal' and sum(n*n for n in v) < 1e-12:
                 raise ValueError('Membrane normal must be nonzero')
+        elif t == 'boolean':
+            if type(v) is not bool:
+                raise ValueError('Boolean required: '+key)
         elif not isinstance(v, str) or not v.strip() or len(v) > 4000:
             raise ValueError('Nonempty text required: '+key)
         if t == 'choice' and v not in f['choices']:
@@ -168,7 +176,7 @@ def create(payload):
     cfg.pop('research', None)
     from yuanhe_preflight.config import absolute_paths
     cfg['predocking'] = absolute_paths(cfg['predocking'], w.ROOT)
-    request = {'schema': 'yuanhe.module-job/1', 'module': kind, 'parameters': p, 'inputs': manifest,
+    request = {'schema': 'yuanhe.module-job/2', 'module': kind, 'parameters': p, 'inputs': manifest,
                'config': cfg, 'scope': SCOPE, 'candidate_qualified': False}
     w.atomic(d/'request.json', request)
     w.atomic(d/'source.json', w.source_snapshot())
@@ -206,9 +214,26 @@ def get(ident):
         ops.append(rec)
     artifacts = [{'path': p.relative_to(d).as_posix(), 'size': p.stat().st_size}
                  for p in sorted(d.rglob('*')) if p.is_file() and not p.is_symlink() and '__pycache__' not in p.parts]
+    build_ops = [x for x in ops if x.get('action') == 'build']
+    systems = []
+    for path in sorted((d/'md_systems').glob('*/system.json')):
+        meta = w.read(path)
+        if meta.get('status') == 'building':
+            live = any(x.get('status') == 'running'
+                       and ((ident, 'module', x['id']) in w._active or w.live_record(x, ident))
+                       for x in build_ops)
+            # A short grace period avoids racing the launch write before Popen.
+            fresh = any(x.get('status') == 'running' and time.time()-float(x.get('started') or 0) < 10
+                        for x in build_ops)
+            if not live and not fresh:
+                meta = {**meta, 'status': 'interrupted',
+                        'error': 'Worker no longer exists; construction did not reach a terminal state',
+                        'ended': time.time()}
+                w.atomic(path, meta)
+        systems.append(meta)
     return {**w.read(d/'job.json'), 'scope': SCOPE, 'candidate_qualified': False,
             'parameters': req['parameters'], 'inputs': req['inputs'], 'operations': ops,
-            'artifacts': artifacts, 'systems': [w.read(p) for p in sorted((d/'md_systems').glob('*/system.json'))]}
+            'artifacts': artifacts, 'systems': systems}
 
 
 def inventory():
@@ -226,6 +251,12 @@ def launch(ident, payload):
     kind = req['module']; action = payload.get('action', 'build' if kind == 'md' else 'run')
     if action not in ({'build', 'run', 'analyze'} if kind == 'md' else {'run'}):
         raise ValueError('Unsupported module action')
+    if kind == 'md':
+        if req.get('schema') != 'yuanhe.module-job/2':
+            raise ValueError('This MD job predates explicit membrane review; create a new job')
+        if action == 'build' and not (req['parameters'].get('orientation_reviewed') is True
+                                      and req['parameters'].get('exploratory_ack') is True):
+            raise ValueError('Review membrane orientation and explicitly acknowledge exploratory MD before build')
     system = payload.get('system_id')
     if kind == 'md' and action != 'build':
         from scientific.membrane import system_dir

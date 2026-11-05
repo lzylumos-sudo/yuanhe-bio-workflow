@@ -22,6 +22,8 @@ fi
 # --isolated ignores PIP_INDEX_URL, so pass the administrator's choice explicitly.
 "$prefix/bin/python" -m pip --isolated install --index-url "${PIP_INDEX_URL:-https://pypi.org/simple}" \
   --no-deps --no-build-isolation -r "$package_dir/pip-requirements.txt"
+resp_archive=$("$prefix/bin/python" "$package_dir/verify_resp_source.py" --path)
+"$prefix/bin/python" -m pip --isolated install --no-deps --no-build-isolation "$resp_archive"
 "$prefix/bin/python" -m pip check
 echo "Installed independent environment: $prefix"
 echo 'Next: run_public.sh ENV_PREFIX NEW_OUTPUT_DIRECTORY'

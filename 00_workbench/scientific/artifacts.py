@@ -1,6 +1,16 @@
 """Small artifact primitives shared by standalone scientific modules and the UI."""
 import hashlib,json,os,uuid
 from pathlib import Path
+from decimal import Decimal
+
+def integration_steps(duration_ns,timestep_fs):
+ """Exact units for the standalone MD engine, without importing the workbench."""
+ duration=Decimal(str(duration_ns));step=Decimal(str(timestep_fs))
+ if not duration.is_finite() or not step.is_finite() or duration<=0 or step<=0:
+  raise ValueError('Duration and timestep must be finite and positive (ns, fs)')
+ count=duration*Decimal(1000000)/step
+ if count!=count.to_integral_value():raise ValueError('Duration is not an integer number of integration steps')
+ return int(count)
 
 def read(path,default=None):
  p=Path(path)

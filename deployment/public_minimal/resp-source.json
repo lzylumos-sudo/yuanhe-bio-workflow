@@ -1,0 +1,13 @@
+{
+  "schema": "yuanhe.bundled-source/1",
+  "name": "RESP",
+  "repository": "https://github.com/cdsgroup/resp",
+  "commit": "e0da367e9bef96eb469b5696ff7d6ea58e45d638",
+  "license": "BSD-3-Clause",
+  "archive": "vendor/resp-e0da367.zip",
+  "sha256": "f31b798b44b7b7fecc72d43a3e191abc3cdad0d462ba09a34ae14c1b869c6be1",
+  "creation": "git archive --format=zip --prefix=resp-e0da367e9bef96eb469b5696ff7d6ea58e45d638/ e0da367e9bef96eb469b5696ff7d6ea58e45d638",
+  "upstream_archive_url": "https://codeload.github.com/cdsgroup/resp/zip/e0da367e9bef96eb469b5696ff7d6ea58e45d638",
+  "upstream_archive_sha256": "560ec2efe287c695d6a0ad132e96c953664e51611a344fdda7b29332266ebfd6",
+  "note": "ZIP container bytes differ; CI compares every uncompressed file against the original hash-pinned upstream archive. No source changes."
+}

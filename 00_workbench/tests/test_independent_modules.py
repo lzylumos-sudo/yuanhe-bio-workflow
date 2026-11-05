@@ -51,7 +51,7 @@ def test_every_module_saves_without_any_upstream(isolated, kind):
     assert result['module'] == kind and not result['operations']
     assert result['candidate_qualified'] is False
     assert not w.RUNS.exists()
-    assert jobs.verified(result['id'])[1]['schema'] == 'yuanhe.module-job/1'
+    assert jobs.verified(result['id'])[1]['schema'] == 'yuanhe.module-job/2'
 
 
 @pytest.mark.parametrize('mutation,match', [
@@ -88,6 +88,25 @@ def test_source_change_blocks_start(isolated, monkeypatch):
     monkeypatch.setattr(w, 'source_snapshot', lambda: {})
     with pytest.raises(ValueError, match='Source changed'):
         jobs.launch(result['id'], {})
+
+
+def test_stale_building_system_is_reconciled(isolated):
+    job = jobs.create(request('md')); d = jobs.folder(job['id'])
+    system = d/'md_systems/MD_123456789abc/system.json'
+    w.atomic(system, {'id': 'MD_123456789abc', 'status': 'building'})
+    assert jobs.get(job['id'])['systems'][0]['status'] == 'interrupted'
+    assert jobs.get(job['id'])['systems'][0]['error']
+
+
+def test_md_requires_explicit_review_flags(isolated):
+    payload = request('md')
+    payload['parameters']['orientation_reviewed'] = 'true'
+    with pytest.raises(ValueError, match='Boolean required'):
+        jobs.create(payload)
+    payload = request('md')
+    job = jobs.create(payload)
+    with pytest.raises(ValueError, match='Review membrane orientation'):
+        jobs.launch(job['id'], {'action': 'build'})
 
 
 def test_md_needs_build_and_explicit_review(isolated):

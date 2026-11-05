@@ -1,10 +1,11 @@
 # Version history
 
-For new installations, use the [current administrator download](../../DEPLOY.md). This page distinguishes historical software identities from the current build. Old scientific results keep their original parameters, source hashes and acceptance status.
+For new installations, use the [current administrator deployment](../../DEPLOY.md). This page distinguishes historical software identities from the current build. Old scientific results keep their original parameters, source hashes and acceptance status.
 
 | Identity | Role | Deployment status |
 |---|---|---|
-| Version in root [VERSION](../../VERSION) | Current integrated administrator build; [release metadata](../../deployment/current_release.json) | Use the current download entrypoint; target-machine acceptance required |
+| Version in root [VERSION](../../VERSION) | Current integrated administrator build; [release metadata](../../deployment/current_release.json) | Clone the current main source and record its exact commit; target-machine acceptance required |
+| 0.11.0-dev.4 | Runtime/configuration unification at `baf29bcfb72d4c2d2bb2173b735b5dadfa4719f3` | Original REINVENT cu126 lock failed CUDA readiness on RTX 5080; see [dev.5 compatibility correction](0.11.0-dev.5.md) |
 | 0.11.0-dev.3 | Historical tag at `3e6df84b8b1ea824916e610e2b1d8dc92423cf8f`; later main commits retained this label | Superseded by dev.4 runtime/configuration unification; compare commits, not version labels alone |
 | 0.11.0-dev.2 | Earlier package at `d0bdfd51b936e8b16422e4bf2dae898897ad8c0d`; later main commits retained this label | Historical tag; lacks subsequent synthesis-only deployment integration |
 | 0.11.0-dev.1 | Original architecture-governance branch, source `a6bbe7a2399b0603894dcd6feb97f86efa61b512` | Historical development snapshot, superseded by the integrated build |
@@ -21,4 +22,4 @@ The old labels above were not repository release tags when version governance wa
 - [Public minimal GPU acceptance](../../deployment/public_minimal/README.md): bounded CLI docking/OpenMM evidence; not full browser/model/membrane acceptance.
 - [Changelog](../../CHANGELOG.md): changes by build and historical maintenance date.
 
-Git history and original source hashes are preserved. Repeated file-list commit messages do not indicate duplicate releases, and changing those messages would change historical commit identities. New deployment builds have explicit versioned tags, release notes, source manifests and checksums.
+Git history and original source hashes are preserved. Repeated file-list commit messages do not indicate duplicate releases, and changing those messages would change historical commit identities. Current source deployments record their exact main commit. Historical packaged releases retain their immutable tags, source manifests and checksums.

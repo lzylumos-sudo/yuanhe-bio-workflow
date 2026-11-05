@@ -5,8 +5,9 @@ const root=path.resolve(__dirname,'../..'),staticRoot=path.join(root,'00_workben
 const version=fs.readFileSync(path.join(root,'VERSION'),'utf8').trim();
 const makeJob=(id,module,report)=>({id,module,parameters:{},inputs:{},scope:'Synthetic UI regression only',systems:[],artifacts:[],operations:report?[{action:'run',status:'completed',result:{result:{report},candidate_qualified:false},log:''}]:[]});
 const jobs={A:makeJob('A','risk'),B:makeJob('B','peptide2mol',{completed:1,valid:0,unique:0}),C:makeJob('C','reinvent4',{completed:1,valid:1,unique:1})};
+jobs.E={...makeJob('E','md'),systems:[{id:'MD_fixture',status:'building'}],operations:[{id:'build-E',action:'build',status:'running',log:''}]};
 let serviceVersion=version,available=true,startMode='busy',startCount=0,saveCount=0,holdRead=null,holdStart=null;
-const catalog=Object.fromEntries(['risk','peptide2mol','reinvent4'].map(k=>[k,{label:k,description:'Synthetic public UI fixture; no chemical computation.',files:{},fields:[]}]))
+const catalog=Object.fromEntries(['risk','peptide2mol','reinvent4','md'].map(k=>[k,{label:k,description:'Synthetic public UI fixture; no chemical computation.',files:{},fields:[]}]))
 const json=(res,data,status=200)=>{res.writeHead(status,{'Content-Type':'application/json'});res.end(JSON.stringify(data));};
 const server=http.createServer(async(req,res)=>{
   const url=new URL(req.url,'http://127.0.0.1');
@@ -16,7 +17,11 @@ const server=http.createServer(async(req,res)=>{
     if(req.method==='POST'){saveCount++;jobs.D=makeJob('D','risk');return json(res,jobs.D,201);}
     return json(res,{modules:catalog,jobs:Object.values(jobs).map(({id,module})=>({id,module})),resource_status:{available,policy:'exclusive',queued:false}});
   }
-  const match=url.pathname.match(/^\/api\/modules\/jobs\/([^/]+)(\/start)?$/);
+  const match=url.pathname.match(/^\/api\/modules\/jobs\/([^/]+)(\/(?:start|cancel))?$/);
+  if(match?.[2]==='/cancel'){
+    const job=jobs[match[1]];job.operations[0].status='cancelled';json(res,job);
+    setTimeout(()=>{job.systems[0].status='cancelled';},200);return;
+  }
   if(match){const id=match[1];if(match[2]){startCount++;if(startMode==='late'){holdStart=res;return;}available=false;return json(res,{error:'Resource lock occupied',error_code:'RESOURCE_BUSY',recoverable:true,details:{queued:false}},409);}if(holdRead===id){holdRead=res;return;}return json(res,jobs[id]);}
   let file=path.resolve(staticRoot,'.'+(url.pathname==='/'?'/index.html':url.pathname));
   if(!file.startsWith(staticRoot+path.sep)||!fs.existsSync(file)){res.writeHead(404);return res.end();}
@@ -43,10 +48,16 @@ const until=async(test)=>{for(let n=0;n<100;n++){if(test())return;await new Prom
   await selected('A');startMode='late';await page.locator('#moduleStart').click();await until(()=>holdStart);await selected('B');json(holdStart,{error:'Old job start failed'},500);holdStart=null;await page.waitForTimeout(150);assert.equal(await page.locator('#moduleError').innerText(),'');assert.match(await page.locator('#moduleJobIdentity').innerText(),/ · B$/);
   // Successful input creation selects the new immutable snapshot.
   await page.locator('#scopeAck').check();await page.locator('#saveModule').click();await page.waitForFunction(()=>document.getElementById('moduleJobIdentity').textContent.endsWith(' · D'));assert.equal(saveCount,1);
+  // A cancelled operation can arrive before the worker's final system metadata.
+  await selected('E');await page.locator('#moduleCancel').click();
+  await page.waitForFunction(()=>document.getElementById('moduleJobState').textContent==='build: cancelled');
+  await page.waitForFunction(()=>document.getElementById('moduleSystem').textContent.includes('cancelled'),null,{timeout:10000});
+  assert.equal(await page.locator('#moduleRunMD').isDisabled(),true);
+  await selected('D');
   serviceVersion='0.0.0-mismatched';const previousStarts=startCount;await page.locator('#moduleStart').click();await page.waitForFunction(()=>document.getElementById('modulePlatformVersion').textContent.includes('differs'));assert.equal(startCount,previousStarts,'A service upgrade while the page is open must block mutation before POST');
   assert.equal(await page.locator('#saveModule').isDisabled(),true);assert.equal(await page.locator('#moduleStart').isDisabled(),true);await selected('B');assert.match(await page.locator('#moduleOperations').innerText(),/No usable molecules/);
   // Main workbench also refuses new work with mismatched frontend/backend versions.
   await page.goto(base+'/');await page.waitForFunction(()=>document.getElementById('connection').textContent==='Version mismatch');await page.locator('#newRun').click();assert.equal(await page.locator('#runForm button[type="submit"]').isDisabled(),true);await page.locator('#closeDialog').click();
-  assert.deepEqual(errors,[]);console.log('PASS: recoverable busy state; no auto queue; stale response/error isolation; zero outputs; version identity and mismatch guards; historical viewing');
+  assert.deepEqual(errors,[]);console.log('PASS: recoverable busy state; no auto queue; stale response/error isolation; cancellation metadata refresh; zero outputs; version identity and mismatch guards; historical viewing');
  }finally{await browser.close();await new Promise(r=>server.close(r));}
 })().catch(e=>{console.error(e);server.close();process.exitCode=1;});

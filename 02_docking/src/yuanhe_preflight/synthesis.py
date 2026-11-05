@@ -17,6 +17,11 @@ from .sa_score import load_sascorer
 from .common import file_hash
 
 
+# One cached loader covers both wheel and Conda layouts.
+# Retain the public scorer export consumed by original deployment readiness.
+sascorer = load_sascorer()
+
+
 class SCScore:
     def __init__(self, path, expected_sha256):
         path = Path(path)

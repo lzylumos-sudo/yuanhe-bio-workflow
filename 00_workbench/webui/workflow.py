@@ -68,7 +68,7 @@ def _screen_revision_allowed(name):
  return name.startswith(('03_virtual_screening/src/','03_virtual_screening/configs/')) or name in {'00_workbench/webui/server.py', '00_workbench/webui/workflow.py'}
 
 def _md_revision_allowed(name):
- return _screen_revision_allowed(name) or name.startswith("05_molecular_dynamics/modules/") or name in {str(UI.relative_to(ROOT))+'/'+x for x in ('scientific/membrane.py','scientific/artifacts.py','scientific/md_cli.py','scientific/validation.py','md_stage.py','studio_worker.py','webui/studio.py')}
+ return _screen_revision_allowed(name) or name.startswith("05_molecular_dynamics/modules/") or name in {str(UI.relative_to(ROOT))+'/'+x for x in ('scientific/membrane.py','scientific/artifacts.py','scientific/md_cli.py','scientific/validation.py','md_stage.py','research/md_queue.py','studio_worker.py','webui/studio.py')}
 
 def continue_md(rid):
  """Audit MD-only changes without recreating or relabeling upstream results."""
@@ -77,7 +77,14 @@ def continue_md(rid):
   if _active:raise RuntimeError('A calculation is still active')
   lease=acquire_compute()
   try:
-   upstream={k:require(d,k) for k in ('prepare','peptide2mol','reinvent4','docking','screening')}
+   cfg=read(d/'config.json',{})
+   supplied=cfg.get('imported_candidates') or read(d/'reviews/risk.json',{}).get('imported_candidates') or (cfg.get('research') or {}).get('external_library')
+   keys=[k for k,_,_ in stages_for(cfg) if k!='gromacs']
+   if supplied:
+    # An imported positive control legitimately bypasses generation. Preserve
+    # and verify any generation outputs that did run, plus both screening gates.
+    keys=[k for k in keys if k not in {'peptide2mol','reinvent4'} or (d/k/'stage.json').is_file()]
+   upstream={k:require(d,k) for k in keys}
    initial=read(d/'source_snapshot.json');current=source_snapshot()
    previous=read(d/'active_source_revision.json')
    if previous:
@@ -182,6 +189,8 @@ def validate_config(config):
 
 def create(config):
  cfg,assets,source=validate_config(config)
+ from yuanhe.protocols import validate_sources
+ validate_sources()
  from yuanhe.records import new_run_id
  rid=new_run_id();d=run_dir(rid);d.mkdir(parents=True)
  shutil.copyfile(source,d/'input.pdb');cfg['input_sha256']=digest(d/'input.pdb')
@@ -237,7 +246,7 @@ def status(rid):
    rec={**rec,'counts':read(d/key/'progress.json',{})}
   if rec.get('status')=='running' and key=='docking':
    prog=read(d/key/'progress.json',{})
-   if prog:rec={**rec,'counts':{'input':prog['input'],'processed':prog['processed'],'remaining':prog['successful'],'failed':prog['failed']}}
+   if prog:rec={**rec,'counts':{'input':prog['input'],'processed':prog['processed'],'remaining':prog['successful'],'failed':prog.get('failed',max(0,prog['processed']-prog['successful']))}}
   if rec.get('status')=='running' and key=='screening':
    prog=read(d/key/'workspace/runs/screen/live_progress.json',{})
    if prog:rec={**rec,'counts':prog.get('counts',{}),'substage':prog.get('current_stage')}

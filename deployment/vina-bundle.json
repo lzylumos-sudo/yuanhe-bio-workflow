@@ -1,0 +1,17 @@
+{
+  "schema": "yuanhe.vina-bundle/1",
+  "version": "1.2.7",
+  "platform": "linux-x86_64",
+  "archive": "deployment/vendor/vina-1.2.7-linux-x86_64.gz",
+  "archive_sha256": "33126b4bef13346a1ae14c42a3b7f158ff4a72beca4cbda7b0590eb0afa8f1cb",
+  "binary_bytes": 4056088,
+  "binary_sha256": "f31f774f723bba7bbe6e9d1c47577020eea9a8da16424284c043d22593570644",
+  "upstream_url": "https://github.com/forlilab/AutoDock-Vina/releases/download/v1.2.7/vina_1.2.7_linux_x86_64",
+  "upstream_release": "https://github.com/forlilab/AutoDock-Vina/releases/tag/v1.2.7",
+  "original_url": "https://github.com/ccsb-scripps/AutoDock-Vina/releases/download/v1.2.7/vina_1.2.7_linux_x86_64",
+  "license": "Apache-2.0",
+  "license_path": "02_docking/docs/licenses/ccsb-scripps_AutoDock-Vina_LICENSE",
+  "license_sha256": "cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30",
+  "upstream_license_url": "https://raw.githubusercontent.com/forlilab/AutoDock-Vina/v1.2.7/LICENSE",
+  "modifications": "None. The exact official executable is gzip-compressed for repository distribution."
+}

@@ -239,7 +239,7 @@ def stage_docking(d,cfg,out):
    if entry['status']=='ok':successful.append(entry['job_id'])
    atomic(out/'progress.json',{'input':len(tasks),'processed':len(results),'successful':len(successful),'failed':len(results)-len(successful)})
  results.sort(key=lambda r:(r['id'],r['seed']))
- atomic(out/'results.json',results);csv_write(out/'molecules.csv',results,['id','compound_id','state_id','smiles','status','vina_affinity_kcal_mol','engine','labels','source_core','generation_batch','qualification_evidence','qualification_sha256','error'])
+ atomic(out/'results.json',results);csv_write(out/'molecules.csv',results,['id','job_id','seed','compound_id','state_id','smiles','status','vina_affinity_kcal_mol','engine','labels','source_core','generation_batch','qualification_evidence','qualification_sha256','error'])
  if not successful:raise RuntimeError('All molecules failed docking; inspect each job_record.json')
  return {'input':len(rows),'shortfall':max(0,read(d/'risk/summary.json',{}).get('input',len(rows))-len(rows)),'remaining':len({r['id'] for r in results if r['status']=='ok'}),'failed':len(tasks)-len(successful),'poses':sum(len(read(out/'jobs'/x/'job_record.json')['poses']) for x in successful)}
 
@@ -326,9 +326,13 @@ def stage_screening(d,cfg,out):
  atomic(out/'candidates.json',rows)
  csv_write(out/'molecules.csv',rows,list(dict.fromkeys(k for row in rows for k in row)))
  if rows:
-  from scientific.peptide_contacts import calculate
+  from scientific.peptide_contacts import compare
   evidence_dir=out/'peptide_evidence';evidence_dir.mkdir()
-  calculate(d,cfg,{},evidence_dir)
+  # Each receptor is screened in its own workspace before the parent candidate
+  # list exists. Compare the actual selected poses and receptor from this child.
+  compare(screen_receptor,d/'prepare/receptor_full.pdb',d/'prepare/peptide_reference.pdb',
+          [{**row,'sdf':str(d/row['sdf'])} for row in rows],
+          read(workspace/'runs/screen/stages/selection/summary.json'),evidence_dir)
  return {'input':read(d/'docking/stage.json')['counts']['remaining'],'remaining':len({x.get('compound_id') for x in rows if x.get('compound_id')}),'formal':len({x.get('compound_id') for x in rows if x.get('qualification')=='formal'}),'preliminary':len({x.get('compound_id') for x in rows if x.get('qualification')!='formal'})}
 
 def stage_gromacs(d,cfg,out):
@@ -346,9 +350,12 @@ def stage_gromacs(d,cfg,out):
  if not cfg.get('gromacs_tpr') or not tpr.is_file():raise Blocked('A constructed, equilibrated and reviewed system is required for production.tpr; Build and select a system in the membrane wizard, or import a reviewed TPR')
  shutil.copyfile(tpr,out/'production.tpr')
  command([exe,'--version'],out,60)
+ from scientific.prepared_md import inspect_tpr, verify_completion
+ plan=inspect_tpr(exe,out)
  command([exe,'mdrun','-s','production.tpr','-deffnm','production'],out,cfg['timeout_seconds'])
- if not (out/'production.gro').is_file() or not (out/'production.log').is_file():raise RuntimeError('GROMACS Final structure or log missing')
- atomic(out/'analysis_status.json',{'status':'not_evaluated','note':'Trajectory analysis requires receptor-specific/and ligand groups; external TPR mode only runs simulation; use the membrane wizard for integrated analysis'})
+ verify_completion(out,exe,plan)
+ if not (out/'production.gro').is_file():raise RuntimeError('GROMACS final structure is missing')
+ atomic(out/'analysis_status.json',{'status':'not_evaluated','plan':plan,'note':'Trajectory analysis requires receptor-specific/and ligand groups; external TPR mode only runs simulation; use the membrane wizard for integrated analysis'})
  return {'simulations_completed':1,'scientifically_validated':0}
 
 def main():

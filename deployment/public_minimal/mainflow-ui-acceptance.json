@@ -1,0 +1,91 @@
+{
+  "schema": "yuanhe.public-ui-mainflow-acceptance/1",
+  "date": "2026-11-05",
+  "status": "passed",
+  "scope": "Imported public known-active acetylcholine; minimum engineering main flow, not scientific convergence or generated-candidate qualification",
+  "tested_final_scientific_commit": "7e0c66cfc8a847e0d678d07267039498d538516f",
+  "execution": "Real browser uploads, reviews, clicks, trajectory control and downloads; no direct business API or command-line module execution",
+  "input": {
+    "receptor": "4MQS deposited PDB",
+    "receptor_sha256": "ec46471ca53e1131d70f0977e528e94658fd48a22a96f2ade5f578820b763267",
+    "compound": "acetylcholine",
+    "compound_id": "CMP84D51F4020B502D4"
+  },
+  "independent_reproduction": "Separate source-34/runtime-34 original installation; newly uploaded inputs and fresh project; no prepared receptors, charges, trajectories or task outputs copied from the first run",
+  "runs": [
+    {
+      "label": "first",
+      "project": "YH-20261105-a38b083b2b6c4dddb61c2b310c7eb7ac",
+      "system": "MD_cccf49d60e7c",
+      "compound_id": "CMP84D51F4020B502D4",
+      "source_history": "Started 05c3826; audited UI MD-only continuations through 7e0c66c",
+      "md_completed": true,
+      "md_analysis_completed": true,
+      "production_ns": 0.01,
+      "trajectory_frames": 11,
+      "checkpoint": "passed",
+      "quality": {
+        "finite_trajectory": true,
+        "expected_duration_ns": 0.01,
+        "actual_duration_ns": 0.01,
+        "constraint_warnings": false,
+        "last_backbone_rmsd_A": 0.7168623805046082,
+        "last_ligand_rmsd_A": 1.1570374965667725,
+        "interpretation": "Descriptive engineering checks; no activity or binding validation is inferred"
+      },
+      "pb_frames": 11,
+      "pb_method": "AmberTools MMPBSA.py / PBSA",
+      "formal_qualification_changed": false,
+      "formal_core_status": "insufficient_trajectory",
+      "ui_trajectory_last_frame_ns": 0.01,
+      "ui_archive_download": "passed",
+      "artifacts": {
+        "first-mainflow-md-systems.json": {
+          "bytes": 54463,
+          "sha256": "266482e393d81d3502a6ea0f4b20c6929fa1f9dcca65cced21f5a1a412f4b98c"
+        },
+        "first-mainflow-reproduction.zip": {
+          "bytes": 47358019,
+          "sha256": "4983714e567ea981528297526b744428c0ea5dddfed7ac7edcf389346e3c2838"
+        }
+      }
+    },
+    {
+      "label": "second",
+      "project": "YH-20261105-f15ce681f5544a488fa45f97f605e076",
+      "system": "MD_9608e057161b",
+      "compound_id": "CMP84D51F4020B502D4",
+      "source_history": "7e0c66c from new project creation through completion",
+      "md_completed": true,
+      "md_analysis_completed": true,
+      "production_ns": 0.01,
+      "trajectory_frames": 11,
+      "checkpoint": "passed",
+      "quality": {
+        "finite_trajectory": true,
+        "expected_duration_ns": 0.01,
+        "actual_duration_ns": 0.01,
+        "constraint_warnings": false,
+        "last_backbone_rmsd_A": 0.8816430568695068,
+        "last_ligand_rmsd_A": 0.7264352440834045,
+        "interpretation": "Descriptive engineering checks; no activity or binding validation is inferred"
+      },
+      "pb_frames": 11,
+      "pb_method": "AmberTools MMPBSA.py / PBSA",
+      "formal_qualification_changed": false,
+      "formal_core_status": "insufficient_trajectory",
+      "ui_trajectory_last_frame_ns": 0.01,
+      "ui_archive_download": "passed",
+      "artifacts": {
+        "second-mainflow-md-systems.json": {
+          "bytes": 54395,
+          "sha256": "948635d0d94a42e47cbe2a862a347c6ce64a58d18fa45cb6fbf184a4380990ed"
+        },
+        "second-mainflow-reproduction.zip": {
+          "bytes": 47035050,
+          "sha256": "fd1276fbf5d9bd1f85c3e2d157483986afc9f73055ac8d6f5ff18e77d8e46628"
+        }
+      }
+    }
+  ]
+}

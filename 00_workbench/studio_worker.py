@@ -5,28 +5,87 @@ from pathlib import Path
 from webui import workflow as w
 from webui.studio import within
 
+def preserve_receptor_breaks(source, target):
+ """Keep unresolved numbered gaps disconnected before OpenMM infers bonds."""
+ lines=source.read_text().splitlines(keepends=True)
+ residues=[];current=None;segment=0
+ for index,line in enumerate(lines):
+  if line.startswith(('TER','ENDMDL')):segment+=1;current=None
+  if not line.startswith(('ATOM  ','HETATM')):continue
+  key=(segment,line[21:22],line[22:27])
+  if current is None or current['key']!=key:
+   current={'key':key,'line':index,'name':line[17:20].strip(),'atoms':{}}
+   residues.append(current)
+  name=line[12:16].strip()
+  if name in ('N','C'):
+   point=tuple(float(line[start:start+8]) for start in (30,38,46))
+   if not all(math.isfinite(v) for v in point):raise ValueError('Nonfinite receptor backbone coordinate')
+   current['atoms'].setdefault(name,point)
+ insertions=set();breaks=[]
+ for left,right in zip(residues,residues[1:]):
+  if left['key'][:2]!=right['key'][:2]:continue
+  if 'C' not in left['atoms'] or 'N' not in right['atoms']:continue
+  distance=math.dist(left['atoms']['C'],right['atoms']['N'])
+  if distance<=2.0:continue
+  try:gap=int(right['key'][2][:4])-int(left['key'][2][:4])
+  except ValueError:gap=0
+  if gap<=1:
+   raise ValueError(f'Invalid receptor peptide geometry at {left["key"][1:]} -> {right["key"][1:]}: C-N {distance:.3f} A; review coordinates')
+  insertions.add(right['line'])
+  breaks.append({'chain':left['key'][1],'left_residue':left['key'][2].strip(),
+                 'right_residue':right['key'][2].strip(),'C_N_distance_A':distance,
+                 'missing_numbered_positions':gap-1,'action':'retain separate segments; add force-field termini; no missing-loop rebuilding'})
+ target.write_text(''.join(('TER\n' if i in insertions else '')+line for i,line in enumerate(lines)))
+ return breaks
+
 def receptor(d,c,p,out):
  from pdbfixer import PDBFixer
- from openmm import Platform,unit
- from openmm.app import PDBFile,Modeller
+ from openmm import Platform,unit,Context,VerletIntegrator,LocalEnergyMinimizer
+ from openmm.app import PDBFile,ForceField,NoCutoff
  w.require(d,'prepare');src=d/'prepare/receptor_full.pdb'
  ph=float(p.get('pH',7.4))
  if not math.isfinite(ph) or not 0<=ph<=14:raise ValueError('pH Invalid')
- fixer=PDBFixer(filename=str(src),platform=Platform.getPlatformByName('CPU'))
+ # Use the same double-precision placement backend as the membrane workflow.
+ segmented=out/'receptor_segments.pdb'
+ breaks=preserve_receptor_breaks(src,segmented)
+ fixer=PDBFixer(filename=str(segmented),platform=Platform.getPlatformByName('Reference'))
  fixer.findMissingResidues();fixer.findNonstandardResidues();fixer.findMissingAtoms()
  report={'pH':ph,'input_sha256':w.digest(src),'missing_residues':str(fixer.missingResidues),'nonstandard_residues':str(fixer.nonstandardResidues),'missing_heavy_atoms':{r.id:[x.name for x in a] for r,a in fixer.missingAtoms.items()},'missing_terminal_atoms':{r.id:a for r,a in fixer.missingTerminals.items()},'mutations':'preserved','scientific_review_required':True}
+ report['chain_breaks']=breaks
+ report['segmented_input_sha256']=w.digest(segmented)
  w.atomic(out/'result.json',report)
  if fixer.missingResidues or fixer.nonstandardResidues:raise ValueError('Missing or nonstandard residues require review; no automatic rebuilding or deletion')
  if fixer.missingAtoms and not p.get('repair_sidechains'):raise ValueError('Missing side-chain heavy atoms; review the report and explicitly allow completion')
  before={(a.residue.chain.id,a.residue.id,a.name):v.value_in_unit(unit.nanometer) for a,v in zip(fixer.topology.atoms(),fixer.positions) if a.element and a.element.symbol!='H'}
- fixer.addMissingAtoms(seed=c['seed']);fixer.addMissingHydrogens(ph)
+ fixer.addMissingAtoms(seed=c['seed'])
+ forcefield=ForceField('amber14-all.xml')
+ fixer.addMissingHydrogens(ph,forcefield=forcefield)
+ # PDBFixer's soft placement can leave intramolecular side-chain contacts
+ # that distance-based receptor readers interpret as spurious covalent bonds.
+ # Relax only added atoms with the same physical protein force field used by MD.
+ system=forcefield.createSystem(fixer.topology,nonbondedMethod=NoCutoff,constraints=None)
+ movable=0
+ for atom in fixer.topology.atoms():
+  key=(atom.residue.chain.id,atom.residue.id,atom.name)
+  if key in before:system.setParticleMass(atom.index,0)
+  else:movable+=1
+ integrator=VerletIntegrator(.001*unit.picoseconds)
+ context=Context(system,integrator,Platform.getPlatformByName('Reference'))
+ context.setPositions(fixer.positions)
+ LocalEnergyMinimizer.minimize(context,tolerance=10*unit.kilojoule_per_mole/unit.nanometer,maxIterations=2000)
+ state=context.getState(getPositions=True,getEnergy=True)
+ if not math.isfinite(state.getPotentialEnergy().value_in_unit(unit.kilojoule_per_mole)):
+  raise ValueError('Nonfinite receptor completion energy; inspect the retained preparation report')
+ fixer.positions=state.getPositions()
+ del context,integrator
+ report['added_atom_relaxation']={'forcefield':'amber14-all.xml','fixed_atoms':'all existing heavy atoms','movable_atoms':movable,'max_iterations':2000,'tolerance_kJ_mol_nm':10,'purpose':'repair new side-chain and hydrogen geometry; not whole-receptor equilibration'}
  pos=fixer.positions.value_in_unit(unit.nanometer)
  for a in fixer.topology.atoms():
   key=(a.residue.chain.id,a.residue.id,a.name)
   if key in before:pos[a.index]=before[key]
  target=out/'receptor.pdb'
  with target.open('w') as f:PDBFile.writeFile(fixer.topology,pos*unit.nanometer,f,keepIds=True)
- report.update(receptor=str(target.relative_to(d)),sha256=w.digest(target),note='Construct and existing heavy-atom coordinates preserved; new side chains and termini require review; no WT reversion to wild type')
+ report.update(receptor=str(target.relative_to(d)),sha256=w.digest(target),placement_platform='Reference',note='Construct and existing heavy-atom coordinates preserved; new side chains and termini require review; no WT reversion to wild type')
  return report
 
 def environment(d,c,p,out):
@@ -48,10 +107,28 @@ def main():
   if c.get('research') and kind=='md_build':
    from research.resources import detect,gpu_lease,disk_guard
    disk_guard(d,c['research'])
-   available=[g for g in detect(d)['gpus'] if g['allocatable']]
-   if not available:raise ValueError('No allocatable GPU for operation')
-   lease_context=gpu_lease(available[0]);lease_context.__enter__()
-   os.environ['CUDA_VISIBLE_DEVICES']=available[0]['uuid'];os.environ['YUANHE_GPU_INDEX']='0'
+   # Desktop redraws can briefly cross the idle threshold during the UI click.
+   # Recheck for a bounded interval without relaxing memory/utilization limits
+   # or preempting another process. A busy device is never silently selected.
+   deadline=time.monotonic()+10
+   while True:
+    snapshot=detect(d)
+    available=[g for g in snapshot['gpus'] if g['allocatable']]
+    selected=None
+    for gpu in available:
+     try:
+      lease_context=gpu_lease(gpu);lease_context.__enter__()
+      selected=gpu
+      break
+     except BlockingIOError:
+      lease_context=None
+    if selected is not None:break
+    if time.monotonic()>=deadline:
+     detail=snapshot.get('gpu_detection_error') or [{k:g[k] for k in ('index','free_mib','total_mib','utilization')} for g in snapshot['gpus']]
+     raise ValueError(f'No idle GPU after 10-second availability check; task was not queued. Retry from the UI when resources are free. Observed: {detail}')
+    print('MD_BUILD: checking GPU availability; existing workloads are preserved',flush=True)
+    time.sleep(1)
+   os.environ['CUDA_VISIBLE_DEVICES']=selected['uuid'];os.environ['YUANHE_GPU_INDEX']='0'
    p={**p,'gpu_id':'0'}
   if kind=='receptor':result=receptor(d,c,p,out)
   elif kind=='environment':result=environment(d,c,p,out)

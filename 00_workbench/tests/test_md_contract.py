@@ -4,6 +4,79 @@ import pytest
 sys.path.insert(0,str(Path(__file__).resolve().parents[1]))
 from scientific.md_cli import export_bundle,validate
 
+def test_exploratory_pb_requires_system_acknowledgement():
+ from scientific.membrane import pb_settings_for_system
+ original={'enabled':True,'start_ns':0,'end_ns':.01,'membrane':True}
+ meta={'qualification':'preliminary','parameters':{'exploratory_ack':True,'mmpbsa':original}}
+ assert pb_settings_for_system(meta)=={**original,'formal':False}
+ assert 'formal' not in original
+ meta['parameters']['exploratory_ack']=False
+ assert pb_settings_for_system(meta)==original
+ meta['parameters']['mmpbsa']={**original,'formal':False}
+ with pytest.raises(ValueError,match='explicitly acknowledged'):pb_settings_for_system(meta)
+ meta['qualification']='formal';meta['parameters']['exploratory_ack']=True
+ with pytest.raises(ValueError,match='explicitly acknowledged'):pb_settings_for_system(meta)
+
+@pytest.mark.parametrize('duration,step',[(.01,2),(500,2),(.000001,2),(0,2),(float('nan'),2),(1,0)])
+def test_standalone_step_count_matches_frozen_protocol(duration,step):
+ from scientific.artifacts import integration_steps as independent
+ from yuanhe.configuration import integration_steps as configured
+ try:expected=configured(duration,step)
+ except ValueError:
+  with pytest.raises(ValueError):independent(duration,step)
+ else:assert independent(duration,step)==expected
+
+def test_standalone_completion_has_no_workbench_import(tmp_path):
+ import shutil,subprocess
+ source=Path(__file__).resolve().parents[1]/'scientific'
+ package=tmp_path/'scientific';package.mkdir()
+ for name in ('__init__.py','artifacts.py','membrane.py'):
+  shutil.copyfile(source/name,package/name)
+ script=tmp_path/'check.py'
+ script.write_text('''import sys
+from pathlib import Path
+sys.path.insert(0,str(Path(__file__).parent))
+from scientific import membrane,artifacts
+root=Path(__file__).parent
+folder=root/'md_systems/MD_fixture'
+artifacts.atomic(folder/'system.json',{'id':'MD_fixture','status':'built','files':{},
+ 'parameters':{'production_ns':.01,'equilibration_ns':.1,'temperature_K':310},
+ 'protocol':{'production_steps':5000}})
+artifacts.atomic(folder/'progress.json',{'phases':{name:{'status':'completed','files':{}}
+ for name in ['em','nvt','npt','npt_soft','production']}})
+membrane.execute=lambda *args,**kwargs:None
+result=membrane.run(root,{'seed':17,'gmx':sys.executable},
+ {'system_id':'MD_fixture','system_reviewed':True},root)
+assert result['status']=='completed'
+assert 'yuanhe' not in sys.modules
+''')
+ subprocess.run([sys.executable,'-I',str(script)],check=True,cwd=tmp_path)
+
+@pytest.mark.parametrize('problem,status', [
+ (RuntimeError('parameterization failed'), 'failed'),
+ (KeyboardInterrupt(), 'cancelled'),
+ (SystemExit(143), 'cancelled'),
+])
+def test_membrane_construction_records_failure_and_preserves_evidence(tmp_path,problem,status):
+ from scientific.membrane import construction_state
+ original={'id':'MD_example','status':'building','source_hashes':{'ligand':'original'},'parameters':{'production_ns':.01}}
+ path=tmp_path/'system.json';path.write_text(json.dumps(original))
+ with pytest.raises(type(problem)) as captured:
+  with construction_state(tmp_path):raise problem
+ record=json.loads(path.read_text())
+ assert captured.value is problem
+ assert record['status']==status and record['error_type']==type(problem).__name__
+ assert record['source_hashes']==original['source_hashes']
+ assert record['parameters']==original['parameters']
+ assert record['ended']>0
+
+def test_membrane_construction_preserves_successful_record(tmp_path):
+ from scientific.membrane import construction_state
+ path=tmp_path/'system.json';path.write_text(json.dumps({'status':'building'}))
+ expected={'status':'built','atom_count':100,'files':{'system.top':'verified'}}
+ with construction_state(tmp_path):path.write_text(json.dumps(expected))
+ assert json.loads(path.read_text())==expected
+
 def test_handoff_preserves_identity_and_rejects_modified_input(tmp_path):
  r=tmp_path/'receptor.pdb';r.write_text('ATOM source')
  l=tmp_path/'ligand.sdf';l.write_text('source sdf')

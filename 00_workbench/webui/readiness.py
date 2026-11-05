@@ -82,6 +82,13 @@ def collect(cfg, root, ui_python=None, publish=None):
        'import rdkit,numpy,yaml,gemmi,scipy,pandas,filelock,meeko; '
        'from rdkit.Chem import FilterCatalog,rdMolDescriptors; print(rdkit.__version__)',
        'Install the complete workbench runtime; filelock and Meeko are required too.')
+    py('predocking_runtime', chem,
+       'import sys;from pathlib import Path;sys.path.insert(0,' + repr(str(root / '02_docking/src')) + ');'
+       'from yuanhe_preflight.engine import evaluate,rank;'
+       'from yuanhe_preflight.synthesis import sascorer;'
+       'assert Path(sascorer.__file__).with_name("fpscores.pkl.gz").is_file();'
+       'print("Pre-docking engine and installed RDKit SA_Score imports OK")',
+       'Restore the pre-docking source and the complete pinned RDKit package, including its Contrib data.')
     py('interaction', chem,
        'import Bio,openmm,openpyxl,cairosvg,lxml; print("interaction imports OK")',
        'Install deployment/module-runtime-requirements.txt in the chemistry runtime.')
@@ -108,13 +115,14 @@ def collect(cfg, root, ui_python=None, publish=None):
        'ForceField("amber14-all.xml","amber14/tip3p.xml"); print(openmm.__version__)',
        'Install PDBFixer and OpenMM in prep_python.')
     py('membrane_and_analysis', md,
-       'import openmm,parmed,MDAnalysis,psi4,resp,rdkit,numpy,matplotlib,yaml; '
+       'import openmm,parmed,MDAnalysis,psi4,resp,geometric,rdkit,numpy,matplotlib,yaml; '
+       'from importlib.metadata import version; assert version("geometric")=="1.1.1"; '
        'from openff.toolkit import Molecule; from openff.units import unit; '
        'from openmmforcefields.generators import GAFFTemplateGenerator; '
        'from openmm.app import ForceField; ForceField("amber14-all.xml","amber14/tip3p.xml"); '
        'import shutil; tools=["antechamber","parmchk2","tleap","MMPBSA.py","sander","cpptraj"]; '
        'missing=[x for x in tools if not shutil.which(x)]; assert not missing, missing; print(openmm.__version__)',
-       'Install OpenMM/OpenFF, AmberTools, Psi4, RESP and analysis packages in md_python; '
+       'Install OpenMM/OpenFF, AmberTools, Psi4, geomeTRIC 1.1.1, RESP and analysis packages in md_python; '
        'its bin directory must contain the AmberTools analysis executables.')
     py('openmm_cuda', md,
        'import openmm as m; s=m.System();s.addParticle(1);i=m.VerletIntegrator(0.001); '
@@ -169,7 +177,7 @@ def collect(cfg, root, ui_python=None, publish=None):
                 path = root / '01_molecule_generation/vendor' / row['vendor'] / row['file']
                 add(row['vendor'] + '_patch:' + row['file'], {'ok': path.is_file() and digest(path) == row['after_sha256'], 'path': str(path)},
                     'Apply deployment/apply_vendor_patches.py before installing the model environment.')
-                if row['vendor'] == 'REINVENT4':
+                if row['vendor'] == 'REINVENT4' and row['file'].endswith('.py'):
                     py('reinvent_installed_patch:' + row['file'], reinvent_python,
                        'import hashlib,importlib.util;from pathlib import Path;'
                        'p=Path(importlib.util.find_spec(' + repr(row['file'][:-3].replace('/', '.')) + ').origin);'
