@@ -5,6 +5,39 @@ from pathlib import Path
 from webui import workflow as w
 from webui.studio import within
 
+def preserve_receptor_breaks(source, target):
+ """Keep unresolved numbered gaps disconnected before OpenMM infers bonds."""
+ lines=source.read_text().splitlines(keepends=True)
+ residues=[];current=None;segment=0
+ for index,line in enumerate(lines):
+  if line.startswith(('TER','ENDMDL')):segment+=1;current=None
+  if not line.startswith(('ATOM  ','HETATM')):continue
+  key=(segment,line[21:22],line[22:27])
+  if current is None or current['key']!=key:
+   current={'key':key,'line':index,'name':line[17:20].strip(),'atoms':{}}
+   residues.append(current)
+  name=line[12:16].strip()
+  if name in ('N','C'):
+   point=tuple(float(line[start:start+8]) for start in (30,38,46))
+   if not all(math.isfinite(v) for v in point):raise ValueError('Nonfinite receptor backbone coordinate')
+   current['atoms'].setdefault(name,point)
+ insertions=set();breaks=[]
+ for left,right in zip(residues,residues[1:]):
+  if left['key'][:2]!=right['key'][:2]:continue
+  if 'C' not in left['atoms'] or 'N' not in right['atoms']:continue
+  distance=math.dist(left['atoms']['C'],right['atoms']['N'])
+  if distance<=2.0:continue
+  try:gap=int(right['key'][2][:4])-int(left['key'][2][:4])
+  except ValueError:gap=0
+  if gap<=1:
+   raise ValueError(f'Invalid receptor peptide geometry at {left["key"][1:]} -> {right["key"][1:]}: C-N {distance:.3f} A; review coordinates')
+  insertions.add(right['line'])
+  breaks.append({'chain':left['key'][1],'left_residue':left['key'][2].strip(),
+                 'right_residue':right['key'][2].strip(),'C_N_distance_A':distance,
+                 'missing_numbered_positions':gap-1,'action':'retain separate segments; add force-field termini; no missing-loop rebuilding'})
+ target.write_text(''.join(('TER\n' if i in insertions else '')+line for i,line in enumerate(lines)))
+ return breaks
+
 def receptor(d,c,p,out):
  from pdbfixer import PDBFixer
  from openmm import Platform,unit,Context,VerletIntegrator,LocalEnergyMinimizer
@@ -13,9 +46,13 @@ def receptor(d,c,p,out):
  ph=float(p.get('pH',7.4))
  if not math.isfinite(ph) or not 0<=ph<=14:raise ValueError('pH Invalid')
  # Use the same double-precision placement backend as the membrane workflow.
- fixer=PDBFixer(filename=str(src),platform=Platform.getPlatformByName('Reference'))
+ segmented=out/'receptor_segments.pdb'
+ breaks=preserve_receptor_breaks(src,segmented)
+ fixer=PDBFixer(filename=str(segmented),platform=Platform.getPlatformByName('Reference'))
  fixer.findMissingResidues();fixer.findNonstandardResidues();fixer.findMissingAtoms()
  report={'pH':ph,'input_sha256':w.digest(src),'missing_residues':str(fixer.missingResidues),'nonstandard_residues':str(fixer.nonstandardResidues),'missing_heavy_atoms':{r.id:[x.name for x in a] for r,a in fixer.missingAtoms.items()},'missing_terminal_atoms':{r.id:a for r,a in fixer.missingTerminals.items()},'mutations':'preserved','scientific_review_required':True}
+ report['chain_breaks']=breaks
+ report['segmented_input_sha256']=w.digest(segmented)
  w.atomic(out/'result.json',report)
  if fixer.missingResidues or fixer.nonstandardResidues:raise ValueError('Missing or nonstandard residues require review; no automatic rebuilding or deletion')
  if fixer.missingAtoms and not p.get('repair_sidechains'):raise ValueError('Missing side-chain heavy atoms; review the report and explicitly allow completion')
