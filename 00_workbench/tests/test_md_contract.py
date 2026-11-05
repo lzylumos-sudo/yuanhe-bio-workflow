@@ -4,6 +4,19 @@ import pytest
 sys.path.insert(0,str(Path(__file__).resolve().parents[1]))
 from scientific.md_cli import export_bundle,validate
 
+def test_exploratory_pb_requires_system_acknowledgement():
+ from scientific.membrane import pb_settings_for_system
+ original={'enabled':True,'start_ns':0,'end_ns':.01,'membrane':True}
+ meta={'qualification':'preliminary','parameters':{'exploratory_ack':True,'mmpbsa':original}}
+ assert pb_settings_for_system(meta)=={**original,'formal':False}
+ assert 'formal' not in original
+ meta['parameters']['exploratory_ack']=False
+ assert pb_settings_for_system(meta)==original
+ meta['parameters']['mmpbsa']={**original,'formal':False}
+ with pytest.raises(ValueError,match='explicitly acknowledged'):pb_settings_for_system(meta)
+ meta['qualification']='formal';meta['parameters']['exploratory_ack']=True
+ with pytest.raises(ValueError,match='explicitly acknowledged'):pb_settings_for_system(meta)
+
 @pytest.mark.parametrize('duration,step',[(.01,2),(500,2),(.000001,2),(0,2),(float('nan'),2),(1,0)])
 def test_standalone_step_count_matches_frozen_protocol(duration,step):
  from scientific.artifacts import integration_steps as independent

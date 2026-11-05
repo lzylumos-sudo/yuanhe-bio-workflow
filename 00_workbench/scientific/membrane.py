@@ -410,6 +410,13 @@ def energy_series(path):
  return rows
 
 
+def pb_settings_for_system(meta):
+ settings=dict(meta['parameters']['mmpbsa'])
+ exploratory=meta.get('qualification')!='formal' and meta['parameters'].get('exploratory_ack') is True
+ if exploratory:settings['formal']=False
+ elif settings.get('formal') is False:raise ValueError('Exploratory PB requires an explicitly acknowledged exploratory system')
+ return settings
+
 def analyze(d,c,p,out):
  import numpy as np
  import MDAnalysis as mda
@@ -432,9 +439,10 @@ def analyze(d,c,p,out):
  pb_result=None
  if meta['parameters'].get('mmpbsa',{}).get('enabled'):
   from modules.analysis.mmpbsa import run as pb_run
-  pb_settings=meta['parameters']['mmpbsa']
+  pb_settings=pb_settings_for_system(meta)
   if not pb_settings.get('membrane'):raise ValueError('Explicit membrane system requires membrane-aware PB parameters')
-  pb_result=pb_run(folder/'system.prmtop',[folder/'production.xtc'],dest/'mmpbsa',pb_settings)
+  pb_output=dest/('mmpbsa_exploratory' if pb_settings.get('formal') is False else 'mmpbsa')
+  pb_result=pb_run(folder/'system.prmtop',[folder/'production.xtc'],pb_output,pb_settings)
  execute([c['gmx'],'trjconv','-s','production.tpr','-f','production.xtc','-o','analysis/whole.xtc','-n','index.ndx','-pbc','mol','-center'],folder,input_text='Protein\nSystem\n')
  # Preserved PDB avoids TPR-version coupling and retains construct residue IDs.
  u=mda.Universe(str(folder/'system.pdb'),str(dest/'whole.xtc'))
