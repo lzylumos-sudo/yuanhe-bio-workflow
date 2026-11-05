@@ -4,6 +4,41 @@ import pytest
 sys.path.insert(0,str(Path(__file__).resolve().parents[1]))
 from scientific.md_cli import export_bundle,validate
 
+@pytest.mark.parametrize('duration,step',[(.01,2),(500,2),(.000001,2),(0,2),(float('nan'),2),(1,0)])
+def test_standalone_step_count_matches_frozen_protocol(duration,step):
+ from scientific.artifacts import integration_steps as independent
+ from yuanhe.configuration import integration_steps as configured
+ try:expected=configured(duration,step)
+ except ValueError:
+  with pytest.raises(ValueError):independent(duration,step)
+ else:assert independent(duration,step)==expected
+
+def test_standalone_completion_has_no_workbench_import(tmp_path):
+ import shutil,subprocess
+ source=Path(__file__).resolve().parents[1]/'scientific'
+ package=tmp_path/'scientific';package.mkdir()
+ for name in ('__init__.py','artifacts.py','membrane.py'):
+  shutil.copyfile(source/name,package/name)
+ script=tmp_path/'check.py'
+ script.write_text('''import sys
+from pathlib import Path
+sys.path.insert(0,str(Path(__file__).parent))
+from scientific import membrane,artifacts
+root=Path(__file__).parent
+folder=root/'md_systems/MD_fixture'
+artifacts.atomic(folder/'system.json',{'id':'MD_fixture','status':'built','files':{},
+ 'parameters':{'production_ns':.01,'equilibration_ns':.1,'temperature_K':310},
+ 'protocol':{'production_steps':5000}})
+artifacts.atomic(folder/'progress.json',{'phases':{name:{'status':'completed','files':{}}
+ for name in ['em','nvt','npt','npt_soft','production']}})
+membrane.execute=lambda *args,**kwargs:None
+result=membrane.run(root,{'seed':17,'gmx':sys.executable},
+ {'system_id':'MD_fixture','system_reviewed':True},root)
+assert result['status']=='completed'
+assert 'yuanhe' not in sys.modules
+''')
+ subprocess.run([sys.executable,'-I',str(script)],check=True,cwd=tmp_path)
+
 @pytest.mark.parametrize('problem,status', [
  (RuntimeError('parameterization failed'), 'failed'),
  (KeyboardInterrupt(), 'cancelled'),

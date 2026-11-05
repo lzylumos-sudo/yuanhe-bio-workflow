@@ -390,8 +390,7 @@ def run(d,c,p,out):
   progress['phases'][phase]={'status':'completed','tpr_sha256':tpr_hash,'files':{phase+s:w.digest(folder/(phase+s)) for s in ('.gro','.tpr','.mdp','.log','.cpt','.xtc','.edr') if (folder/(phase+s)).is_file()}}
   w.atomic(folder/'progress.json',progress);previous=phase+'.gro'
  if meta.get('protocol'):
-  from yuanhe.configuration import integration_steps
-  expected=integration_steps(meta['parameters']['production_ns'],2)
+  expected=w.integration_steps(meta['parameters']['production_ns'],2)
   actual=int(re.search(r'^nsteps\s*=\s*(\d+)',mdp('production',meta['parameters'],c['seed']),re.M).group(1))
   if actual!=expected or meta['protocol']['production_steps']!=expected:raise ValueError('Production steps differ from frozen protocol')
  meta['status']='completed';w.atomic(folder/'system.json',meta)
