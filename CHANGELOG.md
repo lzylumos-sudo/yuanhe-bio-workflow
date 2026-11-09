@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased - 2026-11-10
+
+- Resolve peptide contact evidence in each receptor-specific screening workspace, including automatic screening before aggregate candidates exist and standalone recalculation after screening. Preserve legacy layouts, coordinate-frame checks and receptor hashes; keep rankings separate across conformations.
+- Make the preflight doctor use effective workbench deployment settings by default. Accept explicit preflight, runtime, run and resolved-run configurations, resolve asset paths against the project root and report the configuration source.
+- Add regression coverage for real contact geometry, per-receptor score isolation, missing or modified artifacts and deployment configuration precedence. Large-scale generation/docking and production MD speed remain target-host acceptance work.
+
 ## 0.11.0-dev.4 - 2026-10-30
 
 - Unify runtime resolution across registry probes, diagnostics and workers; retain schema-checked compatibility with legacy environment settings.
