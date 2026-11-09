@@ -44,10 +44,56 @@ def compare(receptor, reference_receptor, peptide, candidates, selection, out):
  a.atomic(out/'peptide_evidence.json',result);return result
 
 
+def _receptor_folder(d, receptor):
+ """Locate the screening workspace by its full recorded receptor identity."""
+ import re
+ sha=receptor.get('sha256','') if isinstance(receptor,dict) else ''
+ if not isinstance(sha,str) or not re.fullmatch(r'[0-9a-f]{64}',sha):
+  raise ValueError('Missing or invalid research receptor SHA-256')
+ folder=d/'screening'/sha[:16]
+ prepared=a.within(d,str((folder/'docking_input/receptor.pdb').relative_to(d)))
+ if a.digest(prepared)!=sha:raise ValueError('Screening receptor checksum mismatch')
+ return folder,prepared
+
+
+def _calculate_rows(d,folder,receptor,rows,out):
+ rows=[{**r,'sdf':str(a.within(d,r['sdf']))} for r in rows]
+ selection=a.read(a.within(d,str((folder/'workspace/runs/screen/stages/selection/summary.json').relative_to(d))))
+ return compare(receptor,d/'prepare/receptor_full.pdb',d/'prepare/peptide_reference.pdb',rows,selection,out)
+
+
 def calculate(d,c,p,out):
- rows=[{**r,'sdf':str(a.within(d,r['sdf']))} for r in a.read(d/'screening/candidates.json')]
- selection=a.read(d/'screening/workspace/runs/screen/stages/selection/summary.json')
- return compare(d/'docking/receptor.pdb',d/'prepare/receptor_full.pdb',d/'prepare/peptide_reference.pdb',rows,selection,out)
+ """Use stage-local inputs during screening and group completed research results."""
+ d,out=Path(d),Path(out)
+ current=c.get('_screen_receptor')
+ if current is not None:
+  folder,receptor=_receptor_folder(d,current)
+  rows=a.read(a.within(d,str((folder/'candidates.json').relative_to(d))))
+  return _calculate_rows(d,folder,receptor,rows,out)
+
+ rows=a.read(a.within(d,'screening/candidates.json'))
+ if not rows:
+  result={'status':'no_candidates','candidates':[],'receptor_results':[]}
+  a.atomic(out/'peptide_evidence.json',result);return result
+ if not c.get('research') and not any('research_receptor' in row for row in rows):
+  return _calculate_rows(d,d/'screening',d/'docking/receptor.pdb',rows,out)
+
+ groups={}
+ for row in rows:
+  receptor=row.get('research_receptor')
+  folder,prepared=_receptor_folder(d,receptor)
+  sha=receptor['sha256']
+  groups.setdefault(sha,{'folder':folder,'receptor':prepared,'rows':[]})['rows'].append(row)
+ results=[];candidates=[]
+ for sha,group in groups.items():
+  dest=out/sha[:16]
+  proof=_calculate_rows(d,group['folder'],group['receptor'],group['rows'],dest)
+  results.append({'receptor_sha256':sha,'artifact':str((dest/'peptide_evidence.json').relative_to(out)),
+                  'sha256':a.digest(dest/'peptide_evidence.json'),'result':proof})
+  candidates.extend({**row,'receptor_sha256':sha} for row in proof['candidates'])
+ result={'scope':'Contact evidence and ranking ablation within each receptor conformation',
+         'candidates':candidates,'receptor_results':results}
+ a.atomic(out/'peptide_evidence.json',result);return result
 
 
 def main():
