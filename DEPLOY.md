@@ -120,6 +120,21 @@ No scientific stage, service restart or 500 ns trajectory starts here. Progress/
 
 ## 4. Switch the service and prove which code is serving
 
+For a read-only inventory of preflight assets, run:
+
+```bash
+python3 deployment/preflight_doctor.py
+# Or inspect an explicit preflight file, runtime.json, config.json or resolved_config.json:
+python3 deployment/preflight_doctor.py --config /absolute/path/to/config.json
+```
+
+Without `--config`, the doctor uses the same effective deployment settings as new
+workbench tasks, including research configuration precedence. Its JSON report
+includes `config_source`. Relative asset paths resolve against the project root.
+Package availability describes the interpreter running the doctor; repeat with
+the reported `configured_retro_python` to inspect that environment. The command
+does not rewrite settings or load models.
+
 Only after readiness passes (`all_runtime_checks_pass: true` in `readiness.json`, `ready_for_service_switch` in `deployment.json`), the installer writes `PREFIX/evidence/start-workbench.sh`. On a first installation, run it in a Linux terminal as the installation owner and keep the terminal open for initial verification. For unattended use, configure the site's service manager to execute the same absolute command as that owner. No existing service-unit name is assumed. For upgrades, check jobs at OS level and in the UI, then switch the existing service command during an idle window:
 
 ```bash
