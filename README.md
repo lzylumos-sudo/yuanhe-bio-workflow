@@ -28,8 +28,7 @@ cd yuanhe-bio-workflow
 Deployment settings: [site.example.json](deployment/site.example.json).
 Verified checks and remaining target acceptance: [first-install validation](deployment/FIRST_INSTALL_VALIDATION.txt).
 Researcher instructions after startup: [UI workflow](docs/18_UI_RESEARCH_WORKFLOW.md).
-Installation success does not imply that a candidate passes the scientific gates
-or that a molecular dynamics run has completed.
+Candidate qualification and MD completion are recorded for each run.
 
 <!-- current-release:start -->
 **Current administrator build: 0.11.0-dev.4 (development)**
@@ -74,8 +73,8 @@ On 2026-10-21, the public 1CRN + ethanol command-line path passed real Vina dock
 screening/export, HF/RESP parameterization, 0.2 ps CUDA production MD, analysis and
 native checkpoint audit in a newly recreated independent environment on WSL2 / RTX 5080.
 See the [portable Linux GPU installation and public acceptance guide](deployment/public_minimal/README.md).
-This does not certify generation models, the browser workflow, membrane MD,
-production-duration simulations, MM/PBSA, MM/GBSA, or another GPU computer.
+Generation models, the browser workflow, membrane MD, production-duration simulations,
+MM/PBSA, MM/GBSA and other GPU hosts require their respective acceptance checks.
 The administrator deploys the workbench and provides its UI URL. A live website
 deployment is not part of this public computational acceptance.
 
@@ -98,7 +97,7 @@ A research workbench for molecular generation, structure-based virtual screening
 - **Investigate membrane-protein workflows:** examine membrane orientation evidence, prepare reviewed membrane systems and connect screening to downstream dynamics. MurJ / 9NU4 is the recorded reference case; other targets need their own configuration and validation.
 - **Reuse individual components:** use docking, screening, interaction analysis or standalone OpenMM modules without adopting the entire workbench.
 
-The project's contribution is workflow integration, review checkpoints and evidence tracking. The underlying generation, docking and simulation methods belong to their respective upstream projects. This is research software with a noncommercial source-available license; it is not a validated predictor of binding affinity or biological activity.
+The project's contribution is workflow integration, review checkpoints and evidence tracking. The underlying generation, docking and simulation methods belong to their respective upstream projects. This is research software with a noncommercial source-available license; binding-affinity and biological-activity validation remain pending.
 
 ## Historical evidence
 
@@ -155,11 +154,11 @@ static demo is distinct from the deployed research workbench.
 
 ## Scientific boundaries
 
-The current input is MurJ / 9NU4. Review chains, construct mutations, residue ranges, protonation and the docking box. Peptide2Mol uses the peptide-defined receptor pocket; explicit peptide-pharmacophore retention is not claimed. REINVENT4 expands a reviewed molecular core, not a protein backbone.
+The current input is MurJ / 9NU4. Review chains, construct mutations, residue ranges, protonation and the docking box. Peptide2Mol uses the peptide-defined receptor pocket; peptide-pharmacophore retention requires separate assessment. REINVENT4 expands a reviewed molecular core, not a protein backbone.
 
 Counts distinguish requested samples, valid unique molecules, docking poses, preliminary candidates and formally qualified candidates. Unperformed checks never become passes. For the exact 9NU4 construct, screening transfers an archived PPM3 orientation with file hashes, atom mapping and a rigid-fit tolerance check. Other structures without matching evidence retain a proxy or missing-evidence status; the membrane builder requires a reviewed orientation. Idealized single-lipid membranes are not full bacterial membrane models.
 
-The built-in MD path includes parameterization, minimization, staged equilibration, production, checkpoint guards and analysis. It has not been executed on the target Windows machine in this release. Short trajectories and docking scores do not establish affinity, activity or convergence.
+The built-in MD path includes parameterization, minimization, staged equilibration, production, checkpoint guards and analysis. It has not been executed on the target Windows machine in this release. Assess affinity and activity experimentally, and evaluate convergence from suitable trajectory diagnostics.
 
 Weights, installed environments, VHDX images and historical run outputs are excluded from GitHub. Restore pinned models separately. An external disk does not remove host driver, WSL, environment or target-machine acceptance requirements.
 
@@ -181,7 +180,7 @@ Ask usage questions and propose collaborations in [Discussions](https://github.c
 
 ## Cite and acknowledge
 
-If you use this workflow, identify the repository URL and exact commit or release in your methods. GitHub's **Cite this repository** entry provides software citation metadata from [CITATION.cff](CITATION.cff). Also cite the upstream methods you actually used, following [third-party notices](THIRD_PARTY_NOTICES.md). Repository citation does not substitute for those method citations or imply upstream endorsement.
+If you use this workflow, identify the repository URL and exact commit or release in your methods. GitHub's **Cite this repository** entry provides software citation metadata from [CITATION.cff](CITATION.cff). Also cite the upstream methods you actually used, following [third-party notices](THIRD_PARTY_NOTICES.md). 
 
 ## Why use Yuanhe Bio?
 
@@ -189,7 +188,7 @@ If you use this workflow, identify the repository URL and exact commit or releas
 - **Preserve scientific context.** Candidate, pose, configuration and downstream handoff identities remain traceable.
 - **Keep review in the workflow.** Structure preparation, core choice, membrane orientation and experimental decisions require human judgment.
 
-The screening decision layer is project-authored engineering built around established scientific methods. It is not a claim to have invented docking, Pareto optimization or the upstream generative models. Measured time savings, improved hit rates and multi-target superiority remain to be demonstrated.
+The screening decision layer is project-authored engineering built around established scientific methods. Measured time savings, improved hit rates and multi-target superiority remain to be demonstrated.
 
 ## Development priorities
 

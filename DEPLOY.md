@@ -94,7 +94,7 @@ python3 deployment/setup_workbench.py --config /srv/yuanhe/site.json
 python3 deployment/setup_workbench.py --config /srv/yuanhe/site.json --execute
 ```
 
-Preflight collects platform/Python/tool/driver/GROMACS/model/clean-source/destination checks and prints the plan. Without `--execute` it writes nothing. Any failed check blocks installation. It does not guarantee enough GPU memory for every scientific job or probe every remote package server.
+Preflight collects platform/Python/tool/driver/GROMACS/model/clean-source/destination checks and prints the plan. Without `--execute` it writes nothing. Any failed check blocks installation. GPU memory requirements and remote package availability are checked for each job and environment.
 
 For automation without a configuration file, the equivalent lower-level command is:
 
@@ -177,4 +177,4 @@ Return: source SHA, actual service Python/start command, `deployment.json`, read
 
 ## Release and deployment are separate
 
-[Verified administrator release](.github/workflows/release.yml) requires engineering, predocking-model and evidence-UI push checks for an explicit main-branch SHA, verifies the extracted archive and publishes a new tag/ZIP/checksum. Existing tags are never replaced. It does not deploy or restart the internal workstation. A merge or green CI does not establish a server update.
+[Verified administrator release](.github/workflows/release.yml) requires engineering, predocking-model and evidence-UI push checks for an explicit main-branch SHA, verifies the extracted archive and publishes a new tag/ZIP/checksum. Existing tags are never replaced. It does not deploy or restart the internal workstation. Server deployment is performed and verified separately.
