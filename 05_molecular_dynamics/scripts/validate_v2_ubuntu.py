@@ -90,7 +90,7 @@ class Driver:
         self.deadline = time.monotonic() + max_seconds
         self.summary = {
             "schema_version": 2, "started": stamp(), "status": "RUNNING",
-            "scope": "Native engineering validation only; no scientific sampling/convergence claim.",
+            "scope": "Native engineering validation; scientific sampling and convergence evaluation pending.",
             "host": {"system": platform.system(), "release": platform.release(),
                      "machine": platform.machine(), "python": sys.version,
                      "driver_python": sys.executable},

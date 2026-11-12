@@ -12,7 +12,7 @@ The internal `availability` stage/directory and serialized key are retained for 
 
 ## Route qualification
 
-A complete real search is required, with an exact target, at least one reaction, all terminal nodes in the versioned planning pool and successful replay of every SMARTS reaction. A pool is a computational reference set. It does not certify actual experimental synthesis. Stereo or template selectivity ambiguities require a route-hash-bound chemistry review. Missing models, incomplete trees, invalid templates and exhausted budgets remain review/error states.
+A complete real search is required, with an exact target, at least one reaction, all terminal nodes in the versioned planning pool and successful replay of every SMARTS reaction. A pool is a computational reference set. Experimental synthesis is evaluated separately. Stereo or template selectivity ambiguities require a route-hash-bound chemistry review. Missing models, incomplete trees, invalid templates and exhausted budgets remain review/error states.
 
 All three modes retain the mandatory route gate. SA and SCScore thresholds are separate difficulty filters. Neither score can replace a route. Source searches and asset hashes, every rejected molecule, all endpoint predictions and identity provenance persist in JSON, CSV, SQLite and SDF exports. Docking rechecks raw search hashes, policy, selected IDs and exact structure identity.
 

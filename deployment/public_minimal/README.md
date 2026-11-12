@@ -38,7 +38,7 @@ Use `CUDA_VISIBLE_DEVICES=0` to select one GPU if needed. This is a single-GPU a
 - Main versions: Python 3.11.17, NumPy 1.26.4, SciPy 1.15.2, Biopython 1.85, OpenMM 8.6.1, AmberTools 26.0, Psi4 1.11, RDKit 2026.03.1, Meeko 0.8.0, Vina 1.2.7.
 - Downloads of public 1CRN and Vina are checked against fixed SHA-256 values. The supplied model configuration runs the same toxicity, SA/SCScore and computed-route gate as production. Missing models or incomplete routes stop the run.
 - Third-party binaries, model weights and private molecules are not bundled in Git. Dependencies retain their upstream licenses; see [research dependency licenses](../../docs/16_RESEARCH_DEPENDENCY_LICENSES.md).
-- The prior recorded GPU validation predates the synthesis-only policy. This updated full CUDA path requires new target-host acceptance; CPU route/Vina acceptance does not establish CUDA MD validation.
+- The prior recorded GPU validation predates the synthesis-only policy. This updated full CUDA path requires new target-host acceptance; CUDA MD validation requires a GPU run.
 
 ## Minimal settings and success criteria
 

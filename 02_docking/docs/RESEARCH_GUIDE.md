@@ -28,4 +28,4 @@ score_only scores existing same-frame poses; redock generates inputs and searche
 
 Manual downstream export requires reviewer identity and pose approval. SDF is the chemical master; PDB is a same-frame preview. This module does not thereby parameterize or simulate MD.
 
-Covalent docking, unvalidated metal/cofactor handling, flexible receptors, long-loop rebuilding and reliable MOL2 handling are outside the supported scope. No target activity labels or enrichment validation are supplied. A single FOL redocking example does not establish general screening performance.
+Covalent docking, unvalidated metal/cofactor handling, flexible receptors, long-loop rebuilding and reliable MOL2 handling are outside the supported scope. No target activity labels or enrichment validation are supplied. The reported benchmark covers one FOL redocking example.

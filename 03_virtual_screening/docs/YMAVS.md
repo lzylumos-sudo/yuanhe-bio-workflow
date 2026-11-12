@@ -155,8 +155,8 @@ A state that has no manifest remains `missing`; it is never assigned zero. The s
 
 Each configured state also needs its own structure/hash and its own membrane orientation
 evidence. The primary state's orientation is never copied to another state. A C-alpha
-Kabsch fit checks chain, residue identity, missing residues and RMSD; it does not claim
-that conformational states are experimentally interchangeable.
+Kabsch fit checks chain, residue identity, missing residues and RMSD. Experimental
+comparability of conformational states requires separate evidence.
 
 ## Usage
 

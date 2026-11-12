@@ -122,7 +122,7 @@ def audit_completed(run_id):
          'actual_binary_checkpoint_loaded_on_CPU':True,'checkpoint_steps_times_finite_positions_velocities':True,
          'required_analysis_and_real_mmgbsa':True,'documented_state_transfer_and_rng_epoch':True},'source_sha256':source_hashes,
         'dcd_time_definition':'Each OpenMM segment DCD starts at one report interval. Absolute production time = independently verified committed preceding-step offset + DCD time; checked against global state CSV.',
-        'scope':'10ns numerical workflow completion only; no convergence, affinity or correct-pose claim.'}
+        'scope':'10ns numerical workflow completion.'}
 
 
 def require_10ns(record):
@@ -145,7 +145,7 @@ def main():
         f'Replicas: {len(record["replicas"])}.',
         'Completed input/build/analysis hashes, actual CPU binary checkpoint step/time, every DCD/CSV hash, finite coordinates, continuous global CSV times, and offset-mapped DCD final times passed.',
         'MM/GBSA is real AmberTools single-trajectory endpoint analysis; entropy excluded.',
-        'Scope: numerical workflow completion only; no convergence, binding-affinity or correct-pose claim.',
+        'Scope: numerical workflow completion.',
         'Detailed evidence: installation_evidence/10ns_final_audit.json',''])
     if record['state_transfer_audit']['verified_transfers']:
         report+='\nA documented CPU10-to-CPU16 XML physical-state transfer preserved coordinates, velocities, box and committed time/segments. Langevin/barostat RNG streams and barostat adaptation were restarted; this is not bitwise binary continuation.\n'

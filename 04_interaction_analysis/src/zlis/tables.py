@@ -72,7 +72,7 @@ def write_tables(result: dict, out_dir: Path) -> dict:
         ("Chemistry source", chem["source"]), ("Chemistry status", chem["status"]),
         ("Notes", " | ".join(chem["notes"] + result["protein_prep"].get("notes", []) + result["warnings"])),
         ("Waters in input", result["n_waters"]),
-        ("Disclaimer", "Static-structure geometric analysis. Not a free-energy or force calculation."),
+        ("Analysis method", "Static-structure geometric analysis."),
     ], columns=["field", "value"])
     with pd.ExcelWriter(xlsx, engine="openpyxl") as xw:
         df.to_excel(xw, sheet_name="Interactions", index=False)

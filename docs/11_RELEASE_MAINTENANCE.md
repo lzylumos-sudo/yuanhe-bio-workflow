@@ -6,7 +6,7 @@ Baseline agreed on 2026-10-18: five acceptance categories below define the curre
 
 The proposed deliverable is a reproducible computational research workbench and reusable docking, screening, membrane MD and peptide-contact modules. The demonstrated compute environment is the recorded Linux / RTX 5090 D configuration, with browser control from the local computer. Other platforms or target classes are not supported merely because the UI can accept their inputs.
 
-Release acceptance does not establish peptide-function replacement, experimental activity, equilibrium convergence, regulatory readiness, customer demand or commercial success. A software delivery decision must state its tested environments, input classes and exclusions. The existing project and third-party licenses remain unchanged; passing tests grants no additional usage rights.
+Release acceptance covers software behavior. Peptide-function replacement, experimental activity, convergence and commercial readiness have separate evaluation criteria. A software delivery decision must state its tested environments, input classes and exclusions. The existing project and third-party licenses remain unchanged; passing tests grants no additional usage rights.
 
 ## Fixed acceptance checklist
 
@@ -27,7 +27,7 @@ Commit titles were normalized on 2026-10-19 without changing any commit file tre
 - Source revision `b9cf13214c90f8986c2ca578aa34ae9df730b6f0` passed [main-branch CI](https://github.com/lzylumos-sudo/yuanhe-bio-workflow/actions/runs/39093935326).
 - Original JUnit artifacts for the same executable code at `056c448e27194ea7d794824a2d2860a43c717214` record 63 generation passes, 55 screening passes and 80 workbench passes, with one historical-output test skipped: 198 passed, one skipped, no failures. [Run and artifacts](https://github.com/lzylumos-sudo/yuanhe-bio-workflow/actions/runs/39093619141).
 - [Integrated execution record](10_INTEGRATED_ACCEPTANCE.md) contains actual observations and remaining execution limits. Historical test totals must not be added to current totals.
-- Full raw outputs and model weights are not in GitHub. An executed-source archive is not a trajectory archive. Until the final export is copied and verified, do not claim that remote raw data have been backed up locally.
+- Full raw outputs and model weights are not in GitHub. An executed-source archive is not a trajectory archive. Copy and verify the final export to complete the local backup of remote raw data.
 
 ## Maintenance procedure
 
@@ -39,6 +39,6 @@ Commit titles were normalized on 2026-10-19 without changing any commit file tre
 
 ## Release decision
 
-The software can be considered for commercial delivery within its explicitly tested and authorized support scope only after A1-A5 are closed, no known blocking defects remain, and the release record identifies evidence, limitations and operational responsibilities. This is not a guarantee of zero undiscovered defects. The current status is **release candidate; final acceptance open**.
+The software can be considered for commercial delivery within its explicitly tested and authorized support scope only after A1-A5 are closed, no known blocking defects remain, and the release record identifies evidence, limitations and operational responsibilities. The current status is **release candidate; final acceptance open**.
 
 This document establishes the maintenance process. It does not create scheduled monitoring, a support subscription or an unattended deployment task.

@@ -4,7 +4,7 @@ The current main page is static/index.html with studio.js and studio-tools.js. I
 
 Start `python run_webui.py --no-browser` from 00_workbench, or use the root platform launcher. The server binds to loopback by default and advances to an available port when necessary. Do not expose this unauthenticated local service publicly. Host/origin checks, request limits, path containment and explicit compute ownership protect local operations; they are not a multi-user authentication system.
 
-The server uses the Python standard library; frontend modules use plain JavaScript and Canvas 2D with no build step. Scientific tasks and RDKit structure drawing require their configured environments. Starting a dependency-light server is not proof that calculations can run.
+The server uses the Python standard library; frontend modules use plain JavaScript and Canvas 2D with no build step. Scientific tasks and RDKit structure drawing require their configured environments. Check the configured scientific environments before submitting calculations.
 
 ## Current workflow implementation
 

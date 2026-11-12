@@ -24,8 +24,8 @@ Adoption requires Yuanhe to complete a real customer task with less manual effor
 | Level | Defensible positioning | Limits |
 |---|---|---|
 | Engineering | Multi-stage interfaces, traceable handoff, failure states and review workflows | Integration is not a proprietary generative model |
-| Workflow/product innovation | Explicit candidate decisions from multiple evidence types, distinguishing formal/preliminary/exploratory candidates | An original implementation does not establish world-first novelty |
-| Use-case differentiation | Research involving membrane context and peptide-binding information, such as MurJ | One MurJ case does not establish generality across membrane proteins or replacement of peptide function |
+| Workflow/product innovation | Explicit candidate decisions from multiple evidence types, distinguishing formal/preliminary/exploratory candidates | Novelty requires comparison with prior work |
+| Use-case differentiation | Research involving membrane context and peptide-binding information, such as MurJ | Evaluate generality across membrane proteins and peptide-function replacement in additional studies |
 | Methodological potential | Structural constraints, multi-objective evaluation and budget-aware active learning | Comparative evidence of algorithmic uniqueness or superior performance is not yet sufficient |
 
 Virtual screening can contribute to innovation, but the sequence "docking → screening → MD" alone is not strong novelty. A new decision strategy needs a clear rationale and gains on equal-budget independent tests, ablations and subsequent experiments. Pareto optimization, weighted scores and diversity selection are existing methods and cannot become original merely by renaming them.
@@ -67,7 +67,7 @@ Proposed validation goals, not existing achievements: interview 10–15 target t
 
 ## Market references and evidence sources
 
-- [Schrödinger Virtual Screening Web Service](https://www.schrodinger.com/platform/products/virtual-screening-web-service/) illustrates an existing automated virtual-screening product form; it does not establish Yuanhe customers or profitability.
+- [Schrödinger Virtual Screening Web Service](https://www.schrodinger.com/platform/products/virtual-screening-web-service/) illustrates an existing automated virtual-screening product form.
 - [Optibrium StarDrop](https://optibrium.com/product/stardrop/) provides a reference for multi-parameter optimization; "multi-objective" alone is not a unique value proposition.
 - Read [PolyForm Noncommercial 1.0.0](https://polyformproject.org/licenses/noncommercial/1.0.0) alongside LICENSE_SCOPE.txt. Existing licenses, models, data and third-party terms require separate review. This is not a formal legal opinion.
 - Local evidence: [maturity](../09_MATURITY_AND_APPLICATION_SCOPE.md), [historical acceptance](../10_INTEGRATED_ACCEPTANCE.md), [open work](../11_RELEASE_MAINTENANCE.md). This assessment did not rerun historical scientific results.

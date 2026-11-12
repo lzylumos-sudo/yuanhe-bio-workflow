@@ -1,6 +1,6 @@
 # Dual RTX PRO 5000 Blackwell research configuration
 
-The original upgrade delivered code changes and static acceptance only. It did not execute unit or integration tests, model inference, Vina, GROMACS, checkpoint trials, GUI acceptance or performance tests. That delivery does not establish dual-GPU validation or scientific validity. Subsequent engineering test results must be recorded separately from target-host scientific validation.
+The original upgrade delivered code changes and static acceptance only. It did not execute unit or integration tests, model inference, Vina, GROMACS, checkpoint trials, GUI acceptance or performance tests. Dual-GPU and scientific validation remain pending. Subsequent engineering test results must be recorded separately from target-host scientific validation.
 
 ## Shared configuration and defaults
 
@@ -70,4 +70,4 @@ Run creation accepts the complete workbench configuration: `python 00_workbench/
 - Chemical states require explicit import and review; additional protonation/tautomeric states are not automatically predicted.
 - Tests supplied in the original upgrade were not executed then. Results from another historical task do not certify this integrated version.
 
-This research workflow upgrade is integrated into the original project but still needs target-environment validation and the outstanding capabilities above. It does not establish completion of all P1/P2 work.
+This research workflow upgrade is integrated into the original project but still needs target-environment validation and the outstanding capabilities above. P1/P2 completion is tracked against the outstanding items.

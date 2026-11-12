@@ -10,4 +10,4 @@ Analysis: protein-backbone alignment; formal 400-500 ns window; 10 ns blocks; co
 
 Inputs: original complex and selected components, chemical-state/atom mapping, coordinates, topology, parameters and explicit decisions. Outputs: systems, trajectory/checkpoints, analysis, acceptance and versioned run metadata. Checkpoint/state/atom order and charge checks remain unchanged. Coordinate-only restart is not represented as continuous checkpoint recovery.
 
-Scope: regression/contract tests on this Mac; no new production trajectory, RESP calculation or target CUDA acceptance. See existing `05_molecular_dynamics/docs` and `docs/15_VINA_RESP_RESEARCH.md` for methods and scientific limitations. Parameter choices are engineering protocol definitions, not a claim of a unique literature standard.
+Scope: regression/contract tests on this Mac; no new production trajectory, RESP calculation or target CUDA acceptance. See existing `05_molecular_dynamics/docs` and `docs/15_VINA_RESP_RESEARCH.md` for methods and scientific limitations. Parameter choices define this engineering protocol.

@@ -10,7 +10,7 @@ These standalone runtime scripts require the separately retained WSL image; the 
 
 Project paths are resolved through the current directory and wslpath; Linux prefixes remain inside ext4. Windows, WSL registration and GPU drivers are host prerequisites. Update WSL explicitly if import-in-place is unsupported. Never use `wsl --unregister` as a supposedly safe detach operation; it may delete distribution data.
 
-EXPORT_RUNTIME.ps1 safely stops this project, exports a tar snapshot and records SHA-256. Restore into a new location with `wsl --import UNIQUE_NAME NEW_DIRECTORY SNAPSHOT --version 2`, verify the project UUID and retain the original until recovery succeeds. Exporting a snapshot is not proof of restoration.
+EXPORT_RUNTIME.ps1 safely stops this project, exports a tar snapshot and records SHA-256. Restore into a new location with `wsl --import UNIQUE_NAME NEW_DIRECTORY SNAPSHOT --version 2`, verify the project UUID and retain the original until recovery succeeds. Verify restoration in the new environment.
 
 After interruption, matching orphan processes and run states are reconciled. Resume reuses only checksum-valid completed jobs; incomplete or corrupted jobs remain failed/interrupted and are retried explicitly. Cancellation is not completion.
 

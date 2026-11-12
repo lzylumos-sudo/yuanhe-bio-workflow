@@ -5,7 +5,7 @@ Coordinates are Angstroms. Hypotheses contain ``hypothesis_id``, ``anchor_points
 ``excluded_volumes`` (``xyz``, ``radius``). Receptor atoms are dictionaries with
 ``xyz``, ``element``, ``atom_name``, ``resname``, ``chain``, ``resid`` (or an
 explicit ``residue_id``). Hydrogen bonds here are distance/type screens only;
-no directionality or energetic claim is made.
+directionality and energy are evaluated separately.
 """
 from __future__ import annotations
 

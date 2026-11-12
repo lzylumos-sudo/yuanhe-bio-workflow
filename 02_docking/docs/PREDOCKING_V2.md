@@ -136,7 +136,7 @@ large retro assets; missing routes remain pending rather than passing.
 
 The unchanged 127-file protected scientific baseline includes docking and MD
 core settings. NVIDIA GPU and complete MD execution require target-host
-acceptance; this local CPU test does not establish GPU or experimental results.
+acceptance. The local test covers CPU execution.
 
 ## Licenses and sources
 

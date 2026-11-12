@@ -6,7 +6,7 @@ Use one immutable administrator release and its matching source manifest, fronte
 
 For a generic machine, copy `deployment/site.example.json` outside the source directory. For the previously inspected campus machine, copy `deployment/site.campus-upgrade.json`. It selects a new `/home/user/yuanhe-runtime-0.11.0-dev.4` prefix, reuses the existing public model bundle and CUDA GROMACS executable, binds `10.71.121.57`, and uses **8778** for validation while the existing service keeps **8777**.
 
-The campus template contains observed paths, not a guarantee that they still exist. Preflight checks them and refuses an existing destination. If the destination already exists from a failed attempt, preserve its logs and choose another new prefix. Do not overwrite it or reuse its evidence as a successful install.
+The campus template contains paths recorded during setup. Preflight checks them and refuses an existing destination. If the destination already exists from a failed attempt, preserve its logs and choose another new prefix. Do not overwrite it or reuse its evidence as a successful install.
 
 `model_source` supplies only verified local weights and, when available, cached Git objects for the pinned upstream commits. Restoration reconstructs clean vendor code inside the new source directory, then the installer applies this release's patches there. It never copies the old vendor working tree or imports its installed environment. If the old vendor directories have no usable Git metadata, restoration fetches the same pinned public source commits. REINVENT4 is installed from the new directory into the new prefix, and generated runtime paths point to that new environment.
 
@@ -28,4 +28,4 @@ Verify diagnostics and public small-input UI paths. Confirm that a second confli
 
 After acceptance, stop new submissions to the old service, wait for or safely checkpoint its workers, and have the administrator switch the service command to the new source/runtime. To retain port 8777, use the new source's `start_linux.sh --host 10.71.121.57 --port 8777` under the service account after the old listener stops. Confirm the same exact commit and frontend hashes again. Keep the old environment and service definition for rollback; never let both versions write the same task directory.
 
-The release and configuration do not claim that the target machine was redeployed, that a 500 ns trajectory completed, or that generated candidates have experimental activity.
+Target-machine redeployment, the 500 ns trajectory and experimental candidate activity each require their own execution records.

@@ -416,7 +416,7 @@ def analyze_replica(config, paths, replica):
             "probe_angstrom":settings.get("sasa_probe_angstrom",1.4),"sphere_points":settings.get("sasa_points",100),
             "stride_analyzed_frames":sasa_stride,"buried_SASA":"SASA(A)+SASA(B)-SASA(A+B); interface area is half.",
             "ternary":"Each pair is computed in isolation from the third component; pairwise buried areas are not additive."},
-        "limitations":"No automatic convergence, affinity, correct-pose, recruitment or degradation claim. Review protonation, PBC assembly and replica disagreement."})
+        "limitations":"Review protonation, PBC assembly, replica disagreement and convergence; evaluate affinity, pose correctness, recruitment and degradation against appropriate experimental references."})
     u.trajectory.close()
     return summary
 

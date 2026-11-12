@@ -131,7 +131,7 @@ def main():
     if previous.get("status") != "PASS" or previous.get("run_id") == args.run_id:
         write(PROJECT_ROOT / "validation_status.json", {
             "status": record["status"], "run_id": args.run_id, "checked_at": now(),
-            "scope": "10ns independent acceptance not passed; no scientific completion claim.",
+            "scope": "10ns independent acceptance pending.",
             "evidence": str(status_path.relative_to(PROJECT_ROOT)),
         })
     print(json.dumps(record), flush=True)

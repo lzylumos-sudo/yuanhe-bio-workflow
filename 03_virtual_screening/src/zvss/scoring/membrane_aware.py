@@ -166,7 +166,7 @@ class MembraneAwareScorer:
             "limitations": [
                 "membrane_aware_score is an ordinal position, not a binding free energy",
                 "membrane evidence resolves ties after the existing tier and evidence score",
-                "missing accessibility evidence is not proof that a ligand cannot bind",
+                "accessibility evidence is missing; binding status remains undetermined",
                 "the original engine-labelled scores and baseline rank are preserved",
             ],
         }
@@ -244,7 +244,7 @@ class MembraneAwareScorer:
             source="Y-MAVS accessibility stage",
             confidence_level="low",
             unit="angstrom",
-            detail="geometric proxy only; a static closed path is not proof of no binding",
+            detail="static geometric accessibility estimate; binding requires separate evaluation",
         )
         ensemble = self._ensemble_for(compound_id)
         ensemble_item = _item(
@@ -523,7 +523,7 @@ code {{ font-family: Consolas, monospace; }}
 <code>membrane_aware_score</code> is an ordinal priority within this candidate pool, not a binding free energy,
 activity probability, or validated hit-rate improvement. Membrane orientation:
 <code>{esc(str(orientation.get('status')))}</code>, source <code>{esc(str(orientation.get('source')))}</code>.
-Accessibility is a static geometric proxy; a missing static path is not proof that binding is impossible.
+Accessibility describes static geometry; binding is evaluated separately.
 </div>
 <p>Evidence status counts: {esc(str(status_counts))}. Formal qualification remains governed by the existing
 qualification rules and is not upgraded by this ranking. Pose reselection:

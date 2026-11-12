@@ -10,7 +10,7 @@ The workbench is the orchestrator. Scientific cores retain explicit input/output
 | Peptide evidence | `scientific.peptide_contacts` | Receptor-frame check, peptide and candidate contacts, geometry controls, same-pool ranking ablation |
 | Membrane MD | `00_workbench/scientific` / `scientific.md_cli` | Versioned, checksum-verified MD bundle, built system, simulation phases, analysis |
 
-Docking and screening already have their own Python distributions. Export them with `python deployment/package_component.py --module docking --output /new/path/docking.zip` or `--module screening` into a separate output file; the archives include source, environment guidance and checksum manifests. The membrane core is exportable with `python deployment/package_md.py --output /new/path/yuanhe-md.zip`. This archive contains the same implementation called by the UI, dependencies and license notices. It has no UI dependency at import time. GPU engines and model weights remain external dependencies; packaging is not a claim that every host is validated.
+Docking and screening already have their own Python distributions. Export them with `python deployment/package_component.py --module docking --output /new/path/docking.zip` or `--module screening` into a separate output file; the archives include source, environment guidance and checksum manifests. The membrane core is exportable with `python deployment/package_md.py --output /new/path/yuanhe-md.zip`. This archive contains the same implementation called by the UI, dependencies and license notices. It has no UI dependency at import time. GPU engines and model weights remain external dependencies; validate each deployment host separately.
 
 ## Screening to MD: `yuanhe.md-input/1`
 
@@ -37,7 +37,7 @@ The GPU build environment pins CUDA 13.1 for the validated driver; other hosts n
 
 System review precedes minimization, 0.1 ns NVT, two NPT restraint stages, a separate 20 ps checkpoint continuity test, and production. Production length is configurable. The historical acceptance used 1 ns; the current repeat protocol uses three 5 ns production trajectories with seeds 17, 41 and 97, sharing a prepared structure but drawing independent velocities. The independent checkpoint test does not splice or interrupt the production trajectory.
 
-Analysis uses the actual production trajectory: protein-backbone aligned RMSD, ligand RMSD under the same fit, CA RMSF, periodic distance contacts, a membrane phosphorus-separation proxy, thermodynamic time series, first/last structures, CSV, PNG/PDF and UI trajectory frames. Contact occupancy is not a hydrogen-bond definition. Short MD does not establish activity, affinity, convergence or publishability.
+Analysis uses the actual production trajectory: protein-backbone aligned RMSD, ligand RMSD under the same fit, CA RMSF, periodic distance contacts, a membrane phosphorus-separation proxy, thermodynamic time series, first/last structures, CSV, PNG/PDF and UI trajectory frames. Contact occupancy is not a hydrogen-bond definition. Activity and affinity require experimental evaluation; convergence requires trajectory diagnostics.
 
 `preliminary` remains `preliminary` after successful MD. A zero-formal-candidate screen may enter an explicitly acknowledged exploratory branch, but it does not gain a formal pass by completing that branch. New targets require appropriate structures, protonation, box, membrane model and acceptance criteria. The current membrane builder is a reviewed single-lipid model, not a universal biological-system builder.
 

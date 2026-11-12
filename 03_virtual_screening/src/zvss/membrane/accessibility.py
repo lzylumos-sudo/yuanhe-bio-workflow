@@ -5,10 +5,9 @@ probe radius, seed free cells around the docked ligand, and test six-connected
 free-space paths to (a) the aqueous side beyond the membrane interface and (b)
 the lateral membrane boundary.  This is deliberately a *geometric proxy*.
 
-It does not establish that a drug molecule can permeate a membrane, that a lipid
-path exists in a dynamic bilayer, or that a static closed conformation is
-unbindable.  A missing path is therefore reported as ``uncertain``, never as a
-biological exclusion.
+Membrane permeation and paths in a dynamic bilayer require dynamic or
+experimental assessment. A missing static path is reported as ``uncertain``
+for follow-up assessment.
 """
 
 from __future__ import annotations

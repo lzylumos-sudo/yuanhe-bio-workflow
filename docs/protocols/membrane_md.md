@@ -10,4 +10,4 @@ Topology checks preserve ligand RESP charges, total neutrality, atom order and 1
 
 Analysis: protein-backbone least-squares alignment; first production frame reference; original PBC/whole-molecule treatment; ligand not independently fitted; 4.5 Angstrom contact occupancy is not hydrogen-bond occupancy. Original windows, PBSA membrane review and raw/derived output definitions remain unchanged. System-specific reviewed orientation, pose/state IDs, charge evidence and complete parameters are authoritative for each run.
 
-Validation in this refactor is static/contract and exact MDP regression only. No real membrane building, topology conversion, checkpoint or 500 ns run was performed here. Existing method notes and dependency citations are in `docs/15_VINA_RESP_RESEARCH.md`; no new scientific claim is made.
+Validation in this refactor is static/contract and exact MDP regression only. No real membrane building, topology conversion, checkpoint or 500 ns run was performed here. Existing method notes and dependency citations are in `docs/15_VINA_RESP_RESEARCH.md`.

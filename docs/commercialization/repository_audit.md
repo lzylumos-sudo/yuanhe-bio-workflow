@@ -17,7 +17,7 @@ Date: 2026-10-19. Baseline `c1a87a5`, local external-drive branch `codex/rtx5090
 
 A means implemented and currently demonstrated by a relevant real test; no entire module is promoted to A on this pass. C means partial implementation, D planned, E legacy/problematic. B does not mean scientific validation. Per-feature evidence and final acceptance boundaries remain in docs/09–11.
 
-All tracked Python source is included in static syntax review. The current content map indexes tracked files without moving any. Local untracked demo/video and business-plan documents remain untouched; model/environment/result directories are not copied into this change set. No credentials or private candidate content are reproduced in these reports. A full historical secrets scan and rights review remains open; absence of a reported secret is not proof of absence.
+All tracked Python source is included in static syntax review. The current content map indexes tracked files without moving any. Local untracked demo/video and business-plan documents remain untouched; model/environment/result directories are not copied into this change set. No credentials or private candidate content are reproduced in these reports. A full historical secrets scan and rights review remains open.
 
 Hardcoded paths and deployment dependencies must be reviewed in their host context. Existing model restoration, platform launchers and environment locks are retained. macOS syntax checks cannot certify Windows/WSL or Linux/GPU execution. Public-demo isolation and remote final MD state are not revalidated.
 

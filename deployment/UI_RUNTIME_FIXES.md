@@ -4,7 +4,7 @@ Scope: source commit `baf29bcfb72d4c2d2bb2173b735b5dadfa4719f3` and its pinned d
 
 ## Corrections
 
-- Load official SA_Score from either PyPI or RDKit's configured Conda Contrib directory; require its fragment data. Readiness calculates a reference score. The import failure does not establish that RDKit 2026 removed Contrib; see the [RDKit maintainer's explanation](https://greglandrum.github.io/rdkit-blog/posts/2023-12-01-using_sascore_and_npscore.html).
+- Load official SA_Score from either PyPI or RDKit's configured Conda Contrib directory; require its fragment data. Readiness calculates a reference score. For Contrib import configuration, see the [RDKit maintainer's explanation](https://greglandrum.github.io/rdkit-blog/posts/2023-12-01-using_sascore_and_npscore.html).
 - Require the hash-recorded Peptide2Mol patch before preparation/inference. The base revision already shipped and installed a bounded-sampling patch; pristine upstream code is not the deployed contract. The revised patch counts every rejected attempt, handles the final partial batch, emits progress and leaves a failed audit on model/device errors. Never fabricate attempt_budget.json or suppress its validation.
 - Redirect losses.txt to the run output. Run diagnostic subprocesses, including interpreter exit hooks, inside disposable directories so Psi4 cannot leave timer.dat in the checkout.
 - Install a separate pinned PyMOL renderer, bind pymol_python, test actual scene/PNG creation in readiness, and render both artifacts through the UI module adapter. Partial tables/SVG remain available with explicit failure if rendering fails.

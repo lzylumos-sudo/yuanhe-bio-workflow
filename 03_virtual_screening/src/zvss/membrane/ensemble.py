@@ -116,7 +116,7 @@ class MembraneEnsembleAnalyzer:
             "limitations": [
                 "per-state GNINA scores are not averaged; different constructs and states are not directly interchangeable",
                 "missing state evidence is reported as missing, never as a zero score",
-                "C-alpha alignment does not establish that conformational states are biologically equivalent",
+                "C-alpha alignment assesses structural correspondence; biological equivalence requires state-specific evidence",
                 "single-state binding can be meaningful for a state-selective inhibitor and is reported separately",
             ],
         }

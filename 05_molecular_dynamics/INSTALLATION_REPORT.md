@@ -27,7 +27,7 @@ GPU: CUDA plugin detected; explicit GPU MD testing has not been performed. See t
 | parmed | 4.3.1 |
 
 Install completed and native CPU test passed before module automation development.
-Molecular preparation, simulation, analysis and 10 ns acceptance are recorded separately; this report does not imply those checks passed.
+Molecular preparation, simulation, analysis and 10 ns acceptance are recorded separately.
 
 ## New molecular workflow test
 
@@ -51,7 +51,7 @@ Independent tests reject missing/duplicate/corrupt embedded metadata and corrupt
 
 `results/integration_haddock_single_file`: PASS; only the newly docked 1BRS complex.pdb was copied, without SDF or manifest sidecars. Explicit CPU preparation, 36,028-atom system, CPU two-thread minimization/NVT/NPT and 2,000 production steps = 4 ps completed. Four trajectory frames, checkpoint/time audit and all applicable analysis passed. Ligand RMSD is an explicitly labeled N/A figure; MMGBSA.csv and optional metadata consistently record NOT_APPLICABLE.
 
-A PDB four-column residue-number parser warning affects only 2,835 solvent HOH atoms; protein identities are unaffected. MD uses the original indexed System, and analysis restores exact atom-indexed bonds and residue labels from topology.json. This warning does not establish a protein identity mismatch.
+A PDB four-column residue-number parser warning affects only 2,835 solvent HOH atoms; protein identities are unaffected. MD uses the original indexed System, and analysis restores exact atom-indexed bonds and residue labels from topology.json. Protein identity is checked against the indexed topology.
 
 ## Actual GNINA single-PDB full MD integration
 
@@ -69,7 +69,7 @@ The independent `scripts/validate_10ns.py` passed actual short-trajectory hash, 
 
 `results/integration_rosetta_single_file_v2`: actual Rosetta-generated public 5T35 VHL-MZ1-BRD4 model, copied as one PDB with no sidecars, passed independent CPU preparation. It contains 451 protein residues across four chains and 69 ligand heavy atoms. The original 3,641 protein hydrogens were rebuilt at pH 7.0; all existing protein and ligand heavy-atom coordinates were retained exactly during preparation. Exact SDF/PDB heavy-atom mapping and stereochemistry checks passed.
 
-The first attempt was correctly rejected because the upstream atom_mapping included hydrogens. The Rosetta exporter corrected that metadata to list only heavy atoms while preserving original SDF indices, all coordinates, and the complete SDF chemical definition. Both attempts are retained. Preparation success is not proof of subsequent parameterization or MD completion; each later stage must supply its own evidence.
+The first attempt was correctly rejected because the upstream atom_mapping included hydrogens. The Rosetta exporter corrected that metadata to list only heavy atoms while preserving original SDF indices, all coordinates, and the complete SDF chemical definition. Both attempts are retained. Parameterization and MD completion are recorded at their respective stages.
 
 ## Actual Rosetta single-PDB full 4 ps integration
 

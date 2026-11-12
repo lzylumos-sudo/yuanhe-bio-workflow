@@ -6,7 +6,7 @@ The UI/membrane integration candidate was subsequently checked on 2026-10-18: wo
 
 Current English-release results are recorded separately in `../deployment/english_validation.json`; do not add overlapping historical totals together.
 
-Not performed at the earlier integration-candidate checkpoint (superseded for the Ubuntu case below): actual Peptide2Mol/REINVENT4 target inference, GNINA target batch docking, GROMACS membrane parameterization or dynamics, standalone OpenMM production, Windows launcher acceptance, or migration to a second computer. Adapter test doubles do not establish real inference. Dependency availability does not establish scientific validity.
+Not performed at the earlier integration-candidate checkpoint (superseded for the Ubuntu case below): actual Peptide2Mol/REINVENT4 target inference, GNINA target batch docking, GROMACS membrane parameterization or dynamics, standalone OpenMM production, Windows launcher acceptance, or migration to a second computer. Real inference and scientific validation require separate runs.
 
 The test interpreter uses an isolated local environment with RDKit, PyYAML and gemmi. Run suites separately because multiple modules use the same package names. Historical reports may reference artifacts excluded from GitHub; absence of those files is not evidence of a new successful run.
 

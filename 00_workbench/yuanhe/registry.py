@@ -70,8 +70,8 @@ def snapshot(config=None):
         implemented = (ROOT / row['implementation_path']).exists()
         installed = implemented and probe['available'] and all(binaries.values()) and all(assets.values())
         configuration = reinvent_environment_check(config) if row['backend_id'] == 'reinvent4' else {'ok': True}
-        # Import availability does not establish a working CUDA device, licensed model,
-        # validated topology or reviewed run inputs. Only stdlib orchestration is ready here.
+        # This probe covers imports and stdlib orchestration. CUDA execution, model
+        # availability, topology validation and input review have separate checks.
         runnable = bool(installed and row['backend_id'] == 'workbench' and row['status'] == 'active')
         if installed and row['backend_id']=='vina' and row['status']=='active':
             try:

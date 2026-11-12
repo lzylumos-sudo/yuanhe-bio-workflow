@@ -72,7 +72,7 @@ export function mountStudio(ctx){
  button(tools,'Export reproduction records',async()=>{const body=open('Export this run');note(body,'Includes inputs, frozen parameters, reviews, logs and analysis. Large trajectories are excluded unless requested. Active runs cannot be exported.');const full=input(body,'Include raw trajectories and large binary artifacts',false,'checkbox');button(body,'Build and download archive',async()=>{const result=await api(route('export'),{full:full.checked});const a=E('a','Download run records ZIP');a.href=result.url;a.download='';body.append(a);table(body,{files:result.files,omitted:result.omitted});a.click()})});
  button(tools,'⑦ Optional controls and trajectory comparison',async()=>{
   const body=open('Optional controls and additional trajectories');
-  note(body,'The standard workflow uses one trajectory from steps ④–⑥. These controls and additional independent trajectories are optional; they do not establish activity or convergence.');
+  note(body,'The standard workflow uses one trajectory from steps ④–⑥. These controls and additional independent trajectories support further analysis; assess activity experimentally and convergence with trajectory diagnostics.');
   const cleanPython=input(body,'Independent Python path (blank uses configured environment)','');
   button(body,'Run independent docking: 1DRF crystal ligand, three seeds',()=>launch('md_validation',{mode:'docking_control',python:cleanPython.value}));
   button(body,'Reassess archived redocking and formal qualification',()=>launch('md_validation',{mode:'screening_reassessment'}));

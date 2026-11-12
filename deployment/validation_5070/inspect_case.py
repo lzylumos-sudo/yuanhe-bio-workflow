@@ -28,7 +28,7 @@ def main():
     rr=[x for x in rows if x['chain']==c];res={x['resid']:x['resname'] for x in rr}
     result['chains'][c]={'atoms':len(rr),'residues':len(res),'range':[min(res),max(res)],'missing_in_MurJ_3_500':[n for n in range(3,501) if n not in res] if c=='A' else None}
    result['construct_mutations']={str(n):next((x['resname'] for x in rows if x['chain']=='A' and x['resid']==n),None) for n in [5,12,13]}
-   result['warning']='Observed coordinates only. Not proof of full-length WT protein or complete lysis protein.'
+   result['warning']='Observed coordinates; review sequence and construct coverage against the intended protein.'
   else:
    wanted={50,51,53,54,237,240,241,244}
    region=[x for x in rows if x['chain']=='A' and x['resid'] in wanted and x['element'].upper()!='H']

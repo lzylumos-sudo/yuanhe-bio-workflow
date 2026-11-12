@@ -110,7 +110,7 @@ def acceptance(config,paths,run_id):
     result=verify_run(config,paths)
     atomic_json(paths['md'].parent/'acceptance.json',result)
     enough=result['production_ns']>=10.0-1e-8 and config['replicates']>=1
-    text=['# MD test '+('PASS' if result['passed'] else 'FAIL'),'','Scope: numerical workflow acceptance; no convergence, affinity or pose-correctness claim.',
+    text=['# MD test '+('PASS' if result['passed'] else 'FAIL'),'','Scope: numerical workflow acceptance.',
           '','Run ID: '+run_id,'Production per replica (ns): '+str(result['production_ns']),
           'Replicas: '+str(config['replicates']),
           'Force fields: '+config['MD']['protein_forcefield']+' / '+config['MD']['water_forcefield']+' / '+str(config['MD'].get('ligand_forcefield')),

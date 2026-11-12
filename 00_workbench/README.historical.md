@@ -1,6 +1,6 @@
 # Historical WEDGE-Design scaffold method
 
-This English reference describes the earlier rule-based prototype, not the current Peptide2Mol/REINVENT4 backend. Numbers below are historical recorded outputs, not newly executed experiments. Geometric scores and peptide overlap are hypotheses, not proof of inhibition, permeability, resistance avoidance or synthetic feasibility.
+This English reference describes the earlier rule-based prototype. Numbers below are historical recorded outputs. Geometric scores and peptide overlap support structural hypotheses; inhibition, permeability, resistance and synthesis feasibility require corresponding experiments.
 
 The source structures are 9NU4, 9NU5 and 9NU8. The recorded literature reference is Li et al., *Convergent MurJ flippase inhibition by phage lysis proteins*, Nature 652, 1274-1280 (2026), DOI 10.1038/s41586-026-10163-w. Consult the original publication before using its claims; this translation does not independently verify it.
 
@@ -46,7 +46,7 @@ python run_filters.py --out results
 python tests/test_smoke.py
 ```
 
-Historical timings were about 30 seconds for evidence, 50 seconds for design and 81 seconds for filtering on one CPU. These are not performance guarantees. Old SDF chemistry must pass independent RDKit readback before reuse; the v2 implementation rejects invalid historical chemical inputs.
+Historical timings were about 30 seconds for evidence, 50 seconds for design and 81 seconds for filtering on one CPU. Old SDF chemistry must pass independent RDKit readback before reuse; the v2 implementation rejects invalid historical chemical inputs.
 
 ## Interface and hotspot calculation
 
@@ -119,7 +119,7 @@ Scaffolds follow `head-link-ring-link-...-tail`; axial span is the sum of unit s
 | Phenyl, pyridyl, pyrimidinyl, cyclohexyl tail | 1.40 |
 | tert-Butyl / benzoic-acid tail | 0 / 4.28 |
 
-Historical filters constrain the first linker, limit repeated linker types to two and amides to one, and require a rigid ring core. Coordinates and SMILES come from the same unit definitions. These construction rules do not establish synthesis feasibility.
+Historical filters constrain the first linker, limit repeated linker types to two and amides to one, and require a rigid ring core. Coordinates and SMILES come from the same unit definitions. Assess synthesis feasibility for each resulting molecule.
 
 ```python
 for feature1, feature2 in design_axes:
@@ -185,7 +185,7 @@ The top historical scaffold failed F4: scores 9.97, 8.45 and 0.76, with a missin
 | `pocket.json` | Cavity and subpocket geometry |
 | `interface_hotspots.csv` | Prior-weighted interface analysis |
 
-Historical proposals included scaffold decoration, pocket-conditioned generation, ensemble docking, state-selectivity comparisons, 100-500 ns MD and free-energy follow-up. These proposals were not completed by this prototype. The current backend uses Peptide2Mol pocket-conditioned seeds and reviewed REINVENT4 cores; it does not claim peptide-pharmacophore preservation or unimplemented inpainting.
+Historical proposals included scaffold decoration, pocket-conditioned generation, ensemble docking, state-selectivity comparisons, 100-500 ns MD and free-energy follow-up. These proposals were not completed by this prototype. The current backend uses Peptide2Mol pocket-conditioned seeds and reviewed REINVENT4 cores; peptide-pharmacophore preservation and inpainting remain unimplemented.
 
 ## Parameters, limitations and validation proposals
 
@@ -203,7 +203,7 @@ Historical proposals included scaffold decoration, pocket-conditioned generation
 | Property envelope | MW 260-470; cLogP 0.8-4.5; TPSA <=95; HBD <=2; HBA <=9; RotB <=6; rings <=4 |
 | Property penalties | MW excess /40, lower shortfall /150; cLogP upper *0.6, lower *0.4; TPSA above 90 /12 |
 
-The historical property model uses fragment estimates, not a validated permeability model. The score has no explicit membrane, water, entropy or reliable free energy. Resolution limits side-chain certainty; efflux, metabolism, synthesis and cellular access require independent assessment.
+The historical property model uses fragment estimates; permeability validation remains pending. The score has no explicit membrane, water, entropy or reliable free energy. Resolution limits side-chain certainty; efflux, metabolism, synthesis and cellular access require independent assessment.
 
 Proposed controls include reference-peptide geometry checks, randomized feature-distance controls, mutation sensitivity, outward/inward state comparisons and prospective biochemical/cellular assays. No proposed control, MIC target, candidate mechanism, synthesis route or assay availability is presented here as experimentally established. Current release acceptance is defined in the root validation guide, separately from this historical method.
 

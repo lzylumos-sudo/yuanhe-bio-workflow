@@ -50,7 +50,7 @@ def _toml(path: Path) -> dict:
 
 
 def detect_entry() -> str:
-    """Best-effort label only. It is NOT proof that a platform was validated (see STATUS maturity matrix)."""
+    """Platform label; validation status is recorded in the STATUS maturity matrix."""
     sysname = platform.system()
     if sysname == "Darwin":
         return "mac_dev"

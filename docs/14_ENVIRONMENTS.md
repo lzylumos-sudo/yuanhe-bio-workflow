@@ -33,7 +33,7 @@ conda run -n yuanhe-docking-v2 python -m pip install --no-deps -e .
 conda run -n yuanhe-docking-v2 python -m pytest tests -q
 ```
 
-For Apple Silicon use the `osx-arm64` lock instead. These are reconstruction instructions, not a claim that both environments were freshly recreated during this review. Native engine executables, system libraries, models and target GPU checks remain separate. A solver YAML can be used with `conda env create -n NEW_NAME -f FILE`, but its output must be validated before replacing a known working environment.
+For Apple Silicon use the `osx-arm64` lock instead. These instructions describe environment reconstruction; fresh environment verification remains pending. Native engine executables, system libraries, models and target GPU checks remain separate. A solver YAML can be used with `conda env create -n NEW_NAME -f FILE`, but its output must be validated before replacing a known working environment.
 
 ## Maintain lightweight, useful records
 

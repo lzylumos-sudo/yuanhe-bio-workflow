@@ -5,10 +5,10 @@ Status: local development branch; static review after the user's no-run instruct
 ## Compatibility and semantics
 
 - Existing CLI, data directories and qualification thresholds are retained. New reports add fields and files; consumers should ignore unknown fields.
-- Representative ordering is QA pass, flag, unknown, fail, followed by existing affinity/CNN/id tie breaks. This can legitimately change candidate identity and results in a future fresh run. It is not guaranteed to preserve historical selections.
+- Representative ordering is QA pass, flag, unknown, fail, followed by existing affinity/CNN/id tie breaks. This can legitimately change candidate identity and results in a future fresh run. 
 - Strain and redocking qualification now require matching representative-pose provenance. Legacy records lacking identity become not-evaluated when reevaluated; existing reports are not rewritten.
 - A measured blocking strain failure excludes every tier. A warning is retained as a warning. Missing strain does not become zero.
-- Pareto objectives use raw affinity (minimize), region contacts (maximize) and strain (minimize). Their units remain separate. Ineligible or incomplete/nonfinite objective rows cannot enter the reported front. This is a computational tradeoff display, not a biological optimum. Contact count can reward size; it is not a validated mechanistic or potency score.
+- Pareto objectives use raw affinity (minimize), region contacts (maximize) and strain (minimize). Their units remain separate. Ineligible or incomplete/nonfinite objective rows cannot enter the reported front. This is a computational tradeoff display, a display of competing computational objectives. Contact count is size-dependent and describes geometric contacts.
 - Default `evidence_diversity` retains the prior allocation approach. Optional `pareto_diversity` applies evidence tier, then raw-objective Pareto layers, then diversity within a layer. Formal qualification still runs first. Incomplete objectives are ordered after complete layers within their tier.
 - Weighted scores are within-pool percentiles, not cross-run values. A globally missing component is omitted from normalization; a missing component for one row contributes nothing. Coverage is relative to available weighted components, not completeness of all scientific requirements.
 
